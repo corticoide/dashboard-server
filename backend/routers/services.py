@@ -1,0 +1,40 @@
+from fastapi import APIRouter, Depends, HTTPException
+from typing import List
+from backend.dependencies import get_current_user, require_role
+from backend.models.user import UserRole
+from backend.schemas.services import ServiceInfo, ServiceLog
+from backend.services.services_service import list_services, get_service_logs, control_service
+
+router = APIRouter(prefix="/api/services", tags=["services"])
+
+
+@router.get("/", response_model=List[ServiceInfo])
+def get_services(user=Depends(get_current_user)):
+    try:
+        return list_services()
+    except RuntimeError as e:
+        raise HTTPException(status_code=503, detail=str(e))
+
+
+@router.get("/{name}/logs", response_model=ServiceLog)
+def get_logs(name: str, lines: int = 100, user=Depends(get_current_user)):
+    try:
+        return get_service_logs(name, lines)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except RuntimeError as e:
+        raise HTTPException(status_code=503, detail=str(e))
+
+
+@router.post("/{name}/{action}")
+def service_action(
+    name: str,
+    action: str,
+    user=Depends(require_role(UserRole.operator)),
+):
+    try:
+        return control_service(name, action)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except RuntimeError as e:
+        raise HTTPException(status_code=500, detail=str(e))
