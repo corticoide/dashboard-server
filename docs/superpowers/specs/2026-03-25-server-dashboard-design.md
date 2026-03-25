@@ -78,7 +78,7 @@ Role is stored in JWT claims and enforced on every API endpoint via FastAPI depe
 ## UI Layout & Theme
 
 ### Layout
-- **Sidebar colapsable** (left) with module navigation icons + labels
+- **Sidebar collapsable** (left) with module navigation icons + labels
 - **Header bar** with app name, current page title, user avatar, dark/light toggle
 - Sidebar collapses to icon-only mode to maximize content area
 - Responsive for standard desktop/laptop screen sizes
@@ -145,7 +145,8 @@ Role is stored in JWT claims and enforced on every API endpoint via FastAPI depe
 | Store | Contents |
 |-------|----------|
 | `data/serverdash.db` (SQLite) | users, roles, script favorites, execution logs |
-| `data/config.json` | dashboard settings, theme preference |
+| `data/config.json` | server-side dashboard settings (allowed script paths, service filters, etc.) |
+| `localStorage` (browser) | client-side preferences: dark/light theme toggle |
 
 No external database dependency. Migratable to PostgreSQL in the future without architectural changes (SQLAlchemy abstraction layer).
 
