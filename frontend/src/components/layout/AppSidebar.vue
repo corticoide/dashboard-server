@@ -38,7 +38,7 @@
         </svg>
         <span class="nav-label">Services</span>
       </RouterLink>
-      <RouterLink to="/files" class="nav-item disabled" title="Files">
+      <RouterLink to="/files" class="nav-item" title="Files">
         <svg class="nav-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/>
         </svg>
