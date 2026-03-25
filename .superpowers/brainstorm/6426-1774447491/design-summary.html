@@ -1,0 +1,106 @@
+<h2>Diseño Completo — ServerDash</h2>
+<p class="subtitle">Resumen para aprobación final antes de escribir el spec</p>
+
+<div style="max-width:900px;margin:0 auto;display:flex;flex-direction:column;gap:14px">
+
+  <!-- Stack -->
+  <div style="background:#161b22;border:1px solid #30363d;border-radius:10px;padding:16px">
+    <div class="label" style="color:#58a6ff;margin-bottom:10px">STACK TECNOLÓGICO</div>
+    <div style="display:flex;flex-wrap:wrap;gap:8px;font-size:12px">
+      <span style="background:#0d1117;border:1px solid #238636;color:#3fb950;padding:4px 12px;border-radius:20px">Python + FastAPI</span>
+      <span style="background:#0d1117;border:1px solid #1f6feb;color:#58a6ff;padding:4px 12px;border-radius:20px">Vue 3 + Vite</span>
+      <span style="background:#0d1117;border:1px solid #6e40c9;color:#a371f7;padding:4px 12px;border-radius:20px">SQLite</span>
+      <span style="background:#0d1117;border:1px solid #b08800;color:#d29922;padding:4px 12px;border-radius:20px">JWT (access + refresh)</span>
+      <span style="background:#0d1117;border:1px solid #b08800;color:#d29922;padding:4px 12px;border-radius:20px">HTTPS (cert autofirmado)</span>
+      <span style="background:#0d1117;border:1px solid #238636;color:#3fb950;padding:4px 12px;border-radius:20px">Monaco Editor</span>
+      <span style="background:#0d1117;border:1px solid #238636;color:#3fb950;padding:4px 12px;border-radius:20px">psutil · python-crontab</span>
+    </div>
+  </div>
+
+  <!-- Auth -->
+  <div style="background:#161b22;border:1px solid #30363d;border-radius:10px;padding:16px">
+    <div class="label" style="color:#d29922;margin-bottom:10px">AUTENTICACIÓN & ROLES</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;font-size:12px">
+      <div style="background:#0d1117;border:1px solid #ff5f57;border-radius:6px;padding:10px;text-align:center">
+        <div style="color:#ff5f57;font-weight:bold;margin-bottom:4px">admin</div>
+        <div style="color:#8b949e">Acceso total. Gestión de usuarios, configuración del sistema.</div>
+      </div>
+      <div style="background:#0d1117;border:1px solid #d29922;border-radius:6px;padding:10px;text-align:center">
+        <div style="color:#d29922;font-weight:bold;margin-bottom:4px">operator</div>
+        <div style="color:#8b949e">Ejecutar scripts, gestionar servicios, editar archivos.</div>
+      </div>
+      <div style="background:#0d1117;border:1px solid #238636;border-radius:6px;padding:10px;text-align:center">
+        <div style="color:#3fb950;font-weight:bold;margin-bottom:4px">readonly</div>
+        <div style="color:#8b949e">Solo visualización. Sin modificaciones ni ejecuciones.</div>
+      </div>
+    </div>
+    <div style="font-size:11px;color:#8b949e;margin-top:8px">JWT access token (15min) + refresh token (7d) · HTTPS local → Let's Encrypt a futuro</div>
+  </div>
+
+  <!-- Layout -->
+  <div style="background:#161b22;border:1px solid #30363d;border-radius:10px;padding:16px">
+    <div class="label" style="color:#a371f7;margin-bottom:10px">LAYOUT & TEMA</div>
+    <div style="font-size:12px;color:#8b949e;line-height:1.8">
+      Sidebar colapsable izquierdo + header con usuario/avatar ·
+      Tema <span style="color:#fff">Dark Pro</span> (negro profundo + acentos azul/verde, estilo GitHub Dark) ·
+      Toggle dark ↔ light mode · Responsive para distintos tamaños de pantalla
+    </div>
+  </div>
+
+  <!-- Modules -->
+  <div style="background:#161b22;border:1px solid #30363d;border-radius:10px;padding:16px">
+    <div class="label" style="color:#3fb950;margin-bottom:10px">MÓDULOS — 5 FASES</div>
+    <div style="display:flex;flex-direction:column;gap:6px;font-size:12px">
+
+      <div style="display:flex;gap:10px;align-items:flex-start;background:#0d1117;padding:10px;border-radius:6px">
+        <span style="background:#238636;color:#fff;padding:2px 8px;border-radius:10px;font-size:10px;white-space:nowrap">F1</span>
+        <div><span style="color:#fff">Base + System Overview</span> <span style="color:#8b949e">— infraestructura, auth, métricas CPU/RAM/disco/uptime, polling 5s</span></div>
+      </div>
+
+      <div style="display:flex;gap:10px;align-items:flex-start;background:#0d1117;padding:10px;border-radius:6px">
+        <span style="background:#1f6feb;color:#fff;padding:2px 8px;border-radius:10px;font-size:10px;white-space:nowrap">F2</span>
+        <div><span style="color:#fff">Servicios systemd</span> <span style="color:#8b949e">— listar, start/stop/restart, ver logs de journald</span></div>
+      </div>
+
+      <div style="display:flex;gap:10px;align-items:flex-start;background:#0d1117;padding:10px;border-radius:6px">
+        <span style="background:#6e40c9;color:#fff;padding:2px 8px;border-radius:10px;font-size:10px;white-space:nowrap">F3</span>
+        <div><span style="color:#fff">Explorador de archivos</span> <span style="color:#8b949e">— navegar, permisos, subir/bajar, mover/eliminar + <span style="color:#a371f7">Monaco Editor</span> para editar archivos de texto y código</span></div>
+      </div>
+
+      <div style="display:flex;gap:10px;align-items:flex-start;background:#0d1117;padding:10px;border-radius:6px">
+        <span style="background:#b08800;color:#fff;padding:2px 8px;border-radius:10px;font-size:10px;white-space:nowrap">F4</span>
+        <div><span style="color:#fff">Scripts favoritos</span> <span style="color:#8b949e">— agregar .py .sh .cpp .cs, <span style="color:#a371f7">Monaco Editor</span> para editar, ejecutar, ver output en quasi-realtime, historial de ejecuciones</span></div>
+      </div>
+
+      <div style="display:flex;gap:10px;align-items:flex-start;background:#0d1117;padding:10px;border-radius:6px">
+        <span style="background:#b62324;color:#fff;padding:2px 8px;border-radius:10px;font-size:10px;white-space:nowrap">F5</span>
+        <div><span style="color:#fff">Crontab visual</span> <span style="color:#8b949e">— calendar picker + selector de hora + frecuencia en lenguaje natural → genera cron expression. Listar, crear, editar, eliminar tareas.</span></div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Future -->
+  <div style="background:#0d1117;border:1px dashed #30363d;border-radius:10px;padding:14px">
+    <div class="label" style="color:#555;margin-bottom:8px">MÓDULOS FUTUROS (plug-in)</div>
+    <div style="display:flex;flex-wrap:wrap;gap:6px;font-size:11px">
+      <span style="background:#161b22;color:#8b949e;padding:3px 10px;border-radius:20px">Discos & SMART</span>
+      <span style="background:#161b22;color:#8b949e;padding:3px 10px;border-radius:20px">Red & puertos</span>
+      <span style="background:#161b22;color:#8b949e;padding:3px 10px;border-radius:20px">Usuarios Linux</span>
+      <span style="background:#161b22;color:#8b949e;padding:3px 10px;border-radius:20px">Docker containers</span>
+      <span style="background:#161b22;color:#8b949e;padding:3px 10px;border-radius:20px">Terminal web</span>
+      <span style="background:#161b22;color:#8b949e;padding:3px 10px;border-radius:20px">Notificaciones / alertas</span>
+    </div>
+  </div>
+
+  <!-- Persistence -->
+  <div style="background:#161b22;border:1px solid #30363d;border-radius:10px;padding:14px">
+    <div class="label" style="color:#58a6ff;margin-bottom:8px">PERSISTENCIA</div>
+    <div style="font-size:12px;color:#8b949e;line-height:1.8">
+      <span style="color:#fff">SQLite</span> — usuarios, roles, scripts favoritos, historial de ejecuciones ·
+      <span style="color:#fff">JSON config</span> — preferencias del dashboard (tema, ajustes) ·
+      Sin dependencias externas · migrable a PostgreSQL a futuro
+    </div>
+  </div>
+
+</div>

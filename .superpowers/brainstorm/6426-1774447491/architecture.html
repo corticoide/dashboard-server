@@ -1,0 +1,79 @@
+<h2>Arquitectura General</h2>
+<p class="subtitle">ServerDash — FastAPI + Vue 3 SPA</p>
+
+<div class="section" style="max-width:860px;margin:0 auto">
+
+  <!-- Stack visual -->
+  <div style="display:flex;gap:16px;margin-bottom:24px">
+
+    <div style="flex:1;background:#1e2130;border:1px solid #3a3f5c;border-radius:10px;padding:20px">
+      <div class="label" style="color:#7c83ff;margin-bottom:12px">FRONTEND — Vue 3 + Vite</div>
+      <div style="background:#252a3d;border-radius:6px;padding:10px;margin-bottom:8px;font-size:13px">
+        <span style="color:#a8b4ff">SPA</span> servida como archivos estáticos por FastAPI
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;font-size:12px">
+        <div style="background:#1a1f30;padding:8px;border-radius:5px;border-left:3px solid #4ade80">Dashboard / Métricas</div>
+        <div style="background:#1a1f30;padding:8px;border-radius:5px;border-left:3px solid #4ade80">Servicios activos</div>
+        <div style="background:#1a1f30;padding:8px;border-radius:5px;border-left:3px solid #4ade80">Explorador de archivos</div>
+        <div style="background:#1a1f30;padding:8px;border-radius:5px;border-left:3px solid #4ade80">Scripts favoritos</div>
+        <div style="background:#1a1f30;padding:8px;border-radius:5px;border-left:3px solid #4ade80">Logs de ejecución</div>
+        <div style="background:#1a1f30;padding:8px;border-radius:5px;border-left:3px solid #4ade80">Editor de Crontab</div>
+      </div>
+      <div style="margin-top:10px;font-size:11px;color:#666">Polling cada 5s para métricas y servicios</div>
+    </div>
+
+    <div style="display:flex;flex-direction:column;justify-content:center;align-items:center;gap:6px;padding:0 4px">
+      <div style="color:#4ade80;font-size:11px">REST API</div>
+      <div style="color:#555;font-size:20px">⇄</div>
+      <div style="color:#4ade80;font-size:11px">JWT Auth</div>
+    </div>
+
+    <div style="flex:1;background:#1e2130;border:1px solid #3a3f5c;border-radius:10px;padding:20px">
+      <div class="label" style="color:#ff9f7c;margin-bottom:12px">BACKEND — FastAPI (Python)</div>
+      <div style="display:flex;flex-direction:column;gap:6px;font-size:12px">
+        <div style="background:#1a1f30;padding:8px;border-radius:5px;border-left:3px solid #ff9f7c">/api/auth — JWT login, roles</div>
+        <div style="background:#1a1f30;padding:8px;border-radius:5px;border-left:3px solid #ff9f7c">/api/system — CPU, RAM, disco, uptime</div>
+        <div style="background:#1a1f30;padding:8px;border-radius:5px;border-left:3px solid #ff9f7c">/api/services — systemctl status/start/stop</div>
+        <div style="background:#1a1f30;padding:8px;border-radius:5px;border-left:3px solid #ff9f7c">/api/files — leer, mover, subir, eliminar</div>
+        <div style="background:#1a1f30;padding:8px;border-radius:5px;border-left:3px solid #ff9f7c">/api/scripts — favoritos, ejecutar, logs</div>
+        <div style="background:#1a1f30;padding:8px;border-radius:5px;border-left:3px solid #ff9f7c">/api/crontab — leer y editar crontab</div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- System layer -->
+  <div style="background:#161b2a;border:1px solid #2a3050;border-radius:10px;padding:16px;text-align:center">
+    <div class="label" style="color:#888;margin-bottom:10px">SISTEMA LINUX</div>
+    <div style="display:flex;justify-content:center;gap:12px;flex-wrap:wrap;font-size:12px">
+      <div style="background:#1e2335;padding:6px 14px;border-radius:20px;color:#aaa">psutil</div>
+      <div style="background:#1e2335;padding:6px 14px;border-radius:20px;color:#aaa">systemd / systemctl</div>
+      <div style="background:#1e2335;padding:6px 14px;border-radius:20px;color:#aaa">subprocess</div>
+      <div style="background:#1e2335;padding:6px 14px;border-radius:20px;color:#aaa">python-crontab</div>
+      <div style="background:#1e2335;padding:6px 14px;border-radius:20px;color:#aaa">os / pathlib</div>
+    </div>
+  </div>
+
+  <!-- Auth / Storage row -->
+  <div style="display:flex;gap:16px;margin-top:16px">
+    <div style="flex:1;background:#1e2130;border:1px solid #3a3f5c;border-radius:10px;padding:16px">
+      <div class="label" style="color:#f0c060;margin-bottom:8px">AUTH & USUARIOS</div>
+      <div style="font-size:12px;color:#aaa;line-height:1.7">
+        JWT (access + refresh token)<br>
+        Roles: <span style="color:#fff">admin</span> · <span style="color:#fff">operator</span> · <span style="color:#fff">readonly</span><br>
+        Usuarios en SQLite local<br>
+        HTTPS (cert autofirmado → Let's Encrypt a futuro)
+      </div>
+    </div>
+    <div style="flex:1;background:#1e2130;border:1px solid #3a3f5c;border-radius:10px;padding:16px">
+      <div class="label" style="color:#f0c060;margin-bottom:8px">PERSISTENCIA</div>
+      <div style="font-size:12px;color:#aaa;line-height:1.7">
+        SQLite — usuarios, roles, scripts favoritos<br>
+        JSON config — ajustes del dashboard<br>
+        Sin dependencias externas de DB<br>
+        Fácil de migrar a PostgreSQL a futuro
+      </div>
+    </div>
+  </div>
+
+</div>

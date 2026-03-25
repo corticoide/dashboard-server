@@ -1,0 +1,81 @@
+<h2>Layout del Dashboard</h2>
+<p class="subtitle">¿Cómo querés organizar la navegación principal?</p>
+
+<div class="options">
+
+  <div class="option" data-choice="a" onclick="toggleSelect(this)">
+    <div class="letter">A</div>
+    <div class="content">
+      <h3>Sidebar izquierdo fijo</h3>
+      <p>Navegación vertical siempre visible. Estilo Grafana / Portainer.</p>
+      <div style="margin-top:12px">
+        <div style="display:flex;gap:6px;height:80px;font-size:10px">
+          <div style="width:60px;background:#1a2035;border-radius:4px;padding:6px;color:#7c83ff;display:flex;flex-direction:column;gap:4px">
+            <div style="background:#252d4a;padding:3px 5px;border-radius:3px">Dashboard</div>
+            <div style="background:#1e2640;padding:3px 5px;border-radius:3px;color:#666">Servicios</div>
+            <div style="background:#1e2640;padding:3px 5px;border-radius:3px;color:#666">Archivos</div>
+            <div style="background:#1e2640;padding:3px 5px;border-radius:3px;color:#666">Scripts</div>
+          </div>
+          <div style="flex:1;background:#111827;border-radius:4px;padding:8px;color:#aaa;font-size:10px">
+            <div style="background:#1e2640;height:16px;border-radius:3px;margin-bottom:4px"></div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:4px">
+              <div style="background:#1a2035;height:24px;border-radius:3px"></div>
+              <div style="background:#1a2035;height:24px;border-radius:3px"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="option" data-choice="b" onclick="toggleSelect(this)">
+    <div class="letter">B</div>
+    <div class="content">
+      <h3>Top navbar + área de contenido</h3>
+      <p>Navegación horizontal arriba, contenido abajo. Estilo clásico web app.</p>
+      <div style="margin-top:12px">
+        <div style="display:flex;flex-direction:column;gap:6px;height:80px;font-size:10px">
+          <div style="background:#1a2035;border-radius:4px;padding:5px 8px;color:#7c83ff;display:flex;gap:10px;align-items:center">
+            <span style="color:#fff;font-weight:bold">ServerDash</span>
+            <span>Dashboard</span><span style="color:#666">Servicios</span><span style="color:#666">Archivos</span><span style="color:#666">Scripts</span>
+          </div>
+          <div style="flex:1;background:#111827;border-radius:4px;padding:6px;display:grid;grid-template-columns:1fr 1fr 1fr;gap:4px">
+            <div style="background:#1a2035;border-radius:3px"></div>
+            <div style="background:#1a2035;border-radius:3px"></div>
+            <div style="background:#1a2035;border-radius:3px"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="option" data-choice="c" onclick="toggleSelect(this)">
+    <div class="letter">C</div>
+    <div class="content">
+      <h3>Sidebar colapsable + header</h3>
+      <p>Sidebar que se puede plegar para ganar espacio en pantalla. Estilo VS Code / AdminLTE.</p>
+      <div style="margin-top:12px">
+        <div style="display:flex;flex-direction:column;gap:4px;height:80px;font-size:10px">
+          <div style="background:#1a2035;border-radius:4px;padding:4px 8px;color:#aaa;display:flex;justify-content:space-between">
+            <span style="color:#fff">ServerDash</span><span style="color:#666">👤 admin</span>
+          </div>
+          <div style="display:flex;gap:6px;flex:1">
+            <div style="width:28px;background:#1a2035;border-radius:4px;display:flex;flex-direction:column;align-items:center;padding:4px;gap:3px">
+              <div style="width:14px;height:3px;background:#7c83ff;border-radius:2px"></div>
+              <div style="width:14px;height:3px;background:#555;border-radius:2px"></div>
+              <div style="width:14px;height:3px;background:#555;border-radius:2px"></div>
+              <div style="width:14px;height:3px;background:#555;border-radius:2px"></div>
+            </div>
+            <div style="flex:1;background:#111827;border-radius:4px;padding:6px;display:grid;grid-template-columns:1fr 1fr;gap:4px">
+              <div style="background:#1a2035;border-radius:3px"></div>
+              <div style="background:#1a2035;border-radius:3px"></div>
+              <div style="background:#1e2640;border-radius:3px"></div>
+              <div style="background:#1e2640;border-radius:3px"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
