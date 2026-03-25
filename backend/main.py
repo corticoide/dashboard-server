@@ -4,6 +4,7 @@ from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
 from backend.routers import auth, system, services
+from backend.routers.files import router as files_router
 from backend.config import settings
 
 app = FastAPI(title="ServerDash", docs_url="/api/docs", redoc_url=None)
@@ -11,6 +12,7 @@ app = FastAPI(title="ServerDash", docs_url="/api/docs", redoc_url=None)
 app.include_router(auth.router)
 app.include_router(system.router)
 app.include_router(services.router)
+app.include_router(files_router)
 
 # Serve Vue SPA (built files)
 static_dir = os.path.join(os.path.dirname(__file__), "static")
