@@ -1,13 +1,16 @@
 import pytest
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
+from sqlalchemy.pool import StaticPool
 from backend.database import Base
 from backend.models.user import User, UserRole
 from backend.services.auth_service import hash_password
 
+SQLITE_OPTS = {"connect_args": {"check_same_thread": False}, "poolclass": StaticPool}
+
 @pytest.fixture
 def db_session():
-    engine = create_engine("sqlite:///:memory:")
+    engine = create_engine("sqlite:///:memory:", **SQLITE_OPTS)
     Base.metadata.create_all(engine)
     Session = sessionmaker(bind=engine)
     session = Session()
@@ -21,7 +24,7 @@ def test_app():
     from backend.database import get_db
     from fastapi.testclient import TestClient
 
-    engine = create_engine("sqlite:///:memory:", connect_args={"check_same_thread": False})
+    engine = create_engine("sqlite:///:memory:", **SQLITE_OPTS)
     Base.metadata.create_all(engine)
     TestingSession = sessionmaker(bind=engine)
 
