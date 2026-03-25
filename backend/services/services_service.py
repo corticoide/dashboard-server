@@ -79,20 +79,45 @@ def get_service_logs(name: str, lines: int = 100) -> ServiceLog:
     return ServiceLog(service=name, lines=log_lines)
 
 
-def control_service(name: str, action: str) -> dict:
+def control_service(name: str, action: str, sudo_password: str | None = None) -> dict:
     if action not in ALLOWED_ACTIONS:
         raise ValueError(f"Invalid action: {action!r}. Allowed: {ALLOWED_ACTIONS}")
     _validate_service_name(name)
+
+    if sudo_password:
+        cmd = ["sudo", "-S", "systemctl", action, name]
+        stdin_data = (sudo_password + "\n").encode()
+    else:
+        cmd = ["systemctl", action, name]
+        stdin_data = None
+
     try:
-        result = subprocess.run(
-            ["sudo", "systemctl", action, name],
-            capture_output=True, text=True, timeout=30
+        proc = subprocess.Popen(
+            cmd,
+            stdin=subprocess.PIPE,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
         )
-        if result.returncode != 0:
-            raise RuntimeError(result.stderr.strip() or f"systemctl {action} failed")
-        return {"ok": True, "action": action, "service": name}
+        stdout, stderr = proc.communicate(input=stdin_data, timeout=15)
     except FileNotFoundError:
         raise RuntimeError("systemctl not found — systemd is not available")
+    except subprocess.TimeoutExpired:
+        proc.kill()
+        raise RuntimeError("systemctl timed out")
+
+    if proc.returncode != 0:
+        err = stderr.decode().strip()
+        out = stdout.decode().strip()
+        detail = err or out or f"systemctl {action} {name} failed (exit {proc.returncode})"
+        if "incorrect password" in detail.lower() or "authentication failure" in detail.lower():
+            raise RuntimeError("Incorrect sudo password")
+        if not sudo_password and ("permission denied" in detail.lower() or proc.returncode in (1, 4, 126)):
+            raise RuntimeError(
+                f"{detail} — sudo password required. Enter it in the credentials field above."
+            )
+        raise RuntimeError(detail)
+
+    return {"ok": True, "action": action, "service": name}
 
 
 def _validate_service_name(name: str) -> None:

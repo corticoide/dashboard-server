@@ -5,7 +5,8 @@ from backend.schemas.system import SystemMetrics
 MOCK_METRICS = SystemMetrics(
     cpu_percent=25.0, ram_percent=50.0, ram_used_gb=4.0, ram_total_gb=8.0,
     disk_percent=40.0, disk_used_gb=40.0, disk_total_gb=100.0,
-    uptime_seconds=3600, load_average=[1.0, 0.8, 0.5], os_name="Linux 6.6.87"
+    uptime_seconds=3600, load_average=[1.0, 0.8, 0.5], os_name="Linux 6.6.87",
+    hostname="srv-test", cpu_count=4, cpu_arch="x86_64"
 )
 
 

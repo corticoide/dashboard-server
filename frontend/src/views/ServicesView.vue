@@ -15,6 +15,22 @@
           @click="stateFilter = s.value"
         >{{ s.label }}</button>
       </div>
+      <!-- Sudo credentials -->
+      <div class="sudo-wrap" :class="{ unlocked: sudoPassword }">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+          <path v-if="!sudoPassword" d="M7 11V7a5 5 0 0 1 10 0v4"/>
+          <path v-else d="M7 11V7a5 5 0 0 1 9.9-1"/>
+        </svg>
+        <input
+          v-model="sudoPassword"
+          type="password"
+          placeholder="sudo password"
+          class="sudo-input"
+          autocomplete="off"
+        />
+        <button v-if="sudoPassword" class="sudo-clear" @click="sudoPassword = ''" title="Clear password">✕</button>
+      </div>
       <button class="refresh-btn" @click="loadServices" :disabled="loading" title="Refresh">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
           <polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/>
@@ -101,6 +117,7 @@ const stateFilter = ref('all')
 const selectedService = ref(null)
 const logsByService = ref({})
 const actionLoading = ref({})
+const sudoPassword = ref('')
 
 const stateOptions = [
   { value: 'all', label: 'All' },
@@ -146,17 +163,25 @@ async function toggleLogs(name) {
 
 async function runAction(name, action) {
   actionLoading.value[name] = true
+  error.value = ''
   try {
-    await api.post(`/services/${name}/${action}`)
+    await api.post(`/services/${name}/${action}`, {
+      sudo_password: sudoPassword.value || null,
+    })
     const { data } = await api.get('/services/')
     services.value = data
+    // Invalidate cached logs so next open fetches fresh
+    delete logsByService.value[name]
     if (selectedService.value === name) {
       const logResp = await api.get(`/services/${name}/logs?lines=80`)
       logsByService.value[name] = logResp.data.lines
     }
   } catch (e) {
     error.value = e.response?.data?.detail || `Failed to ${action} ${name}`
-    setTimeout(() => { error.value = '' }, 4000)
+    // Clear wrong password on auth failure
+    if (e.response?.status === 500 && error.value.toLowerCase().includes('password')) {
+      sudoPassword.value = ''
+    }
   } finally {
     actionLoading.value[name] = false
   }
@@ -200,6 +225,28 @@ onMounted(loadServices)
 .filter-btn:hover, .filter-btn.active {
   background: var(--surface-2); border-color: var(--accent-blue); color: var(--accent-blue);
 }
+.sudo-wrap {
+  display: flex; align-items: center; gap: 6px;
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: 5px; padding: 5px 10px;
+  color: var(--text-muted); transition: border-color 0.15s;
+}
+.sudo-wrap.unlocked {
+  border-color: var(--accent-green);
+  color: var(--accent-green);
+}
+.sudo-input {
+  background: none; border: none; outline: none;
+  color: var(--text); font-family: var(--font-mono); font-size: 12px;
+  width: 120px;
+}
+.sudo-input::placeholder { color: var(--text-dim); }
+.sudo-clear {
+  background: none; border: none; color: var(--text-muted);
+  cursor: pointer; font-size: 11px; padding: 0; line-height: 1;
+}
+.sudo-clear:hover { color: var(--accent-red); }
+
 .refresh-btn {
   background: var(--surface); border: 1px solid var(--border);
   color: var(--text-muted); padding: 6px 8px; border-radius: 5px; cursor: pointer;

@@ -21,4 +21,7 @@ def get_metrics() -> SystemMetrics:
         uptime_seconds=uptime,
         load_average=load,
         os_name=f"{platform.system()} {platform.release()}",
+        hostname=platform.node(),
+        cpu_count=psutil.cpu_count(logical=True),
+        cpu_arch=platform.machine(),
     )

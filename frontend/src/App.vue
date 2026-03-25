@@ -5,7 +5,7 @@
   <template v-else>
     <AppSidebar :collapsed="sidebarCollapsed" @toggle="sidebarCollapsed = !sidebarCollapsed" />
     <div :class="['main-content', { 'sidebar-collapsed': sidebarCollapsed }]">
-      <AppHeader :page-title="pageTitle" />
+      <AppHeader :page-title="pageTitle" :sidebar-collapsed="sidebarCollapsed" />
       <div class="page-body">
         <RouterView />
       </div>

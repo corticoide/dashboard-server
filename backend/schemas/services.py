@@ -1,5 +1,5 @@
 from pydantic import BaseModel
-from typing import List
+from typing import List, Optional
 
 class ServiceInfo(BaseModel):
     name: str
@@ -12,3 +12,6 @@ class ServiceInfo(BaseModel):
 class ServiceLog(BaseModel):
     service: str
     lines: List[str]
+
+class ServiceActionRequest(BaseModel):
+    sudo_password: Optional[str] = None

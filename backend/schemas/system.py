@@ -13,3 +13,6 @@ class SystemMetrics(BaseModel):
     uptime_seconds: int
     load_average: List[float]   # 1min, 5min, 15min
     os_name: str                # e.g. "Linux 6.6.87"
+    hostname: str
+    cpu_count: int
+    cpu_arch: str               # e.g. "x86_64"

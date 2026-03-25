@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from typing import List
 from backend.dependencies import get_current_user, require_role
 from backend.models.user import UserRole
-from backend.schemas.services import ServiceInfo, ServiceLog
+from backend.schemas.services import ServiceInfo, ServiceLog, ServiceActionRequest
 from backend.services.services_service import list_services, get_service_logs, control_service
 
 router = APIRouter(prefix="/api/services", tags=["services"])
@@ -30,10 +30,12 @@ def get_logs(name: str, lines: int = 100, user=Depends(get_current_user)):
 def service_action(
     name: str,
     action: str,
+    body: ServiceActionRequest = None,
     user=Depends(require_role(UserRole.operator)),
 ):
+    password = body.sudo_password if body else None
     try:
-        return control_service(name, action)
+        return control_service(name, action, password)
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
     except RuntimeError as e:
