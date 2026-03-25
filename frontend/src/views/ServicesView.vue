@@ -64,39 +64,40 @@
             <tr><td colspan="6" class="empty-cell">No services found</td></tr>
           </template>
           <template v-else>
-            <tr
-              v-for="svc in filtered" :key="svc.name"
-              class="service-row"
-              :class="{ selected: selectedService === svc.name }"
-              @click="toggleLogs(svc.name)"
-            >
-              <td class="name-cell">{{ svc.name }}</td>
-              <td><StatusBadge :state="svc.active_state" /></td>
-              <td class="sub-cell">{{ svc.sub_state }}</td>
-              <td class="sub-cell">{{ svc.enabled }}</td>
-              <td class="desc-col text-muted">{{ svc.description }}</td>
-              <td class="actions-cell" @click.stop>
-                <button
-                  v-for="act in actions" :key="act.action"
-                  class="action-btn" :class="`btn-${act.color}`"
-                  :disabled="actionLoading[svc.name]"
-                  @click="runAction(svc.name, act.action)"
-                  :title="act.label"
-                >{{ act.label }}</button>
-              </td>
-            </tr>
-            <!-- Inline log panel -->
-            <tr v-if="selectedService && logsByService[selectedService]" class="log-row">
-              <td colspan="6">
-                <div class="log-panel">
-                  <div class="log-header">
-                    <span>{{ selectedService }} — journald logs</span>
-                    <button class="close-log" @click.stop="selectedService = null">✕</button>
+            <template v-for="svc in filtered" :key="svc.name">
+              <tr
+                class="service-row"
+                :class="{ selected: selectedService === svc.name }"
+                @click="toggleLogs(svc.name)"
+              >
+                <td class="name-cell">{{ svc.name }}</td>
+                <td><StatusBadge :state="svc.active_state" /></td>
+                <td class="sub-cell">{{ svc.sub_state }}</td>
+                <td class="sub-cell">{{ svc.enabled }}</td>
+                <td class="desc-col text-muted">{{ svc.description }}</td>
+                <td class="actions-cell" @click.stop>
+                  <button
+                    v-for="act in actions" :key="act.action"
+                    class="action-btn" :class="`btn-${act.color}`"
+                    :disabled="actionLoading[svc.name]"
+                    @click="runAction(svc.name, act.action)"
+                    :title="act.label"
+                  >{{ act.label }}</button>
+                </td>
+              </tr>
+              <!-- Log panel immediately after its own row -->
+              <tr v-if="selectedService === svc.name && logsByService[svc.name]" class="log-row">
+                <td colspan="6">
+                  <div class="log-panel">
+                    <div class="log-header">
+                      <span>{{ svc.name }} — journald logs</span>
+                      <button class="close-log" @click.stop="selectedService = null">✕</button>
+                    </div>
+                    <pre class="log-content">{{ logsByService[svc.name].join('\n') }}</pre>
                   </div>
-                  <pre class="log-content">{{ logsByService[selectedService].join('\n') }}</pre>
-                </div>
-              </td>
-            </tr>
+                </td>
+              </tr>
+            </template>
           </template>
         </tbody>
       </table>
