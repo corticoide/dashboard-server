@@ -72,6 +72,8 @@ def _stat_entry(item: Path) -> FileEntry:
 
 def _sudo_read(path: Path, sudo_password: str) -> str:
     """Read a file using sudo cat, for root-protected files."""
+    if '\n' in sudo_password or '\r' in sudo_password:
+        raise ValueError("Invalid sudo password: contains control characters")
     try:
         proc = subprocess.Popen(
             ["sudo", "-S", "cat", str(path)],
@@ -95,6 +97,8 @@ def _sudo_read(path: Path, sudo_password: str) -> str:
 
 def _sudo_write(path: Path, content: str, sudo_password: str) -> None:
     """Write a file using sudo tee, for root-protected files."""
+    if '\n' in sudo_password or '\r' in sudo_password:
+        raise ValueError("Invalid sudo password: contains control characters")
     try:
         proc = subprocess.Popen(
             ["sudo", "-S", "tee", str(path)],

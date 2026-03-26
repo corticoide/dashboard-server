@@ -6,6 +6,14 @@ from backend.database import Base
 from backend.models.user import User, UserRole
 from backend.services.auth_service import hash_password
 
+
+@pytest.fixture(autouse=True)
+def reset_rate_limiter():
+    """Reset slowapi in-memory storage before each test to avoid cross-test rate limiting."""
+    from backend.limiter import limiter
+    limiter._limiter.storage.reset()
+    yield
+
 SQLITE_OPTS = {"connect_args": {"check_same_thread": False}, "poolclass": StaticPool}
 
 @pytest.fixture

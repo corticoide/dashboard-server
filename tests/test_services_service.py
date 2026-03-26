@@ -1,5 +1,6 @@
+import pytest
 from unittest.mock import patch
-from backend.services.services_service import parse_service_line, list_services, control_service
+from backend.services.services_service import parse_service_line, list_services, control_service, _validate_service_name
 
 def test_parse_service_line():
     line = "ssh.service                    loaded active running OpenBSD Secure Shell server"
@@ -17,6 +18,17 @@ def test_parse_service_line_inactive():
     assert svc["sub_state"] == "dead"
 
 def test_control_service_invalid_action():
-    import pytest
     with pytest.raises(ValueError, match="Invalid action"):
         control_service("ssh.service", "delete")
+
+def test_validate_rejects_empty_name():
+    with pytest.raises(ValueError, match="Invalid service name"):
+        _validate_service_name("")
+
+def test_validate_rejects_whitespace_only():
+    with pytest.raises(ValueError, match="Invalid service name"):
+        _validate_service_name("   ")
+
+def test_validate_rejects_path_traversal():
+    with pytest.raises(ValueError, match="Invalid service name"):
+        _validate_service_name("../etc/passwd.service")

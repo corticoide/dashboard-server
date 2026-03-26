@@ -22,3 +22,21 @@ def test_protected_route_with_valid_token(test_app):
     token = login.json()["access_token"]
     response = test_app.get("/api/system/metrics", headers={"Authorization": f"Bearer {token}"})
     assert response.status_code == 200
+
+def test_refresh_returns_new_token(test_app):
+    login = test_app.post("/api/auth/login", json={"username": "admin", "password": "adminpass"})
+    token = login.json()["access_token"]
+    response = test_app.post("/api/auth/refresh", headers={"Authorization": f"Bearer {token}"})
+    assert response.status_code == 200
+    data = response.json()
+    assert "access_token" in data
+    assert data["token_type"] == "bearer"
+
+def test_refresh_with_invalid_token(test_app):
+    response = test_app.post("/api/auth/refresh", headers={"Authorization": "Bearer invalidtoken"})
+    assert response.status_code == 401
+
+def test_logout_returns_ok(test_app):
+    response = test_app.post("/api/auth/logout")
+    assert response.status_code == 200
+    assert response.json() == {"ok": True}

@@ -1,13 +1,23 @@
 <template>
-  <div class="metric-card">
-    <div class="metric-label">Uptime</div>
-    <div class="metric-value uptime-value">{{ formatted }}</div>
-  </div>
+  <Card class="uptime-card">
+    <template #title>
+      <div class="uptime-header">
+        <i class="pi pi-clock" style="color: var(--p-text-muted-color); font-size: 13px;" />
+        <span class="uptime-label">Uptime</span>
+      </div>
+    </template>
+    <template #content>
+      <span class="uptime-value">{{ formatted }}</span>
+    </template>
+  </Card>
 </template>
 
 <script setup>
 import { computed } from 'vue'
+import Card from 'primevue/card'
+
 const props = defineProps({ seconds: Number })
+
 const formatted = computed(() => {
   const s = props.seconds || 0
   const d = Math.floor(s / 86400)
@@ -18,10 +28,19 @@ const formatted = computed(() => {
 </script>
 
 <style scoped>
-.metric-card {
-  background: var(--surface); border: 1px solid var(--border);
-  border-radius: 10px; padding: 20px;
+.uptime-header {
+  display: flex; align-items: center; gap: 6px;
 }
-.metric-label { font-size: 12px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 8px; }
-.uptime-value { font-size: 28px; font-weight: 700; }
+.uptime-label {
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--p-text-muted-color);
+}
+.uptime-value {
+  font-size: 28px;
+  font-weight: 700;
+  font-family: var(--font-mono);
+}
 </style>

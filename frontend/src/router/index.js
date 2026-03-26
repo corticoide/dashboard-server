@@ -12,6 +12,7 @@ const routes = [
   { path: '/files', component: FilesView, meta: { title: 'Files', requiresAuth: true } },
   { path: '/scripts', component: ScriptsView, meta: { title: 'Scripts', requiresAuth: true } },
   { path: '/crontab', component: CrontabView, meta: { title: 'Crontab', requiresAuth: true } },
+  { path: '/logs', component: () => import('../views/LogsView.vue'), meta: { title: 'Logs', requiresAuth: true } },
   { path: '/:pathMatch(.*)*', redirect: '/' },
 ]
 

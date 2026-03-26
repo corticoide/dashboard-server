@@ -8,6 +8,7 @@ class Settings(BaseSettings):
     port: int = 8443
     admin_username: str = "admin"
     admin_password: str = "changeme"
+    allowed_origins: list[str] = ["https://localhost:8443"]
 
     class Config:
         env_file = ".env"

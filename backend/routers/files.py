@@ -3,7 +3,7 @@ from fastapi.responses import StreamingResponse
 from typing import List, Optional
 from backend.dependencies import get_current_user, require_role
 from backend.models.user import UserRole
-from backend.schemas.files import DirListing, FileContent, MkdirRequest, RenameRequest
+from backend.schemas.files import DirListing, FileContent, MkdirRequest, RenameRequest, FileWriteRequest
 from backend.services.files_service import (
     list_dir, read_file, stream_file, make_dir, rename_path, delete_path, write_file, _safe_path
 )
@@ -111,15 +111,13 @@ def api_upload(
 
 @router.put("/content")
 def api_write(
+    body: FileWriteRequest,
     path: str = Query(...),
-    body: dict = None,
     user=Depends(require_role(UserRole.admin)),
     x_sudo_password: Optional[str] = Header(None),
 ):
-    if not body or "content" not in body:
-        raise HTTPException(400, detail="Missing content field")
     try:
-        write_file(path, body["content"], sudo_password=x_sudo_password)
+        write_file(path, body.content, sudo_password=x_sudo_password)
         return {"ok": True}
     except (ValueError, PermissionError) as e:
         raise HTTPException(400, detail=str(e))

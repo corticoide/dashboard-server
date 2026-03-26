@@ -11,6 +11,11 @@ from backend.schemas.scripts import FavoriteOut
 
 # ── Runner detection ──────────────────────────────────────────────────────────
 
+ALLOWED_RUNNERS = {
+    "python3", "python2", "bash", "sh", "zsh", "node", "ruby",
+    "perl", "php", "lua", "Rscript", "tclsh", "pwsh", "ts-node",
+}
+
 EXTENSION_RUNNERS: Dict[str, str] = {
     ".py":   "python3",
     ".sh":   "bash",
@@ -48,11 +53,20 @@ SHEBANG_MAP: Dict[str, str] = {
 
 
 def detect_runner(path: Path) -> str:
-    """Detect the appropriate interpreter for a script file."""
+    """Detect the appropriate interpreter for a script file.
+
+    Raises ValueError if the detected runner is not in ALLOWED_RUNNERS.
+    Direct executable paths (no runner needed) are allowed as-is.
+    """
     # 1. Extension-based
     ext = path.suffix.lower()
     if ext in EXTENSION_RUNNERS:
-        return EXTENSION_RUNNERS[ext]
+        runner = EXTENSION_RUNNERS[ext]
+        # "awk -f" — base command is the first token
+        base = runner.split()[0]
+        if base not in ALLOWED_RUNNERS:
+            raise ValueError(f"Runner not allowed: {runner}")
+        return runner
 
     # 2. Shebang-based
     try:
@@ -67,15 +81,20 @@ def detect_runner(path: Path) -> str:
                 interpreter = Path(parts[-1]).name.lower()
                 for key, runner in SHEBANG_MAP.items():
                     if interpreter == key:
+                        if runner not in ALLOWED_RUNNERS:
+                            raise ValueError(f"Runner not allowed: {runner}")
                         return runner
-                # Unknown shebang — return interpreter name as-is
-                return Path(parts[-1]).name
+                # Unknown shebang interpreter — reject if not in whitelist
+                detected = Path(parts[-1]).name
+                if detected not in ALLOWED_RUNNERS:
+                    raise ValueError(f"Runner not allowed: {detected}")
+                return detected
     except (IOError, OSError):
         pass
 
-    # 3. Executable binary (no extension, no shebang)
+    # 3. Executable binary (no extension, no shebang) — run directly, no runner needed
     if path.exists() and os.access(path, os.X_OK):
-        return str(path)  # Run directly
+        return str(path)
 
     return "bash"
 
@@ -202,14 +221,28 @@ def launch_execution(
         state["exit_code"] = exit_code
 
         # Persist to DB
+        ended = datetime.now(timezone.utc)
         db = SessionLocal()
         try:
             from backend.models.script import ScriptExecution
+            from backend.models.execution_log import ExecutionLog
             exe = db.query(ScriptExecution).filter(ScriptExecution.id == exec_id).first()
             if exe:
-                exe.ended_at = datetime.now(timezone.utc)
+                exe.ended_at = ended
                 exe.exit_code = exit_code
                 exe.output = "\n".join(state["lines"])
+                duration = (ended - exe.started_at.replace(tzinfo=timezone.utc)).total_seconds() if exe.started_at else None
+                full_output = "\n".join(state["lines"])
+                log = ExecutionLog(
+                    script_path=script_path,
+                    username=triggered_by,
+                    started_at=exe.started_at,
+                    ended_at=ended,
+                    exit_code=exit_code,
+                    duration_seconds=duration,
+                    output_summary=full_output[:500] if full_output else None,
+                )
+                db.add(log)
                 db.commit()
         finally:
             db.close()

@@ -1,137 +1,208 @@
 <template>
   <div class="services-view">
-    <!-- Toolbar -->
-    <div class="toolbar">
-      <div class="search-wrap">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
-        </svg>
-        <input v-model="filter" placeholder="Filter services…" class="search-input" />
-      </div>
-      <div class="state-filters">
-        <button
-          v-for="s in stateOptions" :key="s.value"
-          class="filter-btn" :class="{ active: stateFilter === s.value }"
-          @click="stateFilter = s.value"
-        >{{ s.label }}</button>
-      </div>
-      <!-- Sudo credentials -->
-      <div class="sudo-wrap" :class="{ unlocked: sudoPassword }">
-        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
-          <path v-if="!sudoPassword" d="M7 11V7a5 5 0 0 1 10 0v4"/>
-          <path v-else d="M7 11V7a5 5 0 0 1 9.9-1"/>
-        </svg>
-        <input
-          v-model="sudoPassword"
-          type="password"
-          placeholder="sudo password"
-          class="sudo-input"
-          autocomplete="off"
-        />
-        <button v-if="sudoPassword" class="sudo-clear" @click="sudoPassword = ''" title="Clear password">✕</button>
-      </div>
-      <button class="refresh-btn" @click="loadServices" :disabled="loading" title="Refresh">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/>
-        </svg>
-      </button>
-    </div>
 
-    <!-- Error -->
-    <div v-if="error" class="error-banner">{{ error }}</div>
+    <Toolbar class="services-toolbar">
+      <template #start>
+        <div class="toolbar-start">
+          <IconField>
+            <InputIcon class="pi pi-search" />
+            <InputText v-model="filter" placeholder="Filter services…" size="small" />
+          </IconField>
+          <SelectButton
+            v-model="stateFilter"
+            :options="stateOptions"
+            option-label="label"
+            option-value="value"
+            size="small"
+          />
+        </div>
+      </template>
+      <template #end>
+        <div class="toolbar-end">
+          <Password
+            v-model="sudoPassword"
+            placeholder="sudo password"
+            :feedback="false"
+            toggle-mask
+            input-class="sudo-input"
+            size="small"
+          />
+          <Button
+            icon="pi pi-refresh"
+            rounded
+            text
+            size="small"
+            :loading="loading"
+            v-tooltip.bottom="'Refresh'"
+            @click="loadServices"
+          />
+        </div>
+      </template>
+    </Toolbar>
 
-    <!-- Table -->
-    <div class="table-wrap">
-      <table class="service-table">
-        <thead>
-          <tr>
-            <th>SERVICE</th>
-            <th>STATE</th>
-            <th>SUB</th>
-            <th>ENABLED</th>
-            <th class="desc-col">DESCRIPTION</th>
-            <th>ACTIONS</th>
-          </tr>
-        </thead>
-        <tbody>
-          <template v-if="loading">
-            <tr v-for="i in 8" :key="i" class="skeleton-row">
-              <td colspan="6"><div class="skeleton"></div></td>
-            </tr>
-          </template>
-          <template v-else-if="filtered.length === 0">
-            <tr><td colspan="6" class="empty-cell">No services found</td></tr>
-          </template>
-          <template v-else>
-            <template v-for="svc in filtered" :key="svc.name">
-              <tr
-                class="service-row"
-                :class="{ selected: selectedService === svc.name }"
-                @click="toggleLogs(svc.name)"
-              >
-                <td class="name-cell">{{ svc.name }}</td>
-                <td><StatusBadge :state="svc.active_state" /></td>
-                <td class="sub-cell">{{ svc.sub_state }}</td>
-                <td class="sub-cell">{{ svc.enabled }}</td>
-                <td class="desc-col text-muted">{{ svc.description }}</td>
-                <td class="actions-cell" @click.stop>
-                  <button
-                    v-for="act in actions" :key="act.action"
-                    class="action-btn" :class="`btn-${act.color}`"
-                    :disabled="actionLoading[svc.name]"
-                    @click="runAction(svc.name, act.action)"
-                    :title="act.label"
-                  >{{ act.label }}</button>
-                </td>
-              </tr>
-              <!-- Log panel immediately after its own row -->
-              <tr v-if="selectedService === svc.name && logsByService[svc.name]" class="log-row">
-                <td colspan="6">
-                  <div class="log-panel">
-                    <div class="log-header">
-                      <span>{{ svc.name }} — journald logs</span>
-                      <button class="close-log" @click.stop="selectedService = null">✕</button>
-                    </div>
-                    <pre class="log-content">{{ logsByService[svc.name].join('\n') }}</pre>
-                  </div>
-                </td>
-              </tr>
-            </template>
-          </template>
-        </tbody>
-      </table>
-    </div>
+    <Message
+      v-if="error"
+      severity="error"
+      :closable="true"
+      class="mb-3"
+      @close="error = ''"
+    >{{ error }}</Message>
+
+    <DataTable
+      :value="filtered"
+      :loading="loading"
+      striped-rows
+      v-model:expanded-rows="expandedRows"
+      data-key="name"
+      :row-class="rowClass"
+      size="small"
+      @row-expand="onRowExpand"
+    >
+      <Column expander style="width: 2.5rem" />
+
+      <Column field="name" header="SERVICE" sortable>
+        <template #body="{ data }">
+          <span class="font-mono" style="font-size: 12px; font-weight: 600;">{{ data.name }}</span>
+        </template>
+      </Column>
+
+      <Column field="active_state" header="STATE" sortable>
+        <template #body="{ data }">
+          <Tag :value="data.active_state" :severity="stateSeverity(data.active_state)" />
+        </template>
+      </Column>
+
+      <Column field="sub_state" header="SUB">
+        <template #body="{ data }">
+          <span class="font-mono" style="font-size: 11px; color: var(--p-text-muted-color);">{{ data.sub_state }}</span>
+        </template>
+      </Column>
+
+      <Column field="enabled" header="ENABLED">
+        <template #body="{ data }">
+          <Badge
+            :value="data.enabled"
+            :severity="data.enabled === 'enabled' ? 'success' : 'secondary'"
+          />
+        </template>
+      </Column>
+
+      <Column field="description" header="DESCRIPTION" style="max-width: 260px">
+        <template #body="{ data }">
+          <span
+            class="desc-cell"
+            style="font-size: 12px; color: var(--p-text-muted-color);"
+          >{{ data.description }}</span>
+        </template>
+      </Column>
+
+      <Column header="ACTIONS">
+        <template #body="{ data }">
+          <ButtonGroup>
+            <Button
+              label="Start"
+              size="small"
+              severity="success"
+              text
+              :loading="actionLoading[data.name]"
+              @click="runAction(data.name, 'start')"
+            />
+            <Button
+              label="Stop"
+              size="small"
+              severity="warning"
+              text
+              :loading="actionLoading[data.name]"
+              @click="runAction(data.name, 'stop')"
+            />
+            <Button
+              label="Restart"
+              size="small"
+              severity="info"
+              text
+              :loading="actionLoading[data.name]"
+              @click="runAction(data.name, 'restart')"
+            />
+          </ButtonGroup>
+        </template>
+      </Column>
+
+      <template #expansion="slotProps">
+        <div class="log-expansion">
+          <div class="log-header">
+            <span class="font-mono" style="font-size: 11px; color: var(--p-text-muted-color);">
+              {{ slotProps.data.name }} — journald logs
+            </span>
+            <Button
+              icon="pi pi-times"
+              text
+              rounded
+              size="small"
+              @click="collapseRow(slotProps.data.name)"
+            />
+          </div>
+          <ScrollPanel style="height: 300px">
+            <pre class="log-content">{{ (logsByService[slotProps.data.name] || ['Loading…']).join('\n') }}</pre>
+          </ScrollPanel>
+        </div>
+      </template>
+    </DataTable>
+
   </div>
 </template>
 
 <script setup>
 import { ref, computed, onMounted } from 'vue'
-import StatusBadge from '../components/services/StatusBadge.vue'
+import { useToast } from 'primevue/usetoast'
+import Toolbar from 'primevue/toolbar'
+import IconField from 'primevue/iconfield'
+import InputIcon from 'primevue/inputicon'
+import InputText from 'primevue/inputtext'
+import SelectButton from 'primevue/selectbutton'
+import Password from 'primevue/password'
+import Button from 'primevue/button'
+import ButtonGroup from 'primevue/buttongroup'
+import Message from 'primevue/message'
+import DataTable from 'primevue/datatable'
+import Column from 'primevue/column'
+import Tag from 'primevue/tag'
+import Badge from 'primevue/badge'
+import ScrollPanel from 'primevue/scrollpanel'
 import api from '../api/client.js'
+
+const toast = useToast()
 
 const services = ref([])
 const loading = ref(false)
 const error = ref('')
 const filter = ref('')
 const stateFilter = ref('all')
-const selectedService = ref(null)
+const expandedRows = ref({})
 const logsByService = ref({})
 const actionLoading = ref({})
 const sudoPassword = ref('')
 
 const stateOptions = [
-  { value: 'all', label: 'All' },
-  { value: 'active', label: 'Active' },
+  { value: 'all',      label: 'All' },
+  { value: 'active',   label: 'Active' },
   { value: 'inactive', label: 'Inactive' },
-  { value: 'failed', label: 'Failed' },
+  { value: 'failed',   label: 'Failed' },
 ]
 
-const actions = [
-  { action: 'start', label: 'Start', color: 'green' },
-  { action: 'stop', label: 'Stop', color: 'yellow' },
-  { action: 'restart', label: 'Restart', color: 'blue' },
-]
+function stateSeverity(state) {
+  return {
+    active:       'success',
+    failed:       'danger',
+    activating:   'warn',
+    inactive:     'secondary',
+    deactivating: 'contrast',
+  }[state] || 'secondary'
+}
+
+function rowClass(data) {
+  if (data.active_state === 'failed') return 'row-failed'
+  return ''
+}
 
 async function loadServices() {
   loading.value = true
@@ -146,12 +217,8 @@ async function loadServices() {
   }
 }
 
-async function toggleLogs(name) {
-  if (selectedService.value === name) {
-    selectedService.value = null
-    return
-  }
-  selectedService.value = name
+async function onRowExpand(event) {
+  const name = event.data.name
   if (!logsByService.value[name]) {
     try {
       const { data } = await api.get(`/services/${name}/logs?lines=80`)
@@ -160,6 +227,12 @@ async function toggleLogs(name) {
       logsByService.value[name] = ['Failed to load logs']
     }
   }
+}
+
+function collapseRow(name) {
+  const updated = { ...expandedRows.value }
+  delete updated[name]
+  expandedRows.value = updated
 }
 
 async function runAction(name, action) {
@@ -171,16 +244,16 @@ async function runAction(name, action) {
     })
     const { data } = await api.get('/services/')
     services.value = data
-    // Invalidate cached logs so next open fetches fresh
     delete logsByService.value[name]
-    if (selectedService.value === name) {
+    if (expandedRows.value[name]) {
       const logResp = await api.get(`/services/${name}/logs?lines=80`)
       logsByService.value[name] = logResp.data.lines
     }
+    toast.add({ severity: 'success', summary: 'Done', detail: `${action} ${name}`, life: 3000 })
   } catch (e) {
-    error.value = e.response?.data?.detail || `Failed to ${action} ${name}`
-    // Clear wrong password on auth failure
-    if (e.response?.status === 500 && error.value.toLowerCase().includes('password')) {
+    const msg = e.response?.data?.detail || `Failed to ${action} ${name}`
+    toast.add({ severity: 'error', summary: 'Error', detail: msg, life: 5000 })
+    if (e.response?.status === 500 && msg.toLowerCase().includes('password')) {
       sudoPassword.value = ''
     }
   } finally {
@@ -202,125 +275,37 @@ onMounted(loadServices)
 <style scoped>
 .services-view { display: flex; flex-direction: column; gap: 14px; }
 
-.toolbar {
-  display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
-}
-.search-wrap {
-  display: flex; align-items: center; gap: 8px;
-  background: var(--surface); border: 1px solid var(--border);
-  border-radius: 5px; padding: 6px 10px; flex: 1; min-width: 200px;
-  color: var(--text-muted);
-}
-.search-input {
-  background: none; border: none; outline: none;
-  color: var(--text); font-family: var(--font-mono); font-size: 12px; width: 100%;
-}
-.search-input::placeholder { color: var(--text-dim); }
-.state-filters { display: flex; gap: 4px; }
-.filter-btn {
-  background: var(--surface); border: 1px solid var(--border);
-  color: var(--text-muted); padding: 5px 10px;
-  border-radius: 4px; font-size: 11px; cursor: pointer;
-  font-family: var(--font-mono); transition: all 0.15s;
-}
-.filter-btn:hover, .filter-btn.active {
-  background: var(--surface-2); border-color: var(--accent-blue); color: var(--accent-blue);
-}
-.sudo-wrap {
-  display: flex; align-items: center; gap: 6px;
-  background: var(--surface); border: 1px solid var(--border);
-  border-radius: 5px; padding: 5px 10px;
-  color: var(--text-muted); transition: border-color 0.15s;
-}
-.sudo-wrap.unlocked {
-  border-color: var(--accent-green);
-  color: var(--accent-green);
-}
-.sudo-input {
-  background: none; border: none; outline: none;
-  color: var(--text); font-family: var(--font-mono); font-size: 12px;
-  width: 120px;
-}
-.sudo-input::placeholder { color: var(--text-dim); }
-.sudo-clear {
-  background: none; border: none; color: var(--text-muted);
-  cursor: pointer; font-size: 11px; padding: 0; line-height: 1;
-}
-.sudo-clear:hover { color: var(--accent-red); }
+.services-toolbar { flex-wrap: wrap; gap: 8px; }
 
-.refresh-btn {
-  background: var(--surface); border: 1px solid var(--border);
-  color: var(--text-muted); padding: 6px 8px; border-radius: 5px; cursor: pointer;
-  display: flex; align-items: center; transition: all 0.15s;
-}
-.refresh-btn:hover { color: var(--text); border-color: var(--border-bright); }
+.toolbar-start { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.toolbar-end   { display: flex; align-items: center; gap: 8px; }
 
-.error-banner {
-  background: rgba(239,68,68,0.1); border: 1px solid var(--accent-red);
-  color: var(--accent-red); padding: 10px 14px; border-radius: 6px; font-size: 13px;
-}
+:deep(.sudo-input) { width: 130px; font-family: var(--font-mono); font-size: 12px; }
 
-.table-wrap { overflow-x: auto; }
-.service-table {
-  width: 100%; border-collapse: collapse;
-  background: var(--surface); border: 1px solid var(--border); border-radius: 8px;
+.desc-cell {
+  display: block;
   overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 260px;
 }
-.service-table th {
-  font-family: var(--font-mono); font-size: 9px; letter-spacing: 1.5px;
-  color: var(--text-muted); text-align: left; padding: 10px 14px;
-  border-bottom: 1px solid var(--border); background: var(--surface-2);
-  font-weight: 600;
-}
-.service-row { cursor: pointer; transition: background 0.1s; }
-.service-row:hover { background: var(--surface-2); }
-.service-row.selected { background: var(--surface-2); }
-.service-row td {
-  padding: 9px 14px; border-bottom: 1px solid var(--border);
-  font-size: 12px; vertical-align: middle;
-}
-.name-cell { font-family: var(--font-mono); font-size: 12px; color: var(--text-bright); }
-.sub-cell { font-family: var(--font-mono); font-size: 11px; color: var(--text-muted); }
-.desc-col { max-width: 280px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.text-muted { color: var(--text-muted); }
-.empty-cell { text-align: center; padding: 40px; color: var(--text-muted); font-size: 13px; }
 
-.actions-cell { white-space: nowrap; }
-.action-btn {
-  background: none; border: 1px solid var(--border); color: var(--text-muted);
-  padding: 3px 8px; border-radius: 4px; font-size: 10px; cursor: pointer;
-  font-family: var(--font-mono); margin-right: 4px; transition: all 0.15s;
+/* Failed row highlight */
+:deep(.row-failed td) {
+  background: color-mix(in srgb, var(--p-red-500) 6%, transparent) !important;
 }
-.btn-green:hover { border-color: var(--accent-green); color: var(--accent-green); }
-.btn-yellow:hover { border-color: var(--accent-yellow); color: var(--accent-yellow); }
-.btn-blue:hover { border-color: var(--accent-blue); color: var(--accent-blue); }
-.action-btn:disabled { opacity: 0.4; cursor: not-allowed; }
 
-.log-row td { padding: 0; border-bottom: 1px solid var(--border); }
-.log-panel { background: var(--bg); }
+/* Log expansion panel */
+.log-expansion { padding: 4px 0; }
 .log-header {
   display: flex; justify-content: space-between; align-items: center;
-  padding: 8px 14px; border-bottom: 1px solid var(--border);
-  font-family: var(--font-mono); font-size: 11px; color: var(--text-muted);
+  padding: 4px 8px 8px;
 }
-.close-log {
-  background: none; border: none; color: var(--text-muted); cursor: pointer; font-size: 12px;
-}
-.close-log:hover { color: var(--text); }
 .log-content {
-  font-family: var(--font-mono); font-size: 11px; line-height: 1.7;
-  color: var(--text-muted); padding: 12px 14px;
-  max-height: 300px; overflow-y: auto;
+  font-family: var(--font-mono);
+  font-size: 11px; line-height: 1.7;
+  margin: 0; padding: 0 12px 8px;
   white-space: pre-wrap; word-break: break-all;
-}
-
-.skeleton-row td { padding: 10px 14px; border-bottom: 1px solid var(--border); }
-.skeleton {
-  height: 14px; background: var(--surface-2);
-  border-radius: 4px; animation: shimmer 1.4s ease-in-out infinite;
-}
-@keyframes shimmer {
-  0%, 100% { opacity: 0.4; }
-  50% { opacity: 0.8; }
+  color: var(--p-text-muted-color);
 }
 </style>

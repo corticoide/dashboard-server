@@ -3,9 +3,7 @@
     <!-- Brand -->
     <div class="brand">
       <div class="brand-icon">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--accent-blue)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/>
-        </svg>
+        <i class="pi pi-desktop" style="color: var(--p-primary-color); font-size: 18px;" />
       </div>
       <div class="brand-text">
         <span class="brand-name">SERVERDASH</span>
@@ -17,60 +15,90 @@
     </div>
 
     <!-- Toggle -->
-    <button class="toggle-btn" @click="$emit('toggle')" :title="collapsed ? 'Expand' : 'Collapse'">
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-        <line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/>
-      </svg>
-    </button>
+    <Button
+      :icon="collapsed ? 'pi pi-bars' : 'pi pi-bars'"
+      text
+      plain
+      class="toggle-btn"
+      :title="collapsed ? 'Expand' : 'Collapse'"
+      @click="$emit('toggle')"
+    />
 
     <!-- Nav -->
-    <nav class="nav">
-      <div class="nav-section-label">MONITOR</div>
-      <RouterLink to="/" class="nav-item" title="Dashboard">
-        <svg class="nav-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/>
-        </svg>
-        <span class="nav-label">Dashboard</span>
-      </RouterLink>
-      <RouterLink to="/services" class="nav-item" title="Services">
-        <svg class="nav-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <circle cx="12" cy="12" r="3"/><path d="M12 1v4M12 19v4M4.22 4.22l2.83 2.83M16.95 16.95l2.83 2.83M1 12h4M19 12h4M4.22 19.78l2.83-2.83M16.95 7.05l2.83-2.83"/>
-        </svg>
-        <span class="nav-label">Services</span>
-      </RouterLink>
-      <RouterLink to="/files" class="nav-item" title="Files">
-        <svg class="nav-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/>
-        </svg>
-        <span class="nav-label">Files</span>
-      </RouterLink>
-      <div class="nav-section-label">MANAGE</div>
-      <RouterLink to="/scripts" class="nav-item" title="Scripts">
-        <svg class="nav-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/>
-        </svg>
-        <span class="nav-label">Scripts</span>
-      </RouterLink>
-      <RouterLink to="/crontab" class="nav-item" title="Crontab">
-        <svg class="nav-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
-        </svg>
-        <span class="nav-label">Crontab</span>
-      </RouterLink>
-    </nav>
+    <PanelMenu :model="menuItems" class="nav-menu" :pt="panelMenuPt" />
   </aside>
 </template>
 
 <script setup>
-defineProps({ collapsed: Boolean })
+import { computed } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
+import Button from 'primevue/button'
+import PanelMenu from 'primevue/panelmenu'
+
+const props = defineProps({ collapsed: Boolean })
 defineEmits(['toggle'])
+
+const route = useRoute()
+const router = useRouter()
+
+const menuItems = computed(() => [
+  {
+    label: 'MONITOR',
+    items: [
+      {
+        label: 'Dashboard',
+        icon: 'pi pi-th-large',
+        class: route.path === '/' ? 'nav-item-active' : '',
+        command: () => router.push('/'),
+      },
+      {
+        label: 'Services',
+        icon: 'pi pi-cog',
+        class: route.path === '/services' ? 'nav-item-active' : '',
+        command: () => router.push('/services'),
+      },
+      {
+        label: 'Files',
+        icon: 'pi pi-folder-open',
+        class: route.path === '/files' ? 'nav-item-active' : '',
+        command: () => router.push('/files'),
+      },
+    ],
+  },
+  {
+    label: 'MANAGE',
+    items: [
+      {
+        label: 'Scripts',
+        icon: 'pi pi-code',
+        class: route.path === '/scripts' ? 'nav-item-active' : '',
+        command: () => router.push('/scripts'),
+      },
+      {
+        label: 'Crontab',
+        icon: 'pi pi-clock',
+        class: route.path === '/crontab' ? 'nav-item-active' : '',
+        command: () => router.push('/crontab'),
+      },
+      {
+        label: 'Logs',
+        icon: 'pi pi-list',
+        class: route.path === '/logs' ? 'nav-item-active' : '',
+        command: () => router.push('/logs'),
+      },
+    ],
+  },
+])
+
+// Pass-through to keep panels always expanded
+const panelMenuPt = {
+  headerAction: { style: 'display: none' },
+}
 </script>
 
 <style scoped>
 .sidebar {
   width: var(--sidebar-width);
-  background: var(--surface);
-  border-right: 1px solid var(--border);
   display: flex;
   flex-direction: column;
   height: 100vh;
@@ -79,6 +107,8 @@ defineEmits(['toggle'])
   transition: width 0.2s ease;
   z-index: 100;
   overflow: hidden;
+  border-right: 1px solid var(--p-surface-border);
+  background: var(--p-surface-card);
 }
 .sidebar.collapsed { width: var(--sidebar-collapsed-width); }
 
@@ -88,13 +118,14 @@ defineEmits(['toggle'])
   align-items: center;
   gap: 10px;
   padding: 14px 12px;
-  border-bottom: 1px solid var(--border);
+  border-bottom: 1px solid var(--p-surface-border);
   min-height: var(--header-height);
+  flex-shrink: 0;
 }
 .brand-icon {
   width: 32px; height: 32px;
-  background: var(--surface-2);
-  border: 1px solid var(--border-bright);
+  background: var(--p-surface-hover);
+  border: 1px solid var(--p-surface-border);
   border-radius: 6px;
   display: flex; align-items: center; justify-content: center;
   flex-shrink: 0;
@@ -107,7 +138,7 @@ defineEmits(['toggle'])
   font-family: var(--font-mono);
   font-size: 11px; font-weight: 600;
   letter-spacing: 2px;
-  color: var(--accent-blue);
+  color: var(--p-primary-color);
 }
 .brand-status {
   display: flex; align-items: center; gap: 4px;
@@ -115,8 +146,7 @@ defineEmits(['toggle'])
 .status-dot {
   width: 5px; height: 5px;
   border-radius: 50%;
-  background: var(--accent-green);
-  box-shadow: var(--glow-green);
+  background: var(--p-green-500);
   animation: pulse 2.5s ease-in-out infinite;
 }
 @keyframes pulse {
@@ -126,55 +156,66 @@ defineEmits(['toggle'])
 .status-label {
   font-family: var(--font-mono);
   font-size: 8px; letter-spacing: 1.5px;
-  color: var(--accent-green);
+  color: var(--p-green-500);
 }
 
 /* Toggle */
 .toggle-btn {
-  background: none; border: none;
-  color: var(--text-muted); padding: 10px 18px;
-  cursor: pointer; text-align: left; width: 100%;
-  transition: color 0.15s;
+  width: 100%;
+  border-radius: 0 !important;
+  justify-content: flex-start;
+  padding: 10px 18px !important;
 }
-.toggle-btn:hover { color: var(--text); }
 
 /* Nav */
-.nav { flex: 1; padding: 4px 8px; overflow-y: auto; }
-.nav-section-label {
-  font-family: var(--font-mono);
-  font-size: 9px; letter-spacing: 1.5px;
-  color: var(--text-dim);
-  padding: 10px 8px 4px;
-  white-space: nowrap; overflow: hidden;
+.nav-menu {
+  flex: 1;
+  overflow-y: auto;
+  border: none !important;
 }
-.sidebar.collapsed .nav-section-label { visibility: hidden; }
 
-.nav-item {
-  display: flex; align-items: center; gap: 10px;
+/* Hide group headers (labels like MONITOR / MANAGE) */
+:deep(.p-panelmenu-header) {
+  padding: 10px 8px 4px;
+}
+:deep(.p-panelmenu-header-content) {
+  background: transparent !important;
+  border: none !important;
+}
+:deep(.p-panelmenu-header-label) {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  letter-spacing: 1.5px;
+  color: var(--p-text-muted-color);
+  text-transform: uppercase;
+}
+:deep(.p-panelmenu-header-icon) { display: none; }
+
+:deep(.p-panelmenu-content) {
+  background: transparent !important;
+  border: none !important;
+  padding: 0 8px;
+}
+
+:deep(.p-menuitem-link) {
+  border-radius: 5px;
   padding: 8px 10px;
-  color: var(--text-muted);
-  border-radius: 5px; margin: 1px 0;
-  transition: background 0.15s, color 0.15s;
-  white-space: nowrap;
-  position: relative;
+  color: var(--p-text-muted-color) !important;
+  gap: 10px;
 }
-.nav-item:hover:not(.disabled) {
-  background: var(--surface-2);
-  color: var(--text);
+:deep(.p-menuitem-link:hover) {
+  background: var(--p-surface-hover) !important;
+  color: var(--p-text-color) !important;
 }
-.nav-item.router-link-active:not(.disabled) {
-  background: var(--surface-3);
-  color: var(--accent-blue);
-  border-left: 2px solid var(--accent-blue);
+:deep(.nav-item-active .p-menuitem-link) {
+  background: var(--p-surface-hover) !important;
+  color: var(--p-primary-color) !important;
+  border-left: 2px solid var(--p-primary-color);
   padding-left: 8px;
 }
-.nav-item.disabled {
-  opacity: 0.35;
-  cursor: not-allowed;
-  pointer-events: none;
-}
-.nav-icon { flex-shrink: 0; }
-.nav-label { font-size: 13px; font-weight: 500; }
-.sidebar.collapsed .nav-label { display: none; }
+
+/* Collapsed: hide labels and group headers */
+.sidebar.collapsed :deep(.p-panelmenu-header) { visibility: hidden; height: 0; padding: 0; overflow: hidden; }
+.sidebar.collapsed :deep(.p-panelmenu-item-label) { display: none; }
 .sidebar.collapsed .brand-text { display: none; }
 </style>

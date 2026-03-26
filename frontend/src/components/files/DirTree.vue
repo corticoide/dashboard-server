@@ -2,21 +2,15 @@
   <div class="tree-node">
     <div
       class="tree-item"
-      :class="{ active: currentPath === node.path, loading: isLoading }"
+      :class="{ active: currentPath === node.path }"
       :style="{ paddingLeft: `${depth * 14 + 8}px` }"
       @click="handleClick"
     >
       <span class="tree-arrow" :class="{ expanded: isExpanded }">
-        <svg v-if="!isLoading" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-          <polyline points="9 18 15 12 9 6"/>
-        </svg>
-        <svg v-else width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="spin">
-          <circle cx="12" cy="12" r="10" stroke-dasharray="20 60"/>
-        </svg>
+        <i v-if="isLoading" class="pi pi-spin pi-spinner" style="font-size: 10px;" />
+        <i v-else class="pi pi-chevron-right" style="font-size: 10px;" />
       </span>
-      <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor" class="folder-icon">
-        <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/>
-      </svg>
+      <i class="pi pi-folder folder-icon" />
       <span class="tree-name">{{ node.name || node.path }}</span>
     </div>
     <div v-if="isExpanded && children.length > 0" class="tree-children">
@@ -85,19 +79,40 @@ watch(() => props.currentPath, (newPath) => {
 
 <style scoped>
 .tree-node { user-select: none; }
+
 .tree-item {
   display: flex; align-items: center; gap: 5px;
   padding: 4px 8px; border-radius: 4px; cursor: pointer;
-  font-family: var(--font-mono); font-size: 12px; color: var(--text-muted);
-  transition: background 0.1s, color 0.1s; white-space: nowrap;
+  font-family: var(--font-mono); font-size: 12px;
+  color: var(--p-text-muted-color);
+  transition: background 0.1s, color 0.1s;
+  white-space: nowrap;
 }
-.tree-item:hover { background: var(--surface-2); color: var(--text); }
-.tree-item.active { background: var(--surface-3); color: var(--accent-blue); }
-.tree-arrow { width: 12px; flex-shrink: 0; color: var(--text-dim); transition: transform 0.15s; }
+.tree-item:hover {
+  background: var(--p-surface-hover);
+  color: var(--p-text-color);
+}
+.tree-item.active {
+  background: var(--p-highlight-background);
+  color: var(--p-primary-color);
+}
+
+.tree-arrow {
+  width: 12px; flex-shrink: 0;
+  color: var(--p-text-muted-color);
+  transition: transform 0.15s;
+  display: flex; align-items: center;
+}
 .tree-arrow.expanded { transform: rotate(90deg); }
-.folder-icon { flex-shrink: 0; color: var(--accent-yellow); opacity: 0.8; }
-.tree-item.active .folder-icon { color: var(--accent-blue); opacity: 1; }
+
+.folder-icon {
+  flex-shrink: 0;
+  color: var(--p-yellow-400);
+  font-size: 13px;
+}
+.tree-item.active .folder-icon {
+  color: var(--p-primary-color);
+}
+
 .tree-name { overflow: hidden; text-overflow: ellipsis; }
-.spin { animation: spin 1s linear infinite; }
-@keyframes spin { to { transform: rotate(360deg); } }
 </style>

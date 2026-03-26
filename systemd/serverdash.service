@@ -1,0 +1,21 @@
+[Unit]
+Description=ServerDash — Linux Server Management Dashboard
+After=network.target
+
+[Service]
+Type=simple
+# Replace <USER> with the system user that owns /opt/serverdash (e.g. User=serverdash)
+User=<USER>
+WorkingDirectory=/opt/serverdash
+ExecStart=/opt/serverdash/.venv/bin/gunicorn \
+    -w 4 \
+    -k uvicorn.workers.UvicornWorker \
+    backend.main:app \
+    --bind 0.0.0.0:8443 \
+    --certfile /opt/serverdash/certs/cert.pem \
+    --keyfile /opt/serverdash/certs/key.pem
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

@@ -1,36 +1,6 @@
 @import url('https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600&family=Fira+Sans:wght@400;500;600&display=swap');
 
 :root {
-  /* Backgrounds */
-  --bg: #07090f;
-  --surface: #0c1018;
-  --surface-2: #111722;
-  --surface-3: #19202e;
-
-  /* Borders */
-  --border: #1c2538;
-  --border-bright: #2a3a55;
-
-  /* Text */
-  --text: #c9d8ec;
-  --text-bright: #e8f0fb;
-  --text-muted: #4a6080;
-  --text-dim: #2e4060;
-
-  /* Accent colors */
-  --accent-blue: #0ea5e9;
-  --accent-cyan: #06b6d4;
-  --accent-green: #22c55e;
-  --accent-yellow: #f59e0b;
-  --accent-red: #ef4444;
-  --accent-purple: #a855f7;
-
-  /* Status glow (subtle) */
-  --glow-blue: 0 0 8px rgba(14, 165, 233, 0.3);
-  --glow-green: 0 0 8px rgba(34, 197, 94, 0.3);
-  --glow-yellow: 0 0 8px rgba(245, 158, 11, 0.3);
-  --glow-red: 0 0 8px rgba(239, 68, 68, 0.3);
-
   /* Layout */
   --sidebar-width: 220px;
   --sidebar-collapsed-width: 52px;
@@ -41,36 +11,21 @@
   --font-ui: 'Fira Sans', system-ui, -apple-system, sans-serif;
 }
 
-[data-theme="light"] {
-  --bg: #f0f4f8;
-  --surface: #ffffff;
-  --surface-2: #e8edf4;
-  --surface-3: #dde4ee;
-  --border: #c8d4e4;
-  --border-bright: #b0c0d8;
-  --text: #1a2535;
-  --text-bright: #0d1520;
-  --text-muted: #607090;
-  --text-dim: #9ab0c8;
-}
-
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
 html { scroll-behavior: smooth; }
 
 body {
-  background: var(--bg);
-  color: var(--text);
   font-family: var(--font-ui);
   font-size: 14px;
   line-height: 1.5;
   -webkit-font-smoothing: antialiased;
 }
 
-a { color: var(--accent-blue); text-decoration: none; }
+a { text-decoration: none; }
 
 /* Scrollbar styling */
 ::-webkit-scrollbar { width: 6px; height: 6px; }
-::-webkit-scrollbar-track { background: var(--bg); }
-::-webkit-scrollbar-thumb { background: var(--border-bright); border-radius: 3px; }
-::-webkit-scrollbar-thumb:hover { background: var(--text-muted); }
+::-webkit-scrollbar-track { background: var(--p-surface-900); }
+::-webkit-scrollbar-thumb { background: var(--p-surface-600); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: var(--p-surface-500); }

@@ -1,10 +1,7 @@
 <template>
   <div class="dashboard">
-    <!-- Error banner -->
-    <div v-if="error" class="error-banner">
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-      {{ error }}
-    </div>
+
+    <Message v-if="error" severity="error" :closable="false">{{ error }}</Message>
 
     <!-- Gauge row -->
     <div class="gauge-row">
@@ -31,60 +28,154 @@
       />
     </div>
 
+    <!-- Recent executions panel -->
+    <Panel class="info-panel">
+      <template #header>
+        <div class="panel-header">
+          <span class="panel-title">RECENT EXECUTIONS</span>
+          <RouterLink to="/logs" class="view-all-link">View all →</RouterLink>
+        </div>
+      </template>
+      <DataTable :value="recentLogs" size="small" :show-gridlines="false" class="recent-table">
+        <template #empty>
+          <span style="font-size: 12px; color: var(--p-text-muted-color);">No executions yet</span>
+        </template>
+        <Column field="script_path" header="Script">
+          <template #body="{ data }">
+            <span class="font-mono" style="font-size: 12px;">{{ data.script_path?.split('/').at(-1) }}</span>
+          </template>
+        </Column>
+        <Column field="username" header="User" style="width: 110px">
+          <template #body="{ data }">
+            <Chip :label="data.username" style="font-size: 11px;" />
+          </template>
+        </Column>
+        <Column field="exit_code" header="Status" style="width: 90px">
+          <template #body="{ data }">
+            <Tag
+              v-if="data.exit_code === null" value="running" severity="info"
+            />
+            <Tag
+              v-else-if="data.exit_code === 0" value="ok" severity="success"
+            />
+            <Tag
+              v-else :value="`exit ${data.exit_code}`" severity="danger"
+            />
+          </template>
+        </Column>
+        <Column field="started_at" header="When" style="width: 140px">
+          <template #body="{ data }">
+            <span style="font-size: 11px; color: var(--p-text-muted-color);">{{ formatLogDate(data.started_at) }}</span>
+          </template>
+        </Column>
+        <Column field="duration_seconds" header="Duration" style="width: 90px">
+          <template #body="{ data }">
+            <span class="font-mono" style="font-size: 11px; color: var(--p-text-muted-color);">
+              {{ data.duration_seconds != null ? `${data.duration_seconds.toFixed(1)}s` : '—' }}
+            </span>
+          </template>
+        </Column>
+      </DataTable>
+    </Panel>
+
     <!-- System info panel -->
-    <div class="info-panel">
-      <div class="info-header">
-        <span class="info-title">SYSTEM</span>
-        <span class="info-subtitle">{{ metrics.os_name }}</span>
-      </div>
+    <Panel class="info-panel">
+      <template #header>
+        <div class="panel-header">
+          <span class="panel-title">SYSTEM</span>
+          <span class="panel-os font-mono" style="font-size: 11px; color: var(--p-text-muted-color);">{{ metrics.os_name }}</span>
+        </div>
+      </template>
+
       <div class="info-grid">
         <div class="info-item">
-          <div class="info-key">HOSTNAME</div>
-          <div class="info-val">{{ metrics.hostname || '—' }}</div>
+          <span class="info-key">HOSTNAME</span>
+          <span class="info-val font-mono">{{ metrics.hostname || '—' }}</span>
         </div>
         <div class="info-item">
-          <div class="info-key">UPTIME</div>
-          <div class="info-val uptime-val">{{ uptimeFormatted }}</div>
+          <span class="info-key">UPTIME</span>
+          <Tag :value="uptimeFormatted" severity="success" icon="pi pi-clock" class="font-mono" style="font-size: 11px;" />
         </div>
         <div class="info-item">
-          <div class="info-key">ARCH</div>
-          <div class="info-val">{{ metrics.cpu_arch || '—' }}</div>
+          <span class="info-key">ARCH</span>
+          <span class="info-val font-mono">{{ metrics.cpu_arch || '—' }}</span>
         </div>
         <div class="info-item">
-          <div class="info-key">CPU CORES</div>
-          <div class="info-val">{{ metrics.cpu_count ?? '—' }}</div>
+          <span class="info-key">CPU CORES</span>
+          <span class="info-val font-mono">{{ metrics.cpu_count ?? '—' }}</span>
         </div>
       </div>
+
+      <Divider />
 
       <!-- Load average -->
       <div class="load-row">
         <span class="load-label">LOAD AVG</span>
         <div class="load-values">
-          <span class="load-item" :class="loadClass(metrics.load_average?.[0])">
-            {{ metrics.load_average?.[0] ?? '—' }}
+          <div class="load-item">
+            <Badge
+              :value="String(metrics.load_average?.[0] ?? '—')"
+              :class="loadBadgeClass(metrics.load_average?.[0])"
+              class="load-badge"
+            />
             <span class="load-period">1m</span>
-          </span>
+          </div>
           <span class="load-sep">·</span>
-          <span class="load-item" :class="loadClass(metrics.load_average?.[1])">
-            {{ metrics.load_average?.[1] ?? '—' }}
+          <div class="load-item">
+            <Badge
+              :value="String(metrics.load_average?.[1] ?? '—')"
+              :class="loadBadgeClass(metrics.load_average?.[1])"
+              class="load-badge"
+            />
             <span class="load-period">5m</span>
-          </span>
+          </div>
           <span class="load-sep">·</span>
-          <span class="load-item" :class="loadClass(metrics.load_average?.[2])">
-            {{ metrics.load_average?.[2] ?? '—' }}
+          <div class="load-item">
+            <Badge
+              :value="String(metrics.load_average?.[2] ?? '—')"
+              :class="loadBadgeClass(metrics.load_average?.[2])"
+              class="load-badge"
+            />
             <span class="load-period">15m</span>
-          </span>
+          </div>
         </div>
       </div>
-    </div>
+    </Panel>
+
   </div>
 </template>
 
 <script setup>
 import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { RouterLink } from 'vue-router'
+import Message from 'primevue/message'
+import Panel from 'primevue/panel'
+import Tag from 'primevue/tag'
+import Badge from 'primevue/badge'
+import Chip from 'primevue/chip'
+import Divider from 'primevue/divider'
+import DataTable from 'primevue/datatable'
+import Column from 'primevue/column'
 import MetricCard from '../components/dashboard/MetricCard.vue'
 import { usePolling } from '../composables/usePolling.js'
 import api from '../api/client.js'
+
+const recentLogs = ref([])
+
+async function fetchRecentLogs() {
+  try {
+    const { data } = await api.get('/logs/executions', { params: { } })
+    recentLogs.value = data.slice(0, 5)
+  } catch {
+    // non-critical
+  }
+}
+
+function formatLogDate(iso) {
+  if (!iso) return '—'
+  const d = new Date(iso)
+  return d.toLocaleDateString() + ' ' + d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+}
 
 const metrics = ref({
   cpu_percent: 0, ram_percent: 0, ram_used_gb: 0, ram_total_gb: 0,
@@ -104,8 +195,9 @@ async function fetchMetrics() {
 }
 
 const { start, stop } = usePolling(fetchMetrics, 5000)
-onMounted(start)
-onUnmounted(stop)
+const { start: startLogs, stop: stopLogs } = usePolling(fetchRecentLogs, 30000)
+onMounted(() => { start(); startLogs() })
+onUnmounted(() => { stop(); stopLogs() })
 
 const uptimeFormatted = computed(() => {
   const s = metrics.value.uptime_seconds
@@ -117,12 +209,11 @@ const uptimeFormatted = computed(() => {
   return `${m}m`
 })
 
-function loadClass(val) {
+function loadBadgeClass(val) {
   if (val == null) return ''
-  const cpuCount = metrics.value.cpu_count || 1
-  const ratio = val / cpuCount
+  const ratio = val / (metrics.value.cpu_count || 1)
   if (ratio >= 0.85) return 'load-high'
-  if (ratio >= 0.6) return 'load-mid'
+  if (ratio >= 0.6)  return 'load-mid'
   return 'load-ok'
 }
 </script>
@@ -130,16 +221,6 @@ function loadClass(val) {
 <style scoped>
 .dashboard { display: flex; flex-direction: column; gap: 16px; }
 
-.error-banner {
-  display: flex; align-items: center; gap: 8px;
-  background: rgba(239, 68, 68, 0.1);
-  border: 1px solid var(--accent-red);
-  color: var(--accent-red);
-  padding: 10px 14px; border-radius: 6px;
-  font-size: 13px;
-}
-
-/* Gauges */
 .gauge-row {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
@@ -149,78 +230,63 @@ function loadClass(val) {
   .gauge-row { grid-template-columns: 1fr; }
 }
 
-/* Info panel */
-.info-panel {
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  padding: 16px;
+.panel-header {
+  display: flex; align-items: center; justify-content: space-between; width: 100%;
 }
-.info-header {
-  display: flex; align-items: center; justify-content: space-between;
-  margin-bottom: 14px;
-  padding-bottom: 10px;
-  border-bottom: 1px solid var(--border);
+.view-all-link {
+  font-family: var(--font-mono);
+  font-size: 10px; color: var(--p-primary-color);
+  text-decoration: none;
 }
-.info-title {
+.view-all-link:hover { text-decoration: underline; }
+.panel-title {
   font-family: var(--font-mono);
   font-size: 9px; letter-spacing: 2px;
-  color: var(--text-muted);
-}
-.info-subtitle {
-  font-family: var(--font-mono);
-  font-size: 11px;
-  color: var(--text-dim);
+  color: var(--p-text-muted-color);
 }
 
 .info-grid {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
   gap: 12px;
-  margin-bottom: 14px;
+  margin-bottom: 4px;
 }
 @media (max-width: 700px) {
   .info-grid { grid-template-columns: 1fr 1fr; }
 }
-.info-item {}
+.info-item { display: flex; flex-direction: column; gap: 5px; }
 .info-key {
   font-family: var(--font-mono);
   font-size: 8px; letter-spacing: 1.5px;
-  color: var(--text-dim);
-  margin-bottom: 4px;
+  color: var(--p-text-muted-color);
+  text-transform: uppercase;
 }
 .info-val {
-  font-family: var(--font-mono);
   font-size: 13px; font-weight: 500;
-  color: var(--text-bright);
+  color: var(--p-text-color);
 }
-.uptime-val { color: var(--accent-green); }
 
 /* Load average */
 .load-row {
   display: flex; align-items: center; gap: 14px;
-  padding-top: 12px;
-  border-top: 1px solid var(--border);
 }
 .load-label {
   font-family: var(--font-mono);
   font-size: 8px; letter-spacing: 1.5px;
-  color: var(--text-dim);
+  color: var(--p-text-muted-color);
   white-space: nowrap;
 }
-.load-values {
-  display: flex; align-items: baseline; gap: 6px;
-}
-.load-sep { color: var(--text-dim); }
-.load-item {
-  font-family: var(--font-mono);
-  font-size: 13px; font-weight: 500;
-  display: flex; align-items: baseline; gap: 2px;
-}
+.load-values { display: flex; align-items: center; gap: 8px; }
+.load-sep { color: var(--p-text-muted-color); }
+.load-item { display: flex; align-items: baseline; gap: 4px; }
 .load-period {
-  font-size: 9px; color: var(--text-dim);
+  font-family: var(--font-mono);
+  font-size: 9px; color: var(--p-text-muted-color);
 }
-.load-ok  { color: var(--accent-green); }
-.load-mid { color: var(--accent-yellow); }
-.load-high { color: var(--accent-red); }
+
+/* Load badge color overrides */
+.load-badge { font-family: var(--font-mono); font-size: 11px; font-weight: 600; }
+:deep(.load-ok .p-badge)   { background: var(--p-green-500) !important; color: #fff !important; }
+:deep(.load-mid .p-badge)  { background: var(--p-yellow-500) !important; color: #000 !important; }
+:deep(.load-high .p-badge) { background: var(--p-red-500) !important; color: #fff !important; }
 </style>

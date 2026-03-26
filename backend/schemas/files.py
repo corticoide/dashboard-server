@@ -28,3 +28,6 @@ class MkdirRequest(BaseModel):
 class RenameRequest(BaseModel):
     source: str
     destination: str
+
+class FileWriteRequest(BaseModel):
+    content: str

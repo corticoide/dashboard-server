@@ -1,14 +1,18 @@
-from fastapi import APIRouter, Depends, HTTPException
+import asyncio
+import json
+from fastapi import APIRouter, Depends, HTTPException, Query, WebSocket, WebSocketDisconnect
 from typing import List
 from datetime import datetime, timezone
+from backend.core.logging import get_audit_logger
 
 from backend.dependencies import get_current_user, require_role
-from backend.models.user import UserRole
+from backend.models.user import User, UserRole
 from backend.models.script import ScriptFavorite, ScriptExecution
 from backend.schemas.scripts import (
     FavoriteCreate, FavoriteUpdate, FavoriteOut,
     RunRequest, ExecutionOut, ExecutionPoll,
 )
+from backend.services.auth_service import decode_token
 from backend.services.scripts_service import (
     build_favorite_out, detect_runner, launch_execution, get_poll_state
 )
@@ -68,7 +72,7 @@ def update_favorite(
     return build_favorite_out(fav)
 
 
-# ── Execution ─────────────────────────────────────────────────────────────────
+# ── Execution (HTTP) ───────────────────────────────────────────────────────────
 
 @router.post("/favorites/{fav_id}/run", response_model=ExecutionPoll)
 def run_favorite(
@@ -92,7 +96,10 @@ def run_favorite(
     if not p.exists() or not p.is_file():
         raise HTTPException(404, detail=f"Script not found: {fav.path}")
 
-    runner = detect_runner(p)
+    try:
+        runner = detect_runner(p)
+    except ValueError as e:
+        raise HTTPException(400, detail=str(e))
 
     # Create execution record
     exe = ScriptExecution(
@@ -115,7 +122,142 @@ def run_favorite(
         triggered_by=user.username,
     )
 
+    get_audit_logger().info(
+        "script_executed user=%s script=%s runner=%s run_as_root=%s exec_id=%d",
+        user.username, fav.path, runner, fav.run_as_root, exe.id,
+    )
+
     return ExecutionPoll(id=exe.id, running=True, exit_code=None, lines=[])
+
+
+# ── Execution (WebSocket) ──────────────────────────────────────────────────────
+
+@router.websocket("/favorites/{fav_id}/run-ws")
+async def run_ws(
+    websocket: WebSocket,
+    fav_id: int,
+    token: str = Query(...),
+    db: Session = Depends(get_db),
+):
+    """Stream script execution output in real-time over WebSocket.
+
+    Auth: JWT passed as ?token=... query param (browsers cannot set
+    Authorization headers on WebSocket connections).
+
+    Protocol:
+      Client → Server (after accept): {"sudo_password": "...", "args": [...]}
+      Server → Client: {"type": "line",  "content": "..."}
+      Server → Client: {"type": "done",  "exit_code": N}
+      Server → Client: {"type": "error", "detail":  "..."}
+    """
+    # 1. Validate JWT before accepting the connection
+    try:
+        payload = decode_token(token)
+        user = db.query(User).filter(User.id == int(payload["sub"])).first()
+        if not user:
+            await websocket.close(code=4001)
+            return
+    except ValueError:
+        await websocket.close(code=4001)
+        return
+
+    # 2. Load favorite
+    fav = db.query(ScriptFavorite).filter(ScriptFavorite.id == fav_id).first()
+    if not fav:
+        await websocket.close(code=4004)
+        return
+
+    # 3. Permission checks
+    if fav.admin_only and user.role != UserRole.admin:
+        await websocket.close(code=4003)
+        return
+    if user.role == UserRole.readonly:
+        await websocket.close(code=4003)
+        return
+
+    # 4. Accept connection
+    await websocket.accept()
+
+    # 5. File existence
+    p = Path(fav.path)
+    if not p.exists() or not p.is_file():
+        await websocket.send_json({"type": "error", "detail": f"Script not found: {fav.path}"})
+        await websocket.close()
+        return
+
+    # 6. Detect runner
+    try:
+        runner = detect_runner(p)
+    except ValueError as e:
+        await websocket.send_json({"type": "error", "detail": str(e)})
+        await websocket.close()
+        return
+
+    # 7. Receive run params sent by client after connection opens
+    try:
+        raw = await asyncio.wait_for(websocket.receive_text(), timeout=10.0)
+        params = json.loads(raw)
+    except (asyncio.TimeoutError, Exception):
+        params = {}
+
+    sudo_password = params.get("sudo_password")
+    args = params.get("args") or []
+
+    # 8. Create execution record
+    exe = ScriptExecution(
+        script_path=fav.path,
+        run_as_root=fav.run_as_root,
+        triggered_by=user.username,
+    )
+    db.add(exe)
+    db.commit()
+    db.refresh(exe)
+
+    # 9. Launch in background thread
+    launch_execution(
+        exec_id=exe.id,
+        script_path=fav.path,
+        runner=runner,
+        run_as_root=fav.run_as_root,
+        sudo_password=sudo_password,
+        args=args,
+        triggered_by=user.username,
+    )
+
+    get_audit_logger().info(
+        "script_executed user=%s script=%s runner=%s run_as_root=%s exec_id=%d via=websocket",
+        user.username, fav.path, runner, fav.run_as_root, exe.id,
+    )
+
+    # 10. Stream output: poll shared state every 200 ms, forward new lines
+    sent = 0
+    try:
+        while True:
+            state = get_poll_state(exe.id)
+            if state is None:
+                # State evicted (execution long finished) — just send done
+                await websocket.send_json({"type": "done", "exit_code": None})
+                break
+
+            lines = state["lines"]
+            while sent < len(lines):
+                await websocket.send_json({"type": "line", "content": lines[sent]})
+                sent += 1
+
+            if not state["running"]:
+                await websocket.send_json({"type": "done", "exit_code": state["exit_code"]})
+                break
+
+            await asyncio.sleep(0.2)
+
+    except (WebSocketDisconnect, Exception):
+        # Client disconnected or any other error — stop streaming silently
+        pass
+    finally:
+        try:
+            await websocket.close()
+        except Exception:
+            pass
 
 
 @router.get("/executions/{exec_id}", response_model=ExecutionPoll)

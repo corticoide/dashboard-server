@@ -1,4 +1,6 @@
 <template>
+  <Toast />
+  <ConfirmDialog />
   <template v-if="isAuthRoute">
     <RouterView />
   </template>
@@ -14,8 +16,10 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useRoute } from 'vue-router'
+import Toast from 'primevue/toast'
+import ConfirmDialog from 'primevue/confirmdialog'
 import AppSidebar from './components/layout/AppSidebar.vue'
 import AppHeader from './components/layout/AppHeader.vue'
 
@@ -23,6 +27,11 @@ const route = useRoute()
 const sidebarCollapsed = ref(false)
 const isAuthRoute = computed(() => route.meta.public)
 const pageTitle = computed(() => route.meta.title || 'Dashboard')
+
+onMounted(() => {
+  const saved = localStorage.getItem('theme') || 'dark'
+  document.documentElement.setAttribute('data-theme', saved)
+})
 </script>
 
 <style>

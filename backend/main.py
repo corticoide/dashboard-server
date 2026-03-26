@@ -1,27 +1,56 @@
 import os
 import uvicorn
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
+from slowapi import _rate_limit_exceeded_handler
+from slowapi.errors import RateLimitExceeded
+from backend.limiter import limiter
+from backend.middleware.security import SecurityHeadersMiddleware
 from backend.routers import auth, system, services
 from backend.routers.files import router as files_router
 from backend.routers.scripts import router as scripts_router
 from backend.routers.crontab import router as crontab_router
+from backend.routers.logs import router as logs_router
 from backend.config import settings
 from backend.database import engine, Base
+from backend.core.logging import init_logging
+from backend.core.health import router as health_router
 import backend.models.script  # ensure script tables are registered  # noqa: F401
+import backend.models.execution_log  # ensure execution_logs table is registered  # noqa: F401
+
+init_logging()
 
 app = FastAPI(title="ServerDash", docs_url="/api/docs", redoc_url=None)
+
+# Rate limiting
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+
+# CORS
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=settings.allowed_origins,
+    allow_credentials=True,
+    allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE"],
+    allow_headers=["Authorization", "Content-Type", "X-Sudo-Password"],
+)
+
+# Security headers
+app.add_middleware(SecurityHeadersMiddleware)
 
 # Create tables that don't exist yet (non-destructive)
 Base.metadata.create_all(bind=engine)
 
+app.include_router(health_router)
 app.include_router(auth.router)
 app.include_router(system.router)
 app.include_router(services.router)
 app.include_router(files_router)
 app.include_router(scripts_router)
 app.include_router(crontab_router)
+app.include_router(logs_router)
 
 # Serve Vue SPA (built files)
 static_dir = os.path.join(os.path.dirname(__file__), "static")
