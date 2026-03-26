@@ -16,29 +16,27 @@
         @row-select="onRowSelect"
       >
         <template #empty>
-          <div class="flex align-items-center justify-content-center py-4" style="color: var(--p-text-muted-color);">
-            No cron jobs configured.
-          </div>
+          <div class="cron-empty-state">No cron jobs configured.</div>
         </template>
 
-        <Column header="Expression">
+        <Column header="EXPRESSION">
           <template #body="{ data }">
-            <div class="flex align-items-center gap-1">
-              <code class="font-mono text-primary cron-expr">{{ entryExpr(data) }}</code>
-              <i v-if="matchedFavorite(data)" class="pi pi-star" style="color: var(--p-yellow-500); font-size: 11px;" />
+            <div class="expr-cell">
+              <code class="cron-expr">{{ entryExpr(data) }}</code>
+              <i v-if="matchedFavorite(data)" class="pi pi-star star-icon" />
             </div>
           </template>
         </Column>
 
-        <Column header="Description">
+        <Column header="DESCRIPTION">
           <template #body="{ data }">
-            <span style="font-size: 11px; color: var(--p-text-muted-color);">{{ describeEntry(data) }}</span>
+            <span class="desc-cell">{{ describeEntry(data) }}</span>
           </template>
         </Column>
 
-        <Column header="Command" style="max-width: 160px">
+        <Column header="COMMAND" style="max-width: 160px">
           <template #body="{ data }">
-            <span class="font-mono cmd-cell">{{ data.command }}</span>
+            <span class="cmd-cell">{{ data.command }}</span>
           </template>
         </Column>
 
@@ -64,8 +62,8 @@
     <SplitterPanel :size="70">
       <!-- Empty state -->
       <div v-if="!form" class="empty-editor">
-        <i class="pi pi-calendar text-5xl" style="color: var(--p-text-muted-color);" />
-        <span style="color: var(--p-text-muted-color);">
+        <i class="pi pi-calendar empty-editor-icon" />
+        <span class="empty-editor-text">
           {{ isAdmin ? 'Select an entry to edit, or click New Entry.' : 'Admin access required to edit crontab.' }}
         </span>
       </div>
@@ -80,9 +78,7 @@
         <!-- Header -->
         <Toolbar class="editor-toolbar">
           <template #start>
-            <span class="font-mono text-xs" style="letter-spacing: 1.5px; color: var(--p-text-muted-color);">
-              {{ editing ? 'EDIT ENTRY' : 'NEW ENTRY' }}
-            </span>
+            <span class="editor-mode-label">{{ editing ? 'EDIT ENTRY' : 'NEW ENTRY' }}</span>
           </template>
           <template #end>
             <Button icon="pi pi-times" text rounded size="small" @click="cancelEdit" />
@@ -130,7 +126,7 @@
             <div class="fields-grid mb-3">
               <Card v-for="f in fieldDefs" :key="f.key" class="field-card">
                 <template #title>
-                  <span class="font-mono" style="font-size: 9px; letter-spacing: 1.5px; color: var(--p-text-muted-color);">{{ f.label }}</span>
+                  <span class="field-card-label">{{ f.label }}</span>
                 </template>
                 <template #content>
                   <Select
@@ -170,17 +166,15 @@
                     <span class="range-dash">–</span>
                     <InputNumber v-model="fieldValues[f.key].to" :min="f.min" :max="f.max" size="small" fluid />
                   </div>
-                  <div class="field-expr font-mono text-primary font-bold text-center mt-2">
-                    {{ fieldExpr(f.key) }}
-                  </div>
+                  <div class="field-expr">{{ fieldExpr(f.key) }}</div>
                 </template>
               </Card>
             </div>
 
             <!-- Expression preview + manual override -->
             <div class="mb-3">
-              <div class="flex align-items-center gap-2 mb-2">
-                <Chip :label="currentExpr" icon="pi pi-code" class="font-mono" style="font-size: 13px;" />
+              <div class="expr-preview-row mb-2">
+                <Chip :label="currentExpr" icon="pi pi-code" class="expr-chip" />
                 <Tag :value="currentDesc" severity="secondary" />
               </div>
               <div class="section-label">MANUAL OVERRIDE</div>
@@ -195,7 +189,7 @@
           <!-- Command -->
           <Fieldset legend="COMMAND" class="mb-3">
             <div v-if="scriptsStore.favorites.length" class="fav-chips mb-2">
-              <span style="font-size: 11px; color: var(--p-text-muted-color);">From favorites:</span>
+              <span class="fav-label">From favorites:</span>
               <Chip
                 v-for="fav in scriptsStore.favorites.filter(f => f.exists)"
                 :key="fav.id"
@@ -215,7 +209,7 @@
 
           <!-- Footer -->
           <Divider />
-          <div class="flex gap-2 justify-content-end align-items-center">
+          <div class="editor-footer">
             <Message v-if="saveError" severity="error" :closable="false" class="save-error">{{ saveError }}</Message>
             <Button label="Cancel" severity="secondary" text @click="cancelEdit" />
             <Button
@@ -574,23 +568,58 @@ onMounted(() => {
 </script>
 
 <style scoped>
-/* Entries DataTable fills its splitter panel */
+/* ── Entries DataTable ────────────────────────────────── */
 :deep(.entries-table) { height: 100%; }
 :deep(.entries-table .p-datatable-wrapper) { height: calc(100% - 52px); }
 
-.cron-expr { font-size: 12px; }
-.cmd-cell { font-size: 11px; color: var(--p-text-muted-color); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; display: block; }
+/* DataTable header normalization */
+:deep(.entries-table .p-datatable-thead th) { background: transparent; }
+:deep(.entries-table .p-datatable-column-header-content) {
+  font-family: var(--font-mono);
+  font-size: var(--text-2xs);
+  letter-spacing: 1.5px;
+  color: var(--p-text-muted-color);
+  text-transform: uppercase;
+  font-weight: 600;
+}
+:deep(.entries-table .p-datatable-tbody td) { padding: 5px 10px; }
 
-/* Empty state */
+/* Table cells */
+.cron-empty-state {
+  display: flex; align-items: center; justify-content: center;
+  padding: 16px;
+  font-size: var(--text-sm);
+  color: var(--p-text-muted-color);
+}
+.expr-cell { display: flex; align-items: center; gap: 5px; }
+.cron-expr {
+  font-family: var(--font-mono);
+  font-size: var(--text-sm);
+  color: var(--p-primary-color);
+}
+.star-icon { color: var(--p-yellow-500); font-size: var(--text-xs); }
+.desc-cell { font-family: var(--font-mono); font-size: var(--text-xs); color: var(--p-text-muted-color); }
+.cmd-cell { font-family: var(--font-mono); font-size: var(--text-xs); color: var(--p-text-muted-color); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; display: block; }
+
+/* ── Empty editor ─────────────────────────────────────── */
 .empty-editor {
   height: 100%; display: flex; flex-direction: column;
   align-items: center; justify-content: center; gap: 12px; padding: 24px;
 }
+.empty-editor-icon { font-size: 3rem; color: var(--p-text-muted-color); }
+.empty-editor-text { font-size: var(--text-sm); color: var(--p-text-muted-color); text-align: center; }
 
-/* Editor */
+/* ── Editor ───────────────────────────────────────────── */
 .editor-wrap { height: 100%; display: flex; flex-direction: column; overflow: hidden; }
 .editor-toolbar { border-radius: 0; flex-shrink: 0; }
+.editor-mode-label {
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  letter-spacing: 1.5px;
+  color: var(--p-text-muted-color);
+}
 .editor-body { flex: 1; overflow-y: auto; padding: 16px; }
+.editor-footer { display: flex; gap: 8px; justify-content: flex-end; align-items: center; }
 
 /* Special SelectButton full-width */
 .special-select { width: 100%; }
@@ -599,29 +628,49 @@ onMounted(() => {
 /* Quick presets listbox compact */
 .preset-listbox { max-height: 160px; }
 .section-label {
-  font-family: var(--font-mono); font-size: 9px; letter-spacing: 1.5px;
-  color: var(--p-text-muted-color); margin-bottom: 6px; text-transform: uppercase;
+  font-family: var(--font-mono);
+  font-size: var(--text-2xs);
+  letter-spacing: 1.5px;
+  color: var(--p-text-muted-color);
+  margin-bottom: 6px;
+  text-transform: uppercase;
 }
 
 /* Field cards grid */
-.fields-grid {
-  display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px;
-}
+.fields-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; }
 @media (max-width: 900px) {
   .fields-grid { grid-template-columns: repeat(3, 1fr); }
 }
 .field-card :deep(.p-card-body) { padding: 10px; }
-.field-card :deep(.p-card-title) { font-size: 9px; margin-bottom: 6px; padding: 0; }
+.field-card :deep(.p-card-title) { margin-bottom: 6px; padding: 0; }
 .field-card :deep(.p-card-content) { padding: 0; display: flex; flex-direction: column; gap: 4px; }
-.field-expr { font-size: 16px; }
+.field-card-label {
+  font-family: var(--font-mono);
+  font-size: var(--text-2xs);
+  letter-spacing: 1.5px;
+  color: var(--p-text-muted-color);
+}
+.field-expr {
+  font-family: var(--font-mono);
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--p-primary-color);
+  text-align: center;
+  margin-top: 6px;
+}
+
+/* Expression preview */
+.expr-preview-row { display: flex; align-items: center; gap: 8px; }
+.expr-chip { font-family: var(--font-mono) !important; font-size: var(--text-sm) !important; }
 
 .range-row { display: flex; align-items: center; gap: 4px; }
 .range-dash { color: var(--p-text-muted-color); flex-shrink: 0; }
 
 /* Favorites chips */
 .fav-chips { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.fav-label { font-size: var(--text-xs); color: var(--p-text-muted-color); }
 .fav-chip { cursor: pointer; }
 .fav-chip:hover { filter: brightness(1.15); }
 
-.save-error { font-size: 12px; margin: 0; }
+.save-error { font-size: var(--text-sm); margin: 0; }
 </style>

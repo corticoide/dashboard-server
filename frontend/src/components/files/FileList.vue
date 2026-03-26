@@ -42,14 +42,15 @@
       stripedRows
       scrollable
       scrollHeight="flex"
+      removableSort
       class="file-table"
       @row-select="onRowSelect"
       @row-dblclick="onRowDblClick"
     >
       <template #empty>
         <div class="empty-state">
-          <i class="pi pi-folder-open" style="font-size: 2rem; color: var(--p-text-muted-color);" />
-          <span style="color: var(--p-text-muted-color);">Empty directory</span>
+          <i class="pi pi-folder-open empty-icon" />
+          <span class="empty-text">Empty directory</span>
         </div>
       </template>
 
@@ -62,7 +63,7 @@
             <svg v-else width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" class="icon-file">
               <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/>
             </svg>
-            <span>{{ data.name }}</span>
+            <span class="name-text" :class="{ 'name-dir': data.is_dir }">{{ data.name }}</span>
             <Tag v-if="isFavorite(data.path)" value="★" severity="warn" rounded class="fav-tag" />
           </div>
         </template>
@@ -70,29 +71,25 @@
 
       <Column field="size" header="Size" sortable style="width: 100px">
         <template #body="{ data }">
-          <span class="font-mono" style="font-size: 12px; color: var(--p-text-muted-color);">
-            {{ data.is_dir ? '—' : formatSize(data.size) }}
-          </span>
+          <span class="cell-mono cell-meta">{{ data.is_dir ? '—' : formatSize(data.size) }}</span>
         </template>
       </Column>
 
-      <Column field="permissions" header="Permissions" style="width: 120px">
+      <Column field="permissions" header="Perms" style="width: 110px">
         <template #body="{ data }">
-          <span class="font-mono" style="font-size: 11px; color: var(--p-text-muted-color); letter-spacing: 0.5px;">
-            {{ data.permissions }}
-          </span>
+          <span class="cell-mono cell-meta cell-perms">{{ data.permissions }}</span>
         </template>
       </Column>
 
       <Column field="owner" header="Owner" style="width: 100px">
         <template #body="{ data }">
-          <Chip :label="data.owner" style="font-size: 11px;" />
+          <Chip :label="data.owner" class="owner-chip" />
         </template>
       </Column>
 
       <Column field="modified" header="Modified" sortable style="width: 150px">
         <template #body="{ data }">
-          <span style="font-size: 12px; color: var(--p-text-muted-color);">{{ formatDate(data.modified) }}</span>
+          <span class="cell-meta">{{ formatDate(data.modified) }}</span>
         </template>
       </Column>
 
@@ -212,8 +209,8 @@ const canAdmin = computed(() => props.userRole === 'admin')
 const canUpload = computed(() => props.userRole === 'admin' || props.userRole === 'operator')
 
 const selectedEntry = ref(null)
-const sortKey = ref('name')
-const sortDir = ref(1)
+const sortKey = ref(null)
+const sortDir = ref(null)
 const showMkdirDialog = ref(false)
 const mkdirName = ref('')
 const showRenameDialog = ref(false)
@@ -372,21 +369,47 @@ async function doDelete(entry) {
 .list-breadcrumb { background: transparent; border: none; padding: 0; }
 .toolbar-end { display: flex; align-items: center; gap: 8px; }
 
-:deep(.file-table) { flex: 1; }
+:deep(.file-table) { flex: 1; cursor: default; }
 :deep(.p-datatable-wrapper) { flex: 1; }
+:deep(.file-table .p-datatable-tbody tr) { cursor: pointer; }
 
+/* DataTable header normalization */
+:deep(.file-table .p-datatable-thead th) { background: transparent; }
+:deep(.file-table .p-datatable-column-header-content) {
+  font-family: var(--font-mono);
+  font-size: var(--text-2xs);
+  letter-spacing: 1.5px;
+  color: var(--p-text-muted-color);
+  text-transform: uppercase;
+  font-weight: 600;
+}
+:deep(.file-table .p-datatable-tbody td) { padding: 5px 10px; }
+
+/* Empty state */
 .empty-state {
   display: flex; flex-direction: column; align-items: center;
-  gap: 8px; padding: 40px;
+  gap: 10px; padding: 48px;
+  color: var(--p-text-muted-color);
 }
+.empty-icon { font-size: 28px; opacity: 0.35; }
+.empty-text { font-family: var(--font-mono); font-size: var(--text-sm); }
 
+/* Name cell */
 .name-cell {
   display: flex; align-items: center; gap: 7px;
-  font-size: 12px;
+  font-size: var(--text-sm);
 }
-.icon-dir  { color: var(--p-yellow-500); flex-shrink: 0; }
+.name-text { color: var(--p-text-color); }
+.name-dir  { font-weight: 500; }
+.icon-dir  { color: var(--p-yellow-400); flex-shrink: 0; }
 .icon-file { color: var(--p-text-muted-color); flex-shrink: 0; }
-.fav-tag   { font-size: 10px; padding: 1px 5px; }
+.fav-tag   { font-size: var(--text-2xs); }
+
+/* Cell utilities */
+.cell-mono  { font-family: var(--font-mono); }
+.cell-meta  { font-size: var(--text-xs); color: var(--p-text-muted-color); }
+.cell-perms { letter-spacing: 0.5px; }
+:deep(.owner-chip) { font-size: var(--text-xs) !important; }
 
 .actions-cell { display: flex; align-items: center; justify-content: flex-end; gap: 2px; }
 </style>

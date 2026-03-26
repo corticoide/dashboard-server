@@ -1,53 +1,38 @@
 <template>
   <div class="files-view">
 
-    <!-- Sudo password bar -->
-    <InputGroup class="sudo-bar">
-      <InputGroupAddon>
-        <i class="pi pi-lock" />
-      </InputGroupAddon>
-      <Password
-        v-model="sudoPassword"
-        placeholder="sudo password (for root-protected files)"
-        :feedback="false"
-        toggleMask
-      />
-      <Button
-        v-if="sudoPassword"
-        icon="pi pi-times"
-        severity="secondary"
-        @click="sudoPassword = ''"
-      />
-    </InputGroup>
+    <!-- Tree + List horizontal split layout -->
+    <Splitter layout="horizontal" class="files-splitter">
 
-    <!-- Tree + List split layout -->
-    <Splitter
-      layout="vertical"
-      class="files-splitter"
-    >
-      <SplitterPanel :size="30" :minSize="10">
-        <Panel
-          v-model:collapsed="treeCollapsed"
-          toggleable
-          class="tree-panel"
-        >
-          <template #header>
-            <span class="font-mono" style="font-size: 9px; letter-spacing: 1.5px; color: var(--p-text-muted-color); text-transform: uppercase;">
-              Directory Tree
-            </span>
-          </template>
-          <div class="tree-scroll">
-            <DirTree
-              :node="{ name: '/', path: '/' }"
-              :current-path="currentPath"
-              :depth="0"
-              @navigate="navigateTo"
+      <!-- Left: directory tree -->
+      <SplitterPanel :size="22" :minSize="12" class="tree-panel">
+        <div class="tree-panel-header">
+          <i class="pi pi-folder tree-header-icon" />
+          <span class="tree-header-label">FILESYSTEM</span>
+          <div class="sudo-inline" v-tooltip.right="'sudo password for protected paths'">
+            <i class="pi pi-lock sudo-icon" />
+            <Password
+              v-model="sudoPassword"
+              placeholder="sudo"
+              :feedback="false"
+              toggleMask
+              size="small"
+              class="sudo-pass"
             />
           </div>
-        </Panel>
+        </div>
+        <div class="tree-scroll">
+          <DirTree
+            :node="{ name: '/', path: '/' }"
+            :current-path="currentPath"
+            :depth="0"
+            @navigate="navigateTo"
+          />
+        </div>
       </SplitterPanel>
 
-      <SplitterPanel :size="70" :minSize="30">
+      <!-- Right: file list -->
+      <SplitterPanel :size="78" :minSize="40">
         <div class="list-panel">
           <FileList
             :path="currentPath"
@@ -61,6 +46,7 @@
           />
         </div>
       </SplitterPanel>
+
     </Splitter>
 
     <!-- Monaco Editor Drawer -->
@@ -73,7 +59,8 @@
     >
       <template #header>
         <div class="editor-header-content">
-          <span class="font-mono font-semibold">{{ openedFile?.name }}</span>
+          <i class="pi pi-file-edit" style="color: var(--brand-orange);" />
+          <span class="editor-filename">{{ openedFile?.name }}</span>
           <Tag v-if="editorDirty" value="unsaved" severity="warn" rounded />
         </div>
       </template>
@@ -86,7 +73,7 @@
       </template>
 
       <div v-if="fileLoading" class="editor-loading">
-        <i class="pi pi-spin pi-spinner" style="font-size: 1.5rem;" />
+        <i class="pi pi-spin pi-spinner editor-spinner" />
       </div>
       <VueMonacoEditor
         v-else-if="openedFile"
@@ -103,16 +90,13 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, onMounted } from 'vue'
 import { VueMonacoEditor } from '@guolao/vue-monaco-editor'
 import { useRoute } from 'vue-router'
 import { useToast } from 'primevue/usetoast'
 import { useConfirm } from 'primevue/useconfirm'
-import InputGroup from 'primevue/inputgroup'
-import InputGroupAddon from 'primevue/inputgroupaddon'
 import Password from 'primevue/password'
 import Button from 'primevue/button'
-import Panel from 'primevue/panel'
 import Splitter from 'primevue/splitter'
 import SplitterPanel from 'primevue/splitterpanel'
 import Drawer from 'primevue/drawer'
@@ -127,11 +111,10 @@ const confirm = useConfirm()
 const auth = useAuthStore()
 const route = useRoute()
 
-const currentPath = ref(route.query.dir || '/')
-const entries = ref([])
-const loading = ref(false)
+const currentPath  = ref(route.query.dir || '/')
+const entries      = ref([])
+const loading      = ref(false)
 const sudoPassword = ref('')
-const treeCollapsed = ref(false)
 
 async function loadDir() {
   loading.value = true
@@ -150,13 +133,13 @@ function navigateTo(path) {
   loadDir()
 }
 
-// Editor state
-const editorVisible = ref(false)
-const openedFile = ref(null)
-const editorContent = ref('')
+// Editor
+const editorVisible  = ref(false)
+const openedFile     = ref(null)
+const editorContent  = ref('')
 const editorLanguage = ref('plaintext')
-const editorDirty = ref(false)
-const fileLoading = ref(false)
+const editorDirty    = ref(false)
+const fileLoading    = ref(false)
 
 const canEdit = auth.role === 'admin'
 const monacoOptions = {
@@ -175,7 +158,6 @@ function sudoHeaders() {
 
 function handleEditorVisibleChange(val) {
   if (!val && editorDirty.value) {
-    // Intercept close — ask user to confirm discard
     confirm.require({
       message: 'Discard unsaved changes?',
       header: 'Unsaved Changes',
@@ -183,7 +165,6 @@ function handleEditorVisibleChange(val) {
       acceptLabel: 'Discard',
       rejectLabel: 'Keep editing',
       accept: () => _closeEditor(),
-      // reject: do nothing, drawer stays open (visible remains true)
     })
   } else {
     editorVisible.value = val
@@ -193,13 +174,13 @@ function handleEditorVisibleChange(val) {
 
 function _closeEditor() {
   editorVisible.value = false
-  openedFile.value = null
+  openedFile.value    = null
   editorContent.value = ''
-  editorDirty.value = false
+  editorDirty.value   = false
 }
 
 async function openFile(entry) {
-  openedFile.value = entry
+  openedFile.value  = entry
   editorDirty.value = false
   fileLoading.value = true
   editorVisible.value = true
@@ -208,19 +189,17 @@ async function openFile(entry) {
       params: { path: entry.path },
       headers: sudoHeaders(),
     })
-    editorContent.value = data.content
+    editorContent.value  = data.content
     editorLanguage.value = data.language
   } catch (e) {
-    editorContent.value = `// Error: ${e.response?.data?.detail || e.message}`
+    editorContent.value  = `// Error: ${e.response?.data?.detail || e.message}`
     editorLanguage.value = 'plaintext'
   } finally {
     fileLoading.value = false
   }
 }
 
-function discardFile() {
-  _closeEditor()
-}
+function discardFile() { _closeEditor() }
 
 async function saveFile() {
   try {
@@ -241,14 +220,9 @@ onMounted(loadDir)
 
 <style scoped>
 .files-view {
-  display: flex; flex-direction: column;
+  display: flex;
+  flex-direction: column;
   height: calc(100vh - var(--header-height) - 48px);
-  gap: 10px;
-}
-
-.sudo-bar {
-  flex-shrink: 0;
-  max-width: 500px;
 }
 
 .files-splitter {
@@ -258,40 +232,96 @@ onMounted(loadDir)
   overflow: hidden;
 }
 
+/* ── Tree panel ──────────────────────────────── */
 .tree-panel {
+  display: flex;
+  flex-direction: column;
   height: 100%;
-  border-radius: 0;
-  border: none;
+  border-right: 1px solid var(--p-surface-border);
+  background: var(--p-surface-card);
+  overflow: hidden;
 }
-:deep(.tree-panel .p-panel-content) {
-  height: calc(100% - 44px);
-  padding: 4px 0;
-  overflow-y: auto;
+
+.tree-panel-header {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 10px 10px 8px;
+  border-bottom: 1px solid var(--p-surface-border);
+  flex-shrink: 0;
+}
+.tree-header-icon {
+  font-size: 12px;
+  color: var(--brand-orange);
+}
+.tree-header-label {
+  font-family: var(--font-mono);
+  font-size: var(--text-2xs);
+  letter-spacing: 2px;
+  color: var(--p-text-muted-color);
+  text-transform: uppercase;
+  flex: 1;
+}
+
+.sudo-inline {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.sudo-icon {
+  font-size: 11px;
+  color: var(--p-text-muted-color);
+  flex-shrink: 0;
+}
+:deep(.sudo-pass) {
+  display: flex;
+  width: 80px;
+}
+:deep(.sudo-pass .p-password-input) {
+  flex: 1;
+  min-width: 0;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  padding: 4px 6px;
 }
 
 .tree-scroll {
+  flex: 1;
   overflow-y: auto;
-  height: 100%;
+  padding: 4px 0;
 }
 
+/* ── List panel ──────────────────────────────── */
 .list-panel {
   height: 100%;
   display: flex;
   flex-direction: column;
 }
 
-/* Editor drawer */
+/* ── Editor drawer ───────────────────────────── */
 .editor-header-content {
-  display: flex; align-items: center; gap: 10px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.editor-filename {
+  font-family: var(--font-mono);
+  font-size: var(--text-sm);
+  font-weight: 600;
 }
 .editor-footer {
-  display: flex; gap: 8px; justify-content: flex-end; padding: 8px 0;
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+  padding: 8px 0;
 }
 .editor-loading {
-  display: flex; align-items: center; justify-content: center;
-  height: 200px; color: var(--p-text-muted-color);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 200px;
+  color: var(--p-text-muted-color);
 }
-.monaco-editor-wrap {
-  height: calc(100vh - 120px);
-}
+.editor-spinner { font-size: 24px; }
+.monaco-editor-wrap { height: calc(100vh - 120px); }
 </style>

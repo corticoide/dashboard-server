@@ -16,9 +16,9 @@
       >
         <template #option="{ option }">
           <div class="list-option">
-            <Tag :value="shortRunner(option.runner)" severity="info" class="font-mono runner-tag" />
+            <Tag :value="shortRunner(option.runner)" severity="info" class="runner-tag" />
             <div class="option-info">
-              <span class="font-mono font-semibold option-name">{{ fileName(option.path) }}</span>
+              <span class="option-name">{{ fileName(option.path) }}</span>
               <span class="option-dir">{{ dirName(option.path) }}</span>
             </div>
             <div class="option-flags">
@@ -35,8 +35,8 @@
     <SplitterPanel :size="75">
       <!-- Nothing selected -->
       <div v-if="!selected" class="empty-detail">
-        <i class="pi pi-code text-5xl" style="color: var(--p-text-muted-color);" />
-        <span style="color: var(--p-text-muted-color);">Select a script from the list</span>
+        <i class="pi pi-code empty-detail-icon" />
+        <span class="empty-detail-text">Select a script from the list</span>
       </div>
 
       <!-- Script selected -->
@@ -45,14 +45,13 @@
         <!-- Header toolbar -->
         <Toolbar class="detail-toolbar">
           <template #start>
-            <Tag :value="selected.runner" severity="info" class="font-mono" />
-            <span class="font-semibold ml-2">{{ fileName(selected.path) }}</span>
+            <Tag :value="selected.runner" severity="info" class="runner-tag" />
+            <span class="detail-filename">{{ fileName(selected.path) }}</span>
             <Button
               :label="selected.path"
               text size="small"
               icon="pi pi-folder-open"
-              class="font-mono ml-2"
-              style="font-size: 11px;"
+              class="path-btn"
               v-tooltip.bottom="'Open in Files'"
               @click="openInFiles(selected.path)"
             />
@@ -128,15 +127,15 @@
             <!-- Output panel -->
             <TabPanel value="0" class="output-panel">
               <div v-if="!execId" class="empty-run">
-                <i class="pi pi-play-circle text-5xl" style="color: var(--p-text-muted-color);" />
-                <span style="color: var(--p-text-muted-color);">Press Run to execute the script.</span>
+                <i class="pi pi-play-circle empty-run-icon" />
+                <span class="empty-run-text">Press Run to execute the script.</span>
               </div>
               <template v-else>
                 <div class="terminal-status">
-                  <Tag v-if="polling"                 value="RUNNING"       severity="warning" icon="pi pi-spin pi-spinner" />
-                  <Tag v-else-if="currentExitCode === 0" value="EXIT 0 ✓"   severity="success" />
+                  <Tag v-if="polling"                    value="RUNNING"           severity="warning" icon="pi pi-spin pi-spinner" />
+                  <Tag v-else-if="currentExitCode === 0" value="EXIT 0 ✓"          severity="success" />
                   <Tag v-else-if="currentExitCode != null" :value="`EXIT ${currentExitCode}`" severity="danger" />
-                  <span class="ml-auto text-xs" style="color: var(--p-text-muted-color);">{{ execStarted }}</span>
+                  <span class="exec-time">{{ execStarted }}</span>
                 </div>
                 <pre ref="terminalEl" class="terminal-output">{{ outputLines.join('\n') }}</pre>
               </template>
@@ -150,17 +149,16 @@
                 v-model:expanded-rows="expandedHistoryRows"
                 dataKey="id"
                 size="small"
-                class="h-full"
+                removableSort
+                class="history-table"
               >
                 <template #empty>
-                  <div class="flex align-items-center justify-content-center py-4" style="color: var(--p-text-muted-color);">
-                    No executions yet.
-                  </div>
+                  <div class="history-empty">No executions yet.</div>
                 </template>
 
                 <Column expander style="width: 2rem" />
 
-                <Column header="Exit" style="width: 70px">
+                <Column header="EXIT" style="width: 70px">
                   <template #body="{ data }">
                     <Tag
                       :value="String(data.exit_code ?? '…')"
@@ -169,32 +167,32 @@
                   </template>
                 </Column>
 
-                <Column field="started_at" header="Date" sortable>
+                <Column field="started_at" header="DATE" sortable>
                   <template #body="{ data }">
-                    <span class="font-mono" style="font-size: 11px;">{{ formatDate(data.started_at) }}</span>
+                    <span class="cell-date">{{ formatDate(data.started_at) }}</span>
                   </template>
                 </Column>
 
-                <Column header="Duration">
+                <Column header="DURATION">
                   <template #body="{ data }">
-                    <span class="font-mono" style="font-size: 11px; color: var(--p-text-muted-color);">{{ duration(data) }}</span>
+                    <span class="cell-duration">{{ duration(data) }}</span>
                   </template>
                 </Column>
 
-                <Column field="triggered_by" header="User">
+                <Column field="triggered_by" header="USER">
                   <template #body="{ data }">
-                    <Chip :label="data.triggered_by" style="font-size: 11px;" />
+                    <Chip :label="data.triggered_by" class="history-chip" />
                   </template>
                 </Column>
 
-                <Column header="Root" style="width: 50px">
+                <Column header="ROOT" style="width: 50px">
                   <template #body="{ data }">
-                    <i v-if="data.run_as_root" class="pi pi-lock" style="color: var(--p-yellow-500);" />
+                    <i v-if="data.run_as_root" class="pi pi-lock root-lock" />
                   </template>
                 </Column>
 
                 <template #expansion="{ data }">
-                  <pre class="font-mono history-output">{{ data.output || '(no output)' }}</pre>
+                  <pre class="history-output">{{ data.output || '(no output)' }}</pre>
                 </template>
               </DataTable>
             </TabPanel>
@@ -423,21 +421,38 @@ async function loadHistory() {
 :deep(.p-listbox) { height: 100%; border-radius: 0; border-top: none; border-bottom: none; border-left: none; }
 :deep(.p-listbox-list-wrapper) { height: calc(100% - 42px); }
 
+/* List item */
 .list-option { display: flex; align-items: center; gap: 8px; width: 100%; }
-.runner-tag { font-size: 9px; flex-shrink: 0; }
+.runner-tag { font-size: var(--text-2xs); flex-shrink: 0; }
 .option-info { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
-.option-name { font-size: 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.option-dir { font-size: 10px; color: var(--p-text-muted-color); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.option-name {
+  font-family: var(--font-mono);
+  font-size: var(--text-sm);
+  font-weight: 600;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.option-dir {
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  color: var(--p-text-muted-color);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
 .option-flags { display: flex; gap: 3px; flex-shrink: 0; }
 
-/* Right detail panel */
+/* Empty detail state */
 .empty-detail {
   height: 100%; display: flex; flex-direction: column;
   align-items: center; justify-content: center; gap: 12px;
 }
+.empty-detail-icon { font-size: 3rem; color: var(--p-text-muted-color); }
+.empty-detail-text { font-size: var(--text-sm); color: var(--p-text-muted-color); }
+
+/* Right detail panel */
 .detail-panel { height: 100%; display: flex; flex-direction: column; overflow: hidden; }
 
 .detail-toolbar { border-radius: 0; flex-shrink: 0; }
+.detail-filename { font-family: var(--font-mono); font-size: var(--text-sm); font-weight: 600; margin: 0 6px; }
+.path-btn { font-family: var(--font-mono) !important; font-size: var(--text-xs) !important; }
 
 .exec-section { padding: 10px 14px; flex-shrink: 0; border-bottom: 1px solid var(--p-surface-border); }
 
@@ -451,12 +466,16 @@ async function loadHistory() {
 .output-panel { height: 100%; display: flex; flex-direction: column; overflow: hidden; }
 .history-panel { height: 100%; overflow: hidden; }
 
+/* Empty run state */
 .empty-run {
   flex: 1; height: 100%;
   display: flex; flex-direction: column;
   align-items: center; justify-content: center; gap: 12px;
 }
+.empty-run-icon { font-size: 3rem; color: var(--p-text-muted-color); }
+.empty-run-text { font-size: var(--text-sm); color: var(--p-text-muted-color); }
 
+/* Terminal */
 .terminal-status {
   display: flex; align-items: center; gap: 10px;
   padding: 6px 14px;
@@ -464,21 +483,52 @@ async function loadHistory() {
   border-bottom: 1px solid var(--p-surface-border);
   flex-shrink: 0;
 }
+.exec-time {
+  margin-left: auto;
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  color: var(--p-text-muted-color);
+}
 .terminal-output {
   flex: 1; overflow-y: auto;
   padding: 12px 16px;
   font-family: var(--font-mono);
-  font-size: 12px; line-height: 1.7;
+  font-size: var(--text-sm); line-height: 1.7;
   color: var(--p-text-muted-color);
   white-space: pre-wrap; word-break: break-all;
   background: var(--p-surface-900);
   margin: 0;
 }
+
+/* History table */
+.history-table { height: 100%; }
+.history-empty {
+  display: flex; align-items: center; justify-content: center;
+  padding: 24px;
+  font-size: var(--text-sm);
+  color: var(--p-text-muted-color);
+}
+.cell-date { font-family: var(--font-mono); font-size: var(--text-xs); }
+.cell-duration { font-family: var(--font-mono); font-size: var(--text-xs); color: var(--p-text-muted-color); }
+:deep(.history-chip) { font-size: var(--text-xs) !important; }
+.root-lock { color: var(--p-yellow-500); font-size: 13px; }
 .history-output {
-  font-family: var(--font-mono); font-size: 11px; line-height: 1.6;
+  font-family: var(--font-mono); font-size: var(--text-xs); line-height: 1.6;
   color: var(--p-text-muted-color);
   padding: 10px 16px; white-space: pre-wrap; word-break: break-all;
   background: var(--p-surface-50); margin: 0;
   max-height: 300px; overflow-y: auto;
 }
+
+/* DataTable header normalization */
+:deep(.history-table .p-datatable-thead th) { background: transparent; }
+:deep(.history-table .p-datatable-column-header-content) {
+  font-family: var(--font-mono);
+  font-size: var(--text-2xs);
+  letter-spacing: 1.5px;
+  color: var(--p-text-muted-color);
+  text-transform: uppercase;
+  font-weight: 600;
+}
+:deep(.history-table .p-datatable-tbody td) { padding: 5px 10px; }
 </style>

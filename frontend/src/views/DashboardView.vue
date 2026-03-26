@@ -28,62 +28,12 @@
       />
     </div>
 
-    <!-- Recent executions panel -->
-    <Panel class="info-panel">
-      <template #header>
-        <div class="panel-header">
-          <span class="panel-title">RECENT EXECUTIONS</span>
-          <RouterLink to="/logs" class="view-all-link">View all →</RouterLink>
-        </div>
-      </template>
-      <DataTable :value="recentLogs" size="small" :show-gridlines="false" class="recent-table">
-        <template #empty>
-          <span style="font-size: 12px; color: var(--p-text-muted-color);">No executions yet</span>
-        </template>
-        <Column field="script_path" header="Script">
-          <template #body="{ data }">
-            <span class="font-mono" style="font-size: 12px;">{{ data.script_path?.split('/').at(-1) }}</span>
-          </template>
-        </Column>
-        <Column field="username" header="User" style="width: 110px">
-          <template #body="{ data }">
-            <Chip :label="data.username" style="font-size: 11px;" />
-          </template>
-        </Column>
-        <Column field="exit_code" header="Status" style="width: 90px">
-          <template #body="{ data }">
-            <Tag
-              v-if="data.exit_code === null" value="running" severity="info"
-            />
-            <Tag
-              v-else-if="data.exit_code === 0" value="ok" severity="success"
-            />
-            <Tag
-              v-else :value="`exit ${data.exit_code}`" severity="danger"
-            />
-          </template>
-        </Column>
-        <Column field="started_at" header="When" style="width: 140px">
-          <template #body="{ data }">
-            <span style="font-size: 11px; color: var(--p-text-muted-color);">{{ formatLogDate(data.started_at) }}</span>
-          </template>
-        </Column>
-        <Column field="duration_seconds" header="Duration" style="width: 90px">
-          <template #body="{ data }">
-            <span class="font-mono" style="font-size: 11px; color: var(--p-text-muted-color);">
-              {{ data.duration_seconds != null ? `${data.duration_seconds.toFixed(1)}s` : '—' }}
-            </span>
-          </template>
-        </Column>
-      </DataTable>
-    </Panel>
-
     <!-- System info panel -->
     <Panel class="info-panel">
       <template #header>
         <div class="panel-header">
           <span class="panel-title">SYSTEM</span>
-          <span class="panel-os font-mono" style="font-size: 11px; color: var(--p-text-muted-color);">{{ metrics.os_name }}</span>
+          <span class="panel-os">{{ metrics.os_name }}</span>
         </div>
       </template>
 
@@ -94,7 +44,7 @@
         </div>
         <div class="info-item">
           <span class="info-key">UPTIME</span>
-          <Tag :value="uptimeFormatted" severity="success" icon="pi pi-clock" class="font-mono" style="font-size: 11px;" />
+          <Tag :value="uptimeFormatted" severity="success" icon="pi pi-clock" class="uptime-tag" />
         </div>
         <div class="info-item">
           <span class="info-key">ARCH</span>
@@ -140,6 +90,48 @@
           </div>
         </div>
       </div>
+    </Panel>
+
+    <!-- Recent executions panel -->
+    <Panel class="info-panel">
+      <template #header>
+        <div class="panel-header">
+          <span class="panel-title">RECENT EXECUTIONS</span>
+          <RouterLink to="/logs" class="view-all-link">View all →</RouterLink>
+        </div>
+      </template>
+      <DataTable :value="recentLogs" size="small" :show-gridlines="false" class="recent-table">
+        <template #empty>
+          <span class="cell-empty">No executions yet</span>
+        </template>
+        <Column field="script_path" header="Script">
+          <template #body="{ data }">
+            <span class="cell-name">{{ data.script_path?.split('/').at(-1) }}</span>
+          </template>
+        </Column>
+        <Column field="username" header="User" style="width: 110px">
+          <template #body="{ data }">
+            <Chip :label="data.username" class="cell-chip" />
+          </template>
+        </Column>
+        <Column field="exit_code" header="Status" style="width: 90px">
+          <template #body="{ data }">
+            <Tag v-if="data.exit_code === null"  value="running"              severity="info"    />
+            <Tag v-else-if="data.exit_code === 0" value="ok"                  severity="success" />
+            <Tag v-else                           :value="`exit ${data.exit_code}`" severity="danger"  />
+          </template>
+        </Column>
+        <Column field="started_at" header="When" style="width: 140px">
+          <template #body="{ data }">
+            <span class="cell-meta">{{ formatLogDate(data.started_at) }}</span>
+          </template>
+        </Column>
+        <Column field="duration_seconds" header="Duration" style="width: 90px">
+          <template #body="{ data }">
+            <span class="cell-meta cell-mono">{{ data.duration_seconds != null ? `${data.duration_seconds.toFixed(1)}s` : '—' }}</span>
+          </template>
+        </Column>
+      </DataTable>
     </Panel>
 
   </div>
@@ -241,7 +233,13 @@ function loadBadgeClass(val) {
 .view-all-link:hover { text-decoration: underline; }
 .panel-title {
   font-family: var(--font-mono);
-  font-size: 9px; letter-spacing: 2px;
+  font-size: var(--text-2xs); letter-spacing: 2px;
+  color: var(--p-text-muted-color);
+  text-transform: uppercase;
+}
+.panel-os {
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
   color: var(--p-text-muted-color);
 }
 
@@ -284,9 +282,34 @@ function loadBadgeClass(val) {
   font-size: 9px; color: var(--p-text-muted-color);
 }
 
+/* Cell utility classes — replaces all inline style="" */
+.cell-name  { font-family: var(--font-mono); font-size: var(--text-sm); }
+.cell-meta  { font-size: var(--text-xs); color: var(--p-text-muted-color); }
+.cell-mono  { font-family: var(--font-mono); }
+.cell-empty { font-size: var(--text-sm); color: var(--p-text-muted-color); }
+:deep(.cell-chip) { font-size: var(--text-xs) !important; }
+:deep(.uptime-tag) { font-family: var(--font-mono); font-size: var(--text-xs); }
+
 /* Load badge color overrides */
 .load-badge { font-family: var(--font-mono); font-size: 11px; font-weight: 600; }
 :deep(.load-ok .p-badge)   { background: var(--p-green-500) !important; color: #fff !important; }
 :deep(.load-mid .p-badge)  { background: var(--p-yellow-500) !important; color: #000 !important; }
 :deep(.load-high .p-badge) { background: var(--p-red-500) !important; color: #fff !important; }
+
+/* Normalize DataTable headers to match System panel aesthetic */
+:deep(.recent-table .p-datatable-thead th) {
+  padding: 6px 10px;
+  background: transparent;
+}
+:deep(.recent-table .p-datatable-column-header-content) {
+  font-family: var(--font-mono);
+  font-size: 8px;
+  letter-spacing: 1.5px;
+  color: var(--p-text-muted-color);
+  text-transform: uppercase;
+  font-weight: 600;
+}
+:deep(.recent-table .p-datatable-tbody td) {
+  padding: 5px 10px;
+}
 </style>

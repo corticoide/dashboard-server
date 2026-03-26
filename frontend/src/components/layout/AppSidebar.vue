@@ -1,9 +1,10 @@
 <template>
   <aside :class="['sidebar', { collapsed }]">
+
     <!-- Brand -->
     <div class="brand">
       <div class="brand-icon">
-        <i class="pi pi-desktop" style="color: var(--p-primary-color); font-size: 18px;" />
+        <i class="pi pi-desktop" />
       </div>
       <div class="brand-text">
         <span class="brand-name">SERVERDASH</span>
@@ -15,85 +16,56 @@
     </div>
 
     <!-- Toggle -->
-    <Button
-      :icon="collapsed ? 'pi pi-bars' : 'pi pi-bars'"
-      text
-      plain
-      class="toggle-btn"
-      :title="collapsed ? 'Expand' : 'Collapse'"
-      @click="$emit('toggle')"
-    />
+    <button class="toggle-btn" :title="collapsed ? 'Expand' : 'Collapse'" @click="$emit('toggle')">
+      <i class="pi pi-bars" />
+    </button>
 
     <!-- Nav -->
-    <PanelMenu :model="menuItems" class="nav-menu" :pt="panelMenuPt" />
+    <nav class="nav">
+      <div class="nav-section">
+        <span class="nav-section-label">MONITOR</span>
+        <RouterLink class="nav-item" to="/" :class="{ active: route.path === '/' }">
+          <i class="pi pi-th-large nav-icon" />
+          <span class="nav-label">Dashboard</span>
+        </RouterLink>
+        <RouterLink class="nav-item" to="/services" :class="{ active: route.path === '/services' }">
+          <i class="pi pi-cog nav-icon" />
+          <span class="nav-label">Services</span>
+        </RouterLink>
+        <RouterLink class="nav-item" to="/files" :class="{ active: route.path === '/files' }">
+          <i class="pi pi-folder-open nav-icon" />
+          <span class="nav-label">Files</span>
+        </RouterLink>
+      </div>
+
+      <div class="nav-section">
+        <span class="nav-section-label">MANAGE</span>
+        <RouterLink class="nav-item" to="/scripts" :class="{ active: route.path === '/scripts' }">
+          <i class="pi pi-code nav-icon" />
+          <span class="nav-label">Scripts</span>
+        </RouterLink>
+        <RouterLink class="nav-item" to="/crontab" :class="{ active: route.path === '/crontab' }">
+          <i class="pi pi-clock nav-icon" />
+          <span class="nav-label">Crontab</span>
+        </RouterLink>
+        <RouterLink class="nav-item" to="/logs" :class="{ active: route.path === '/logs' }">
+          <i class="pi pi-list nav-icon" />
+          <span class="nav-label">Logs</span>
+        </RouterLink>
+      </div>
+    </nav>
+
   </aside>
 </template>
 
 <script setup>
-import { computed } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
-import Button from 'primevue/button'
-import PanelMenu from 'primevue/panelmenu'
+import { useRoute } from 'vue-router'
+import { RouterLink } from 'vue-router'
 
-const props = defineProps({ collapsed: Boolean })
+defineProps({ collapsed: Boolean })
 defineEmits(['toggle'])
 
 const route = useRoute()
-const router = useRouter()
-
-const menuItems = computed(() => [
-  {
-    label: 'MONITOR',
-    items: [
-      {
-        label: 'Dashboard',
-        icon: 'pi pi-th-large',
-        class: route.path === '/' ? 'nav-item-active' : '',
-        command: () => router.push('/'),
-      },
-      {
-        label: 'Services',
-        icon: 'pi pi-cog',
-        class: route.path === '/services' ? 'nav-item-active' : '',
-        command: () => router.push('/services'),
-      },
-      {
-        label: 'Files',
-        icon: 'pi pi-folder-open',
-        class: route.path === '/files' ? 'nav-item-active' : '',
-        command: () => router.push('/files'),
-      },
-    ],
-  },
-  {
-    label: 'MANAGE',
-    items: [
-      {
-        label: 'Scripts',
-        icon: 'pi pi-code',
-        class: route.path === '/scripts' ? 'nav-item-active' : '',
-        command: () => router.push('/scripts'),
-      },
-      {
-        label: 'Crontab',
-        icon: 'pi pi-clock',
-        class: route.path === '/crontab' ? 'nav-item-active' : '',
-        command: () => router.push('/crontab'),
-      },
-      {
-        label: 'Logs',
-        icon: 'pi pi-list',
-        class: route.path === '/logs' ? 'nav-item-active' : '',
-        command: () => router.push('/logs'),
-      },
-    ],
-  },
-])
-
-// Pass-through to keep panels always expanded
-const panelMenuPt = {
-  headerAction: { style: 'display: none' },
-}
 </script>
 
 <style scoped>
@@ -117,18 +89,20 @@ const panelMenuPt = {
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: 14px 12px;
+  padding: 0 12px;
+  height: var(--header-height);
   border-bottom: 1px solid var(--p-surface-border);
-  min-height: var(--header-height);
   flex-shrink: 0;
 }
 .brand-icon {
-  width: 32px; height: 32px;
-  background: var(--p-surface-hover);
-  border: 1px solid var(--p-surface-border);
+  width: 30px; height: 30px;
+  background: color-mix(in srgb, var(--brand-orange) 12%, transparent);
+  border: 1px solid color-mix(in srgb, var(--brand-orange) 30%, transparent);
   border-radius: 6px;
   display: flex; align-items: center; justify-content: center;
   flex-shrink: 0;
+  color: var(--brand-orange);
+  font-size: 15px;
 }
 .brand-text {
   display: flex; flex-direction: column; gap: 2px;
@@ -136,9 +110,10 @@ const panelMenuPt = {
 }
 .brand-name {
   font-family: var(--font-mono);
-  font-size: 11px; font-weight: 600;
-  letter-spacing: 2px;
-  color: var(--p-primary-color);
+  font-size: var(--text-xs);
+  font-weight: 700;
+  letter-spacing: 2.5px;
+  color: var(--brand-orange);
 }
 .brand-status {
   display: flex; align-items: center; gap: 4px;
@@ -147,75 +122,127 @@ const panelMenuPt = {
   width: 5px; height: 5px;
   border-radius: 50%;
   background: var(--p-green-500);
-  animation: pulse 2.5s ease-in-out infinite;
+  animation: blink 2.5s ease-in-out infinite;
 }
-@keyframes pulse {
+@keyframes blink {
   0%, 100% { opacity: 1; }
-  50% { opacity: 0.5; }
+  50% { opacity: 0.4; }
 }
 .status-label {
   font-family: var(--font-mono);
-  font-size: 8px; letter-spacing: 1.5px;
+  font-size: var(--text-2xs);
+  letter-spacing: 1.5px;
   color: var(--p-green-500);
 }
 
 /* Toggle */
 .toggle-btn {
   width: 100%;
-  border-radius: 0 !important;
-  justify-content: flex-start;
-  padding: 10px 18px !important;
+  display: flex;
+  align-items: center;
+  padding: 10px 16px;
+  background: transparent;
+  border: none;
+  border-bottom: 1px solid var(--p-surface-border);
+  color: var(--p-text-muted-color);
+  cursor: pointer;
+  font-size: 14px;
+  transition: color 0.15s, background 0.15s;
+  flex-shrink: 0;
+}
+.toggle-btn:hover {
+  background: var(--p-surface-hover);
+  color: var(--p-text-color);
 }
 
 /* Nav */
-.nav-menu {
+.nav {
   flex: 1;
   overflow-y: auto;
-  border: none !important;
+  padding: 8px 0;
 }
 
-/* Hide group headers (labels like MONITOR / MANAGE) */
-:deep(.p-panelmenu-header) {
-  padding: 10px 8px 4px;
+.nav-section {
+  padding: 8px 0 4px;
 }
-:deep(.p-panelmenu-header-content) {
-  background: transparent !important;
-  border: none !important;
+.nav-section + .nav-section {
+  border-top: 1px solid var(--p-surface-border);
+  margin-top: 4px;
+  padding-top: 12px;
 }
-:deep(.p-panelmenu-header-label) {
+
+.nav-section-label {
+  display: block;
   font-family: var(--font-mono);
-  font-size: 9px;
-  letter-spacing: 1.5px;
+  font-size: var(--text-2xs);
+  font-weight: 600;
+  letter-spacing: 2px;
   color: var(--p-text-muted-color);
-  text-transform: uppercase;
-}
-:deep(.p-panelmenu-header-icon) { display: none; }
-
-:deep(.p-panelmenu-content) {
-  background: transparent !important;
-  border: none !important;
-  padding: 0 8px;
+  padding: 0 14px 6px;
+  white-space: nowrap;
+  overflow: hidden;
+  opacity: 0.6;
 }
 
-:deep(.p-menuitem-link) {
-  border-radius: 5px;
-  padding: 8px 10px;
-  color: var(--p-text-muted-color) !important;
+.nav-item {
+  display: flex;
+  align-items: center;
   gap: 10px;
+  padding: 9px 12px;
+  margin: 1px 8px;
+  border-radius: 6px;
+  text-decoration: none;
+  color: var(--p-text-muted-color);
+  font-size: var(--text-base);
+  font-family: var(--font-ui);
+  transition: background 0.15s, color 0.15s;
+  white-space: nowrap;
+  overflow: hidden;
+  border-left: 2px solid transparent;
 }
-:deep(.p-menuitem-link:hover) {
-  background: var(--p-surface-hover) !important;
-  color: var(--p-text-color) !important;
+.nav-item:hover {
+  background: var(--p-surface-hover);
+  color: var(--p-text-color);
 }
-:deep(.nav-item-active .p-menuitem-link) {
-  background: var(--p-surface-hover) !important;
-  color: var(--p-primary-color) !important;
-  border-left: 2px solid var(--p-primary-color);
-  padding-left: 8px;
+.nav-item.active {
+  background: color-mix(in srgb, var(--brand-orange) 10%, transparent);
+  color: var(--brand-orange);
+  border-left-color: var(--brand-orange);
+  font-weight: 500;
+}
+.nav-item.active .nav-icon {
+  color: var(--brand-orange);
 }
 
-/* Collapsed: hide labels and group headers */
-.sidebar.collapsed :deep(.p-panelmenu-header) { visibility: hidden; height: 0; padding: 0; overflow: hidden; }
-.sidebar.collapsed :deep(.p-panelmenu-item-label) { display: none; }
-.sidebar.collapsed .brand-text { display: none; }
+.nav-icon {
+  font-size: 15px;
+  flex-shrink: 0;
+  width: 18px;
+  text-align: center;
+  color: var(--p-text-muted-color);
+  transition: color 0.15s;
+}
+
+.nav-label {
+  flex: 1;
+  overflow: hidden;
+}
+
+/* Collapsed state */
+.sidebar.collapsed .brand-text    { display: none; }
+.sidebar.collapsed .nav-section-label { display: none; }
+.sidebar.collapsed .nav-section + .nav-section { border-top: none; }
+.sidebar.collapsed .nav-label     { display: none; }
+.sidebar.collapsed .nav-item {
+  justify-content: center;
+  padding: 9px 0;
+  margin: 1px 8px;
+  border-left-color: transparent;
+}
+.sidebar.collapsed .nav-item.active {
+  background: color-mix(in srgb, var(--brand-orange) 10%, transparent);
+}
+.sidebar.collapsed .nav-item.active .nav-icon {
+  color: var(--brand-orange);
+}
 </style>

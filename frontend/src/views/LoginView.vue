@@ -29,10 +29,9 @@
               v-model="password"
               :feedback="false"
               toggle-mask
+              fluid
               autocomplete="current-password"
               required
-              class="w-full"
-              input-class="w-full"
             />
             <label for="password">Password</label>
           </FloatLabel>
@@ -142,6 +141,12 @@ async function handleLogin() {
 }
 
 :deep(.p-password) {
+  display: flex;
   width: 100%;
+}
+:deep(.p-password-input) {
+  flex: 1 1 0%;
+  min-width: 0;
+  width: 100% !important;
 }
 </style>

@@ -7,8 +7,8 @@
       @click="handleClick"
     >
       <span class="tree-arrow" :class="{ expanded: isExpanded }">
-        <i v-if="isLoading" class="pi pi-spin pi-spinner" style="font-size: 10px;" />
-        <i v-else class="pi pi-chevron-right" style="font-size: 10px;" />
+        <i v-if="isLoading" class="pi pi-spin pi-spinner tree-arrow-icon" />
+        <i v-else class="pi pi-chevron-right tree-arrow-icon" />
       </span>
       <i class="pi pi-folder folder-icon" />
       <span class="tree-name">{{ node.name || node.path }}</span>
@@ -82,8 +82,8 @@ watch(() => props.currentPath, (newPath) => {
 
 .tree-item {
   display: flex; align-items: center; gap: 5px;
-  padding: 4px 8px; border-radius: 4px; cursor: pointer;
-  font-family: var(--font-mono); font-size: 12px;
+  padding: 5px 8px; border-radius: 4px; cursor: pointer;
+  font-family: var(--font-mono); font-size: var(--text-sm);
   color: var(--p-text-muted-color);
   transition: background 0.1s, color 0.1s;
   white-space: nowrap;
@@ -93,8 +93,9 @@ watch(() => props.currentPath, (newPath) => {
   color: var(--p-text-color);
 }
 .tree-item.active {
-  background: var(--p-highlight-background);
-  color: var(--p-primary-color);
+  background: color-mix(in srgb, var(--brand-orange) 10%, transparent);
+  color: var(--brand-orange);
+  border-left: 2px solid var(--brand-orange);
 }
 
 .tree-arrow {
@@ -104,6 +105,7 @@ watch(() => props.currentPath, (newPath) => {
   display: flex; align-items: center;
 }
 .tree-arrow.expanded { transform: rotate(90deg); }
+.tree-arrow-icon { font-size: 10px; }
 
 .folder-icon {
   flex-shrink: 0;
@@ -111,7 +113,7 @@ watch(() => props.currentPath, (newPath) => {
   font-size: 13px;
 }
 .tree-item.active .folder-icon {
-  color: var(--p-primary-color);
+  color: var(--brand-orange);
 }
 
 .tree-name { overflow: hidden; text-overflow: ellipsis; }
