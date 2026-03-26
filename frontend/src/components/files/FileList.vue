@@ -8,12 +8,14 @@
         </span>
       </div>
       <div class="toolbar-actions">
-        <label class="action-btn btn-blue" title="Upload file">
+        <!-- Upload: operator+ -->
+        <label v-if="canUpload" class="action-btn btn-blue" title="Upload file">
           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
           Upload
           <input type="file" class="hidden-input" @change="uploadFile" multiple />
         </label>
-        <button class="action-btn btn-muted" @click="showMkdir = true" title="New folder">
+        <!-- New Folder: admin only -->
+        <button v-if="canAdmin" class="action-btn btn-muted" @click="showMkdir = true" title="New folder">
           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/><line x1="12" y1="11" x2="12" y2="17"/><line x1="9" y1="14" x2="15" y2="14"/></svg>
           New Folder
         </button>
@@ -45,10 +47,24 @@
               <div class="skeleton" v-for="i in 5" :key="i"></div>
             </td>
           </tr>
-          <tr v-else-if="sorted.length === 0">
-            <td colspan="6" class="empty-cell">Empty directory</td>
-          </tr>
           <template v-else>
+            <!-- Parent directory ".." row -->
+            <tr v-if="parentPath" class="file-row parent-row" @dblclick="$emit('navigate', parentPath)">
+              <td class="name-cell">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" class="icon-dir">
+                  <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/>
+                </svg>
+                <span class="parent-label">.. (parent directory)</span>
+              </td>
+              <td class="mono-cell">—</td>
+              <td class="mono-cell">—</td>
+              <td class="mono-cell">—</td>
+              <td class="mono-cell">—</td>
+              <td class="actions-cell"></td>
+            </tr>
+            <tr v-if="sorted.length === 0 && !parentPath">
+              <td colspan="6" class="empty-cell">Empty directory</td>
+            </tr>
             <tr
               v-for="entry in sorted" :key="entry.path"
               class="file-row"
@@ -70,15 +86,28 @@
               <td class="mono-cell">{{ entry.owner }}</td>
               <td class="mono-cell">{{ formatDate(entry.modified) }}</td>
               <td class="actions-cell" @click.stop>
-                <a v-if="!entry.is_dir"
-                   :href="`/api/files/download?path=${encodeURIComponent(entry.path)}`"
-                   class="row-btn" title="Download" target="_blank">
+                <!-- Favorite star: files only, for Phase 4 -->
+                <button
+                  v-if="!entry.is_dir"
+                  class="row-btn star-btn"
+                  :class="{ starred: isFavorite(entry.path) }"
+                  @click="toggleFavorite(entry.path)"
+                  :title="isFavorite(entry.path) ? 'Remove from favorites' : 'Add to favorites'"
+                >
+                  <svg width="12" height="12" viewBox="0 0 24 24" :fill="isFavorite(entry.path) ? 'currentColor' : 'none'" stroke="currentColor" stroke-width="2">
+                    <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
+                  </svg>
+                </button>
+                <!-- Download: files only, all authenticated users -->
+                <button v-if="!entry.is_dir" class="row-btn" title="Download" @click="downloadFile(entry)">
                   <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-                </a>
-                <button class="row-btn" title="Rename" @click="startRename(entry)">
+                </button>
+                <!-- Rename: admin only -->
+                <button v-if="canAdmin" class="row-btn" title="Rename" @click="startRename(entry)">
                   <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
                 </button>
-                <button class="row-btn btn-danger" title="Delete" @click="confirmDelete(entry)">
+                <!-- Delete: admin only -->
+                <button v-if="canAdmin" class="row-btn btn-danger" title="Delete" @click="confirmDelete(entry)">
                   <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>
                 </button>
               </td>
@@ -113,15 +142,23 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import api from '../../api/client.js'
+import { useScriptsStore } from '../../stores/scripts.js'
+
+const scriptsStore = useScriptsStore()
 
 const props = defineProps({
   path: String,
   entries: Array,
   loading: Boolean,
+  userRole: { type: String, default: 'readonly' },
+  sudoPassword: { type: String, default: '' },
 })
 const emit = defineEmits(['navigate', 'selectFile', 'refresh'])
+
+const canAdmin = computed(() => props.userRole === 'admin')
+const canUpload = computed(() => props.userRole === 'admin' || props.userRole === 'operator')
 
 const selectedPath = ref(null)
 const sortKey = ref('name')
@@ -131,6 +168,28 @@ const mkdirName = ref('')
 const renameEntry = ref(null)
 const renameValue = ref('')
 const deleteEntry = ref(null)
+
+// Favorites backed by the scripts store (synced with backend DB)
+onMounted(() => scriptsStore.loadFavorites())
+
+function isFavorite(path) {
+  return scriptsStore.isFavorite(path)
+}
+
+async function toggleFavorite(path) {
+  if (scriptsStore.isFavorite(path)) {
+    await scriptsStore.removeFavoriteByPath(path)
+  } else {
+    await scriptsStore.addFavorite(path)
+  }
+}
+
+const parentPath = computed(() => {
+  if (!props.path || props.path === '/') return null
+  const parts = props.path.split('/').filter(Boolean)
+  parts.pop()
+  return parts.length === 0 ? '/' : '/' + parts.join('/')
+})
 
 const segments = computed(() => {
   if (!props.path) return []
@@ -212,11 +271,33 @@ async function uploadFile(e) {
     try {
       await api.post(`/files/upload?path=${encodeURIComponent(props.path)}`, form)
     } catch (err) {
-      alert(`Upload failed: ${err.response?.data?.detail || err.message}`)
+      alert(`Upload failed: ${err.response?.data?.detail || err.message || 'Unknown error'}`)
     }
   }
   e.target.value = ''
   emit('refresh')
+}
+
+async function downloadFile(entry) {
+  try {
+    const headers = {}
+    if (props.sudoPassword) headers['X-Sudo-Password'] = props.sudoPassword
+    const resp = await api.get('/files/download', {
+      params: { path: entry.path },
+      responseType: 'blob',
+      headers,
+    })
+    const url = URL.createObjectURL(resp.data)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = entry.name
+    document.body.appendChild(a)
+    a.click()
+    document.body.removeChild(a)
+    setTimeout(() => URL.revokeObjectURL(url), 1000)
+  } catch (e) {
+    alert(`Download failed: ${e.response?.data?.detail || e.message || 'Unknown error'}`)
+  }
 }
 
 function startRename(entry) {
@@ -305,6 +386,9 @@ async function doDelete() {
 .file-row:hover { background: var(--surface-2); }
 .file-row.selected { background: var(--surface-3); }
 .file-row td { padding: 7px 12px; border-bottom: 1px solid var(--border); }
+.parent-row { opacity: 0.7; }
+.parent-row:hover { opacity: 1; }
+.parent-label { color: var(--text-muted); font-style: italic; }
 .name-cell { display: flex; align-items: center; gap: 7px; font-size: 12px; color: var(--text-bright); }
 .icon-dir { color: var(--accent-yellow); flex-shrink: 0; }
 .icon-file { color: var(--text-muted); flex-shrink: 0; }
@@ -318,6 +402,9 @@ async function doDelete() {
 }
 .row-btn:hover { color: var(--text); }
 .row-btn.btn-danger:hover { color: var(--accent-red); }
+.star-btn { color: var(--text-dim); }
+.star-btn:hover { color: var(--accent-yellow); }
+.star-btn.starred { color: var(--accent-yellow); }
 .loading-cell { padding: 12px; }
 .skeleton { height: 14px; background: var(--surface-2); border-radius: 4px; margin-bottom: 8px; animation: shimmer 1.4s infinite; }
 @keyframes shimmer { 0%,100%{opacity:.4} 50%{opacity:.8} }

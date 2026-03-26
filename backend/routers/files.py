@@ -1,6 +1,6 @@
-from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Query
+from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Query, Header
 from fastapi.responses import StreamingResponse
-from typing import List
+from typing import List, Optional
 from backend.dependencies import get_current_user, require_role
 from backend.models.user import UserRole
 from backend.schemas.files import DirListing, FileContent, MkdirRequest, RenameRequest
@@ -22,25 +22,37 @@ def api_list(path: str = Query("/"), user=Depends(get_current_user)):
 
 
 @router.get("/content", response_model=FileContent)
-def api_content(path: str = Query(...), user=Depends(get_current_user)):
+def api_content(
+    path: str = Query(...),
+    user=Depends(get_current_user),
+    x_sudo_password: Optional[str] = Header(None),
+):
     try:
-        return read_file(path)
+        return read_file(path, sudo_password=x_sudo_password)
     except FileNotFoundError as e:
         raise HTTPException(404, detail=str(e))
     except (ValueError, IsADirectoryError) as e:
         raise HTTPException(400, detail=str(e))
     except PermissionError as e:
-        raise HTTPException(403, detail=str(e))
+        raise HTTPException(403, detail=f"{str(e)} — sudo password required")
+    except RuntimeError as e:
+        raise HTTPException(500, detail=str(e))
 
 
 @router.get("/download")
-def api_download(path: str = Query(...), user=Depends(get_current_user)):
+def api_download(
+    path: str = Query(...),
+    user=Depends(get_current_user),
+    x_sudo_password: Optional[str] = Header(None),
+):
     try:
-        iterator, filename, size = stream_file(path)
+        iterator, filename, size = stream_file(path, sudo_password=x_sudo_password)
     except FileNotFoundError as e:
         raise HTTPException(404, detail=str(e))
     except PermissionError as e:
-        raise HTTPException(403, detail=str(e))
+        raise HTTPException(403, detail=f"{str(e)} — sudo password required")
+    except RuntimeError as e:
+        raise HTTPException(500, detail=str(e))
     headers = {
         "Content-Disposition": f'attachment; filename="{filename}"',
         "Content-Length": str(size),
@@ -49,7 +61,7 @@ def api_download(path: str = Query(...), user=Depends(get_current_user)):
 
 
 @router.post("/mkdir")
-def api_mkdir(body: MkdirRequest, user=Depends(require_role(UserRole.operator))):
+def api_mkdir(body: MkdirRequest, user=Depends(require_role(UserRole.admin))):
     try:
         make_dir(body.path)
         return {"ok": True, "path": body.path}
@@ -60,7 +72,7 @@ def api_mkdir(body: MkdirRequest, user=Depends(require_role(UserRole.operator)))
 
 
 @router.post("/rename")
-def api_rename(body: RenameRequest, user=Depends(require_role(UserRole.operator))):
+def api_rename(body: RenameRequest, user=Depends(require_role(UserRole.admin))):
     try:
         rename_path(body.source, body.destination)
         return {"ok": True}
@@ -71,7 +83,7 @@ def api_rename(body: RenameRequest, user=Depends(require_role(UserRole.operator)
 
 
 @router.delete("/delete")
-def api_delete(path: str = Query(...), user=Depends(require_role(UserRole.operator))):
+def api_delete(path: str = Query(...), user=Depends(require_role(UserRole.admin))):
     try:
         delete_path(path)
         return {"ok": True}
@@ -101,12 +113,15 @@ def api_upload(
 def api_write(
     path: str = Query(...),
     body: dict = None,
-    user=Depends(require_role(UserRole.operator)),
+    user=Depends(require_role(UserRole.admin)),
+    x_sudo_password: Optional[str] = Header(None),
 ):
     if not body or "content" not in body:
         raise HTTPException(400, detail="Missing content field")
     try:
-        write_file(path, body["content"])
+        write_file(path, body["content"], sudo_password=x_sudo_password)
         return {"ok": True}
     except (ValueError, PermissionError) as e:
         raise HTTPException(400, detail=str(e))
+    except RuntimeError as e:
+        raise HTTPException(500, detail=str(e))

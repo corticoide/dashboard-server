@@ -1,11 +1,35 @@
 <template>
   <div class="files-view">
+    <!-- Top toolbar: sudo credentials -->
+    <div class="files-toolbar">
+      <div class="sudo-wrap" :class="{ unlocked: sudoPassword }">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+          <path v-if="!sudoPassword" d="M7 11V7a5 5 0 0 1 10 0v4"/>
+          <path v-else d="M7 11V7a5 5 0 0 1 9.9-1"/>
+        </svg>
+        <input
+          v-model="sudoPassword"
+          type="password"
+          placeholder="sudo password (for root-protected files)"
+          class="sudo-input"
+          autocomplete="off"
+        />
+        <button v-if="sudoPassword" class="sudo-clear" @click="sudoPassword = ''" title="Clear">✕</button>
+      </div>
+    </div>
+
     <!-- Top panel: directory tree -->
-    <div class="tree-panel" :style="{ height: treePanelHeight + 'px' }">
+    <div class="tree-panel" :style="!treeCollapsed ? { height: treePanelHeight + 'px' } : {}">
       <div class="panel-header">
         <span class="panel-title">DIRECTORY TREE</span>
+        <button class="collapse-btn" @click="treeCollapsed = !treeCollapsed" :title="treeCollapsed ? 'Expand tree' : 'Collapse tree'">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <polyline :points="treeCollapsed ? '6 9 12 15 18 9' : '18 15 12 9 6 15'"/>
+          </svg>
+        </button>
       </div>
-      <div class="tree-scroll">
+      <div v-if="!treeCollapsed" class="tree-scroll">
         <DirTree
           :node="{ name: '/', path: '/' }"
           :current-path="currentPath"
@@ -15,8 +39,8 @@
       </div>
     </div>
 
-    <!-- Draggable divider -->
-    <div class="divider" @mousedown="startResize">
+    <!-- Draggable divider (only when tree expanded) -->
+    <div v-if="!treeCollapsed" class="divider" @mousedown="startResize">
       <div class="divider-handle"></div>
     </div>
 
@@ -26,6 +50,8 @@
         :path="currentPath"
         :entries="entries"
         :loading="loading"
+        :user-role="auth.role"
+        :sudo-password="sudoPassword"
         @navigate="navigateTo"
         @select-file="openFile"
         @refresh="loadDir"
@@ -39,7 +65,7 @@
           <span class="editor-filename">{{ openedFile.name }}</span>
           <div class="editor-actions">
             <span v-if="editorDirty" class="unsaved-dot" title="Unsaved changes"></span>
-            <button v-if="editorDirty" class="editor-btn btn-green" @click="saveFile">Save</button>
+            <button v-if="editorDirty && canEdit" class="editor-btn btn-green" @click="saveFile">Save</button>
             <button class="editor-btn btn-muted" @click="closeFile">✕</button>
           </div>
         </div>
@@ -61,18 +87,21 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, computed } from 'vue'
 import { VueMonacoEditor } from '@guolao/vue-monaco-editor'
+import { useRoute } from 'vue-router'
 import DirTree from '../components/files/DirTree.vue'
 import FileList from '../components/files/FileList.vue'
 import api from '../api/client.js'
 import { useAuthStore } from '../stores/auth.js'
 
 const auth = useAuthStore()
-const currentPath = ref('/')
+const route = useRoute()
+const currentPath = ref(route.query.dir || '/')
 const entries = ref([])
 const loading = ref(false)
-
+const sudoPassword = ref('')
+const treeCollapsed = ref(false)
 const treePanelHeight = ref(280)
 
 function startResize(e) {
@@ -112,7 +141,7 @@ const editorLanguage = ref('plaintext')
 const editorDirty = ref(false)
 const fileLoading = ref(false)
 
-const canEdit = auth.role !== 'readonly'
+const canEdit = auth.role === 'admin'
 const monacoOptions = {
   readOnly: !canEdit,
   minimap: { enabled: false },
@@ -123,6 +152,10 @@ const monacoOptions = {
   wordWrap: 'on',
 }
 
+function sudoHeaders() {
+  return sudoPassword.value ? { 'X-Sudo-Password': sudoPassword.value } : {}
+}
+
 async function openFile(entry) {
   if (openedFile.value && editorDirty.value) {
     if (!confirm('Discard unsaved changes?')) return
@@ -131,7 +164,10 @@ async function openFile(entry) {
   editorDirty.value = false
   fileLoading.value = true
   try {
-    const { data } = await api.get('/files/content', { params: { path: entry.path } })
+    const { data } = await api.get('/files/content', {
+      params: { path: entry.path },
+      headers: sudoHeaders(),
+    })
     editorContent.value = data.content
     editorLanguage.value = data.language
   } catch (e) {
@@ -151,14 +187,18 @@ function closeFile() {
 
 async function saveFile() {
   try {
-    await api.put(`/files/content?path=${encodeURIComponent(openedFile.value.path)}`,
-      { content: editorContent.value })
+    await api.put(
+      `/files/content?path=${encodeURIComponent(openedFile.value.path)}`,
+      { content: editorContent.value },
+      { headers: sudoHeaders() },
+    )
     editorDirty.value = false
   } catch (e) {
     alert(`Save failed: ${e.response?.data?.detail || e.message}`)
   }
 }
 
+import { onMounted } from 'vue'
 onMounted(loadDir)
 </script>
 
@@ -168,6 +208,33 @@ onMounted(loadDir)
   height: calc(100vh - var(--header-height) - 48px);
   overflow: hidden; position: relative;
 }
+
+.files-toolbar {
+  display: flex; align-items: center; gap: 10px;
+  padding: 0 0 10px 0; flex-shrink: 0;
+}
+.sudo-wrap {
+  display: flex; align-items: center; gap: 6px;
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: 5px; padding: 5px 10px;
+  color: var(--text-muted); transition: border-color 0.15s;
+}
+.sudo-wrap.unlocked {
+  border-color: var(--accent-green);
+  color: var(--accent-green);
+}
+.sudo-input {
+  background: none; border: none; outline: none;
+  color: var(--text); font-family: var(--font-mono); font-size: 12px;
+  width: 260px;
+}
+.sudo-input::placeholder { color: var(--text-dim); }
+.sudo-clear {
+  background: none; border: none; color: var(--text-muted);
+  cursor: pointer; font-size: 11px; padding: 0; line-height: 1;
+}
+.sudo-clear:hover { color: var(--accent-red); }
+
 .tree-panel {
   display: flex; flex-direction: column;
   background: var(--surface); border: 1px solid var(--border);
@@ -176,10 +243,17 @@ onMounted(loadDir)
 .panel-header {
   padding: 8px 12px; border-bottom: 1px solid var(--border);
   background: var(--surface-2); flex-shrink: 0;
+  display: flex; align-items: center; justify-content: space-between;
 }
 .panel-title {
   font-family: var(--font-mono); font-size: 9px; letter-spacing: 1.5px; color: var(--text-muted);
 }
+.collapse-btn {
+  background: none; border: none; color: var(--text-muted);
+  cursor: pointer; padding: 2px 4px; border-radius: 3px;
+  display: flex; align-items: center; transition: color 0.15s;
+}
+.collapse-btn:hover { color: var(--text); }
 .tree-scroll { overflow-y: auto; flex: 1; padding: 4px 0; }
 .divider {
   height: 6px; background: var(--border); cursor: ns-resize;

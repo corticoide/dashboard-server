@@ -45,13 +45,13 @@
         <span class="nav-label">Files</span>
       </RouterLink>
       <div class="nav-section-label">MANAGE</div>
-      <RouterLink to="/scripts" class="nav-item disabled" title="Scripts">
+      <RouterLink to="/scripts" class="nav-item" title="Scripts">
         <svg class="nav-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/>
         </svg>
         <span class="nav-label">Scripts</span>
       </RouterLink>
-      <RouterLink to="/crontab" class="nav-item disabled" title="Crontab">
+      <RouterLink to="/crontab" class="nav-item" title="Crontab">
         <svg class="nav-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
         </svg>

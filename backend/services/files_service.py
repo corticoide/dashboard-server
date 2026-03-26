@@ -3,9 +3,10 @@ import stat
 import shutil
 import grp
 import pwd
+import subprocess
 from pathlib import Path
 from datetime import datetime
-from typing import Iterator
+from typing import Iterator, Optional
 from backend.schemas.files import FileEntry, DirListing, FileContent
 
 ALLOWED_ROOT = Path("/")
@@ -69,6 +70,53 @@ def _stat_entry(item: Path) -> FileEntry:
     )
 
 
+def _sudo_read(path: Path, sudo_password: str) -> str:
+    """Read a file using sudo cat, for root-protected files."""
+    try:
+        proc = subprocess.Popen(
+            ["sudo", "-S", "cat", str(path)],
+            stdin=subprocess.PIPE,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+        )
+        stdout, stderr = proc.communicate(input=(sudo_password + "\n").encode(), timeout=10)
+    except FileNotFoundError:
+        raise RuntimeError("sudo not found")
+    except subprocess.TimeoutExpired:
+        proc.kill()
+        raise RuntimeError("sudo timed out")
+    if proc.returncode != 0:
+        err = stderr.decode().strip()
+        if "incorrect password" in err.lower() or "authentication failure" in err.lower():
+            raise RuntimeError("Incorrect sudo password")
+        raise PermissionError(err or "sudo cat failed")
+    return stdout.decode(errors="replace")
+
+
+def _sudo_write(path: Path, content: str, sudo_password: str) -> None:
+    """Write a file using sudo tee, for root-protected files."""
+    try:
+        proc = subprocess.Popen(
+            ["sudo", "-S", "tee", str(path)],
+            stdin=subprocess.PIPE,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+        )
+        # sudo -S reads password from first line of stdin; tee reads the rest
+        stdin_data = (sudo_password + "\n").encode() + content.encode("utf-8")
+        _, stderr = proc.communicate(input=stdin_data, timeout=10)
+    except FileNotFoundError:
+        raise RuntimeError("sudo not found")
+    except subprocess.TimeoutExpired:
+        proc.kill()
+        raise RuntimeError("sudo timed out")
+    if proc.returncode != 0:
+        err = stderr.decode().strip()
+        if "incorrect password" in err.lower() or "authentication failure" in err.lower():
+            raise RuntimeError("Incorrect sudo password")
+        raise PermissionError(err or "sudo tee failed")
+
+
 def list_dir(path: str) -> DirListing:
     p = _safe_path(path)
     if not p.exists():
@@ -91,35 +139,65 @@ def list_dir(path: str) -> DirListing:
     return DirListing(path=str(p), parent=parent, entries=entries)
 
 
-def read_file(path: str) -> FileContent:
+def read_file(path: str, sudo_password: Optional[str] = None) -> FileContent:
     p = _safe_path(path)
     if not p.exists():
         raise FileNotFoundError(f"Not found: {path}")
     if p.is_dir():
         raise IsADirectoryError(f"Is a directory: {path}")
-    size = p.stat().st_size
-    if size > MAX_READ_BYTES:
-        raise ValueError(f"File too large to read ({size} bytes, max {MAX_READ_BYTES})")
+
+    # Check size separately — stat may fail for root-only files
+    size = None
+    try:
+        size = p.stat().st_size
+        if size > MAX_READ_BYTES:
+            raise ValueError(f"File too large ({size} bytes, max {MAX_READ_BYTES})")
+    except PermissionError:
+        pass  # Will be computed after reading
+
     try:
         content = p.read_text(encoding="utf-8", errors="replace")
+    except PermissionError:
+        if not sudo_password:
+            raise
+        content = _sudo_read(p, sudo_password)
+        size = len(content.encode("utf-8"))
+        if size > MAX_READ_BYTES:
+            raise ValueError(f"File too large ({size} bytes, max {MAX_READ_BYTES})")
     except Exception as e:
         raise ValueError(f"Cannot read file as text: {e}")
+
+    if size is None:
+        size = len(content.encode("utf-8"))
+
     language = LANGUAGE_MAP.get(p.suffix.lower(), "plaintext")
     return FileContent(path=str(p), content=content, size=size, language=language)
 
 
-def stream_file(path: str):
+def stream_file(path: str, sudo_password: Optional[str] = None):
     p = _safe_path(path)
     if not p.exists() or p.is_dir():
         raise FileNotFoundError(f"Not found or is a directory: {path}")
-    size = p.stat().st_size
 
-    def _iter():
-        with open(p, "rb") as f:
-            while chunk := f.read(65536):
-                yield chunk
+    try:
+        size = p.stat().st_size
 
-    return _iter(), p.name, size
+        def _iter():
+            with open(p, "rb") as f:
+                while chunk := f.read(65536):
+                    yield chunk
+
+        return _iter(), p.name, size
+    except PermissionError:
+        if not sudo_password:
+            raise
+        content = _sudo_read(p, sudo_password)
+        data = content.encode("utf-8")
+
+        def _iter_sudo():
+            yield data
+
+        return _iter_sudo(), p.name, len(data)
 
 
 def make_dir(path: str) -> None:
@@ -145,6 +223,11 @@ def delete_path(path: str) -> None:
         p.unlink()
 
 
-def write_file(path: str, content: str) -> None:
+def write_file(path: str, content: str, sudo_password: Optional[str] = None) -> None:
     p = _safe_path(path)
-    p.write_text(content, encoding="utf-8")
+    try:
+        p.write_text(content, encoding="utf-8")
+    except PermissionError:
+        if not sudo_password:
+            raise
+        _sudo_write(p, content, sudo_password)
