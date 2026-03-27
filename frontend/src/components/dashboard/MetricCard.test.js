@@ -11,7 +11,7 @@ describe('MetricCard', () => {
 
   it('arc fill has stroke-dashoffset reflecting value', () => {
     const wrapper = mount(MetricCard, { props: { label: 'RAM', value: 75, unit: '%', color: 'green' } })
-    const fill = wrapper.find('.bar-fill')
+    const fill = wrapper.find('.gauge-fill')
     // 75% of arc: dashoffset = 131.95 * 0.25 ≈ 32.99
     const style = fill.attributes('style')
     expect(style).toContain('stroke-dashoffset')
