@@ -1,5 +1,15 @@
 from starlette.middleware.base import BaseHTTPMiddleware
 
+_CSP = (
+    "default-src 'self'; "
+    "script-src 'self' 'unsafe-eval' blob:; "
+    "style-src 'self' 'unsafe-inline'; "
+    "font-src 'self' data:; "
+    "img-src 'self' data:; "
+    "connect-src 'self' wss:; "
+    "worker-src blob: 'self';"
+)
+
 
 class SecurityHeadersMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request, call_next):
@@ -9,4 +19,5 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
         response.headers["X-XSS-Protection"] = "1; mode=block"
         response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
         response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains"
+        response.headers["Content-Security-Policy"] = _CSP
         return response
