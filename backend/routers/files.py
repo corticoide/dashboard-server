@@ -1,5 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Query, Header
 from fastapi.responses import StreamingResponse
+from pathlib import Path
 from typing import List, Optional
 from backend.dependencies import get_current_user, require_role
 from backend.models.user import UserRole
@@ -100,11 +101,16 @@ def api_upload(
     user=Depends(require_role(UserRole.operator)),
 ):
     try:
-        target = _safe_path(path) / file.filename
+        safe_name = Path(file.filename).name if file.filename else ""
+        if not safe_name or safe_name in (".", ".."):
+            raise HTTPException(400, detail="Invalid filename")
+        target = _safe_path(path) / safe_name
         with open(target, "wb") as f:
             while chunk := file.file.read(65536):
                 f.write(chunk)
         return {"ok": True, "path": str(target)}
+    except HTTPException:
+        raise
     except (ValueError, PermissionError) as e:
         raise HTTPException(400, detail=str(e))
 

@@ -49,3 +49,20 @@ def test_mkdir_as_admin(test_app):
                           headers={"Authorization": f"Bearer {token}"})
     assert r.status_code == 200
     mock_mkdir.assert_called_once_with("/tmp/newdir")
+
+def test_upload_sanitizes_filename(test_app, tmp_path):
+    """Filename with path components must be stripped to basename only."""
+    import io
+    token = test_app.post("/api/auth/login", json={"username": "admin", "password": "adminpass"}).json()["access_token"]
+    headers = {"Authorization": f"Bearer {token}"}
+    data = {"file": ("../../evil.txt", io.BytesIO(b"pwned"), "text/plain")}
+    r = test_app.post(
+        f"/api/files/upload?path={tmp_path}",
+        headers=headers,
+        files=data,
+    )
+    assert r.status_code == 200
+    written = r.json()["path"]
+    assert written.startswith(str(tmp_path)), f"Path traversal! Got: {written}"
+    assert "evil.txt" in written
+    assert ".." not in written
