@@ -13,7 +13,7 @@ def _ensure_data_dir() -> str:
 
 
 def init_logging() -> None:
-    """Configure audit and error loggers. Safe to call multiple times."""
+    """Configure the audit logger. Safe to call multiple times."""
     global _initialized
     if _initialized:
         return
@@ -21,7 +21,6 @@ def init_logging() -> None:
 
     data_dir = _ensure_data_dir()
 
-    # ── Audit logger ──────────────────────────────────────────────────────────
     audit_logger = logging.getLogger("serverdash.audit")
     audit_logger.setLevel(logging.INFO)
     if not audit_logger.handlers:
@@ -36,22 +35,6 @@ def init_logging() -> None:
         audit_logger.addHandler(handler)
     audit_logger.propagate = False
 
-    # ── Error logger ──────────────────────────────────────────────────────────
-    error_logger = logging.getLogger("serverdash.errors")
-    error_logger.setLevel(logging.ERROR)
-    if not error_logger.handlers:
-        handler = logging.FileHandler(
-            filename=os.path.join(data_dir, "errors.log"),
-            encoding="utf-8",
-        )
-        handler.setFormatter(logging.Formatter("%(asctime)s %(levelname)s %(name)s %(message)s"))
-        error_logger.addHandler(handler)
-    error_logger.propagate = False
-
 
 def get_audit_logger() -> logging.Logger:
     return logging.getLogger("serverdash.audit")
-
-
-def get_error_logger() -> logging.Logger:
-    return logging.getLogger("serverdash.errors")
