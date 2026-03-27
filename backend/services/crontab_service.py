@@ -7,8 +7,6 @@ from typing import List, Optional, Tuple
 
 from backend.schemas.crontab import CrontabEntry, CrontabEntryCreate
 
-# Absolute path to the logging wrapper so cron (minimal PATH) can find it.
-# Use the venv Python if available (same interpreter the server runs under).
 _PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
 _VENV_PYTHON = _PROJECT_ROOT / ".venv" / "bin" / "python3"
 _PYTHON = str(_VENV_PYTHON) if _VENV_PYTHON.exists() else sys.executable
@@ -20,11 +18,9 @@ SPECIAL_STRINGS = {
     "@weekly", "@daily", "@midnight", "@hourly",
 }
 
-# Regex: 5 cron fields + at least one command token
 _CRON_RE = re.compile(
     r'^(\S+)\s+(\S+)\s+(\S+)\s+(\S+)\s+(\S+)\s+(.+)$'
 )
-# Very basic cron field validation (allows *, numbers, /, -, ,)
 _FIELD_RE = re.compile(r'^[\d\*\/\-\,]+$')
 
 
@@ -48,8 +44,14 @@ def _load_raw() -> str:
     return stdout
 
 
-def _parse_raw(text: str) -> List[CrontabEntry]:
+def _parse_raw_with_envvars(text: str) -> Tuple[List[CrontabEntry], List[str]]:
+    """Parse crontab text, returning (entries, envvar_lines).
+
+    envvar_lines preserves VAR=value lines as opaque strings so they
+    can be re-emitted unchanged on save.
+    """
     entries: List[CrontabEntry] = []
+    envvar_lines: List[str] = []
     pending_comment: Optional[str] = None
     logical_idx = 0
 
@@ -59,20 +61,17 @@ def _parse_raw(text: str) -> List[CrontabEntry]:
             pending_comment = None
             continue
 
-        # Comment line — save for the next job
         if stripped.startswith("#"):
-            # Ignore meta-comments from crontab -l header
             if stripped.startswith("# DO NOT EDIT") or stripped.startswith("# ("):
                 continue
             pending_comment = stripped[1:].strip()
             continue
 
-        # Skip environment variable assignments (VAR=value)
         if re.match(r'^[A-Z_][A-Z0-9_]*\s*=', stripped):
+            envvar_lines.append(stripped)
             pending_comment = None
             continue
 
-        # Special string (@reboot, @daily, …)
         if stripped.startswith("@"):
             parts = stripped.split(None, 1)
             special = parts[0].lower()
@@ -90,7 +89,6 @@ def _parse_raw(text: str) -> List[CrontabEntry]:
             pending_comment = None
             continue
 
-        # Standard 5-field entry
         m = _CRON_RE.match(stripped)
         if m:
             entries.append(CrontabEntry(
@@ -110,11 +108,22 @@ def _parse_raw(text: str) -> List[CrontabEntry]:
 
         pending_comment = None
 
+    return entries, envvar_lines
+
+
+def _parse_raw(text: str) -> List[CrontabEntry]:
+    """Compatibility shim — returns only entries (no env vars)."""
+    entries, _ = _parse_raw_with_envvars(text)
     return entries
 
 
-def _entries_to_text(entries: List[CrontabEntry]) -> str:
+def _entries_and_envs_to_text(entries: List[CrontabEntry], envvar_lines: List[str]) -> str:
+    """Rebuild crontab text, emitting env vars first then jobs."""
     lines: List[str] = []
+    for ev in envvar_lines:
+        lines.append(ev)
+    if envvar_lines:
+        lines.append("")
     for e in entries:
         if e.comment:
             lines.append(f"# {e.comment}")
@@ -122,12 +131,19 @@ def _entries_to_text(entries: List[CrontabEntry]) -> str:
             lines.append(f"{e.special} {e.command}")
         else:
             lines.append(f"{e.minute} {e.hour} {e.dom} {e.month} {e.dow} {e.command}")
-    lines.append("")  # trailing newline
+    lines.append("")
     return "\n".join(lines)
 
 
-def _save(entries: List[CrontabEntry]) -> None:
-    text = _entries_to_text(entries)
+def _entries_to_text(entries: List[CrontabEntry]) -> str:
+    """Compatibility shim — no env vars."""
+    return _entries_and_envs_to_text(entries, [])
+
+
+def _save(entries: List[CrontabEntry], envvar_lines: Optional[List[str]] = None) -> None:
+    if envvar_lines is None:
+        _, envvar_lines = _parse_raw_with_envvars(_load_raw())
+    text = _entries_and_envs_to_text(entries, envvar_lines)
     _, stderr, rc = _run(["-"], stdin=text)
     if rc != 0:
         raise RuntimeError(stderr.strip() or "Failed to save crontab")
@@ -137,9 +153,7 @@ def validate_field(value: str, name: str) -> None:
     """Raise ValueError if a cron field is syntactically invalid."""
     if value == "*":
         return
-    # Split on comma for list values, validate each part
     for part in value.split(","):
-        # Handle step: */N or range/N
         step_parts = part.split("/")
         if len(step_parts) > 2:
             raise ValueError(f"Invalid {name} field: {value!r}")
@@ -147,7 +161,6 @@ def validate_field(value: str, name: str) -> None:
         if len(step_parts) == 2:
             if not step_parts[1].isdigit():
                 raise ValueError(f"Invalid step in {name}: {value!r}")
-        # Range: N-M or *
         if "-" in base:
             rng = base.split("-")
             if len(rng) != 2 or not rng[0].isdigit() or not rng[1].isdigit():
@@ -156,15 +169,11 @@ def validate_field(value: str, name: str) -> None:
             raise ValueError(f"Invalid {name} value: {value!r}")
 
 
-# ── Wrapper helpers ───────────────────────────────────────────────────────────
-
 def _is_wrapped(cmd: str) -> bool:
-    """Return True if the command is already wrapped by cron_log.py."""
     return _WRAPPER in cmd
 
 
 def _wrap_command(cmd: str) -> str:
-    """Prepend the logging wrapper unless the command is already wrapped."""
     cmd = cmd.strip()
     if _is_wrapped(cmd):
         return cmd
@@ -172,14 +181,12 @@ def _wrap_command(cmd: str) -> str:
 
 
 def _unwrap_command(cmd: str) -> str:
-    """Strip the logging wrapper prefix so the UI shows the raw command."""
     if cmd.startswith(_WRAPPER_PREFIX):
         return cmd[len(_WRAPPER_PREFIX):]
     return cmd
 
 
 def _strip_wrapper_from_entries(entries: List[CrontabEntry]) -> List[CrontabEntry]:
-    """Return entries with wrapper stripped from command (for display)."""
     for e in entries:
         e.command = _unwrap_command(e.command)
     return entries
@@ -188,11 +195,13 @@ def _strip_wrapper_from_entries(entries: List[CrontabEntry]) -> List[CrontabEntr
 # ── Public API ────────────────────────────────────────────────────────────────
 
 def list_entries() -> List[CrontabEntry]:
-    return _strip_wrapper_from_entries(_parse_raw(_load_raw()))
+    entries, _ = _parse_raw_with_envvars(_load_raw())
+    return _strip_wrapper_from_entries(entries)
 
 
 def add_entry(data: CrontabEntryCreate) -> List[CrontabEntry]:
-    entries = _parse_raw(_load_raw())
+    raw = _load_raw()
+    entries, envvar_lines = _parse_raw_with_envvars(raw)
     new_id = max((e.id for e in entries), default=-1) + 1
     new_entry = CrontabEntry(
         id=new_id,
@@ -208,12 +217,14 @@ def add_entry(data: CrontabEntryCreate) -> List[CrontabEntry]:
         raw="",
     )
     entries.append(new_entry)
-    _save(entries)
-    return _strip_wrapper_from_entries(_parse_raw(_load_raw()))
+    _save(entries, envvar_lines)
+    entries_out, _ = _parse_raw_with_envvars(_load_raw())
+    return _strip_wrapper_from_entries(entries_out)
 
 
 def update_entry(entry_id: int, data: CrontabEntryCreate) -> List[CrontabEntry]:
-    entries = _parse_raw(_load_raw())
+    raw = _load_raw()
+    entries, envvar_lines = _parse_raw_with_envvars(raw)
     idx = next((i for i, e in enumerate(entries) if e.id == entry_id), None)
     if idx is None:
         raise ValueError(f"Entry {entry_id} not found")
@@ -230,15 +241,18 @@ def update_entry(entry_id: int, data: CrontabEntryCreate) -> List[CrontabEntry]:
         special=data.special,
         raw="",
     )
-    _save(entries)
-    return _strip_wrapper_from_entries(_parse_raw(_load_raw()))
+    _save(entries, envvar_lines)
+    entries_out, _ = _parse_raw_with_envvars(_load_raw())
+    return _strip_wrapper_from_entries(entries_out)
 
 
 def delete_entry(entry_id: int) -> List[CrontabEntry]:
-    entries = _parse_raw(_load_raw())
+    raw = _load_raw()
+    entries, envvar_lines = _parse_raw_with_envvars(raw)
     before = len(entries)
     entries = [e for e in entries if e.id != entry_id]
     if len(entries) == before:
         raise ValueError(f"Entry {entry_id} not found")
-    _save(entries)
-    return _strip_wrapper_from_entries(_parse_raw(_load_raw()))
+    _save(entries, envvar_lines)
+    entries_out, _ = _parse_raw_with_envvars(_load_raw())
+    return _strip_wrapper_from_entries(entries_out)
