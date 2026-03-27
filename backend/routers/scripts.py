@@ -16,6 +16,7 @@ from backend.services.auth_service import decode_token
 from backend.services.scripts_service import (
     build_favorite_out, detect_runner, launch_execution, get_poll_state
 )
+from backend.services.files_service import _safe_path
 from backend.database import get_db
 from sqlalchemy.orm import Session
 from pathlib import Path
@@ -33,10 +34,15 @@ def list_favorites(db: Session = Depends(get_db), user=Depends(get_current_user)
 
 @router.post("/favorites", response_model=FavoriteOut)
 def add_favorite(body: FavoriteCreate, db: Session = Depends(get_db), user=Depends(get_current_user)):
-    existing = db.query(ScriptFavorite).filter(ScriptFavorite.path == body.path).first()
+    try:
+        safe = _safe_path(body.path)
+    except (ValueError, PermissionError) as e:
+        raise HTTPException(400, detail=f"Invalid path: {e}")
+
+    existing = db.query(ScriptFavorite).filter(ScriptFavorite.path == str(safe)).first()
     if existing:
         return build_favorite_out(existing)
-    fav = ScriptFavorite(path=body.path)
+    fav = ScriptFavorite(path=str(safe))
     db.add(fav)
     db.commit()
     db.refresh(fav)
