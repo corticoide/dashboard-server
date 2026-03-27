@@ -1,6 +1,12 @@
 #!/usr/bin/env bash
 # ServerDash deploy script — Debian/Ubuntu, RHEL/Fedora, Arch, openSUSE, Alpine
 # Usage: ./deploy.sh [--port 8443] [--host 0.0.0.0]
+
+# Re-exec with bash if invoked via sh/dash
+if [ -z "${BASH_VERSION:-}" ]; then
+  exec bash "$0" "$@"
+fi
+
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
