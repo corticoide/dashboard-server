@@ -7,6 +7,7 @@ from pathlib import Path
 from typing import Optional, List, Dict
 
 from backend.database import SessionLocal
+from backend.models.script import ScriptExecution
 from backend.schemas.scripts import FavoriteOut
 
 # ── Runner detection ──────────────────────────────────────────────────────────
@@ -150,6 +151,21 @@ def _reader(stream, lines: list) -> None:
         pass  # Stream closed
 
 
+def _flush_to_db(exec_id: int, lines_snapshot: List[str]) -> None:
+    """Write current output snapshot to DB (best-effort, non-fatal)."""
+    try:
+        db = SessionLocal()
+        try:
+            exe = db.query(ScriptExecution).filter(ScriptExecution.id == exec_id).first()
+            if exe:
+                exe.output = "\n".join(lines_snapshot)
+                db.commit()
+        finally:
+            db.close()
+    except Exception:
+        pass
+
+
 def launch_execution(
     exec_id: int,
     script_path: str,
@@ -165,6 +181,7 @@ def launch_execution(
 
     def _run():
         cmd = _build_cmd(script_path, runner, args, run_as_root)
+        exit_code = 1
 
         try:
             proc = subprocess.Popen(
@@ -177,25 +194,23 @@ def launch_execution(
                 cwd=str(Path(script_path).parent),
             )
 
-            # Feed sudo password — sudo -S reads first line from stdin, then
-            # closes to child process (which receives EOF on stdin)
             if run_as_root and sudo_password and proc.stdin:
                 proc.stdin.write(sudo_password + "\n")
                 proc.stdin.flush()
                 proc.stdin.close()
 
-            # Read stdout and stderr concurrently
             t_err = threading.Thread(target=_reader, args=(proc.stderr, state["lines"]))
             t_err.daemon = True
             t_err.start()
 
-            _reader(proc.stdout, state["lines"])
-            t_err.join(timeout=5)
+            for line in proc.stdout:
+                state["lines"].append(line.rstrip("\n"))
+                _flush_to_db(exec_id, list(state["lines"]))
 
+            t_err.join(timeout=5)
             proc.wait(timeout=300)
             exit_code = proc.returncode
 
-            # Detect sudo auth failure
             combined = "\n".join(state["lines"]).lower()
             if (
                 run_as_root
@@ -220,18 +235,18 @@ def launch_execution(
         state["running"] = False
         state["exit_code"] = exit_code
 
-        # Persist to DB
         ended = datetime.now(timezone.utc)
         db = SessionLocal()
         try:
-            from backend.models.script import ScriptExecution
             from backend.models.execution_log import ExecutionLog
             exe = db.query(ScriptExecution).filter(ScriptExecution.id == exec_id).first()
             if exe:
                 exe.ended_at = ended
                 exe.exit_code = exit_code
                 exe.output = "\n".join(state["lines"])
-                duration = (ended - exe.started_at.replace(tzinfo=timezone.utc)).total_seconds() if exe.started_at else None
+                exe.is_running = False
+                started_aware = exe.started_at.replace(tzinfo=timezone.utc) if exe.started_at else None
+                duration = (ended - started_aware).total_seconds() if started_aware else None
                 full_output = "\n".join(state["lines"])
                 log = ExecutionLog(
                     script_path=script_path,
@@ -247,7 +262,6 @@ def launch_execution(
         finally:
             db.close()
 
-        # Keep state in memory for 5 minutes after completion
         threading.Timer(300, lambda: _running.pop(exec_id, None)).start()
 
     t = threading.Thread(target=_run, daemon=True)

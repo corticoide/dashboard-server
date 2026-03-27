@@ -30,11 +30,21 @@ def db_session():
 def test_app():
     from backend.main import app
     from backend.database import get_db
+    import backend.database as _db_module
     from fastapi.testclient import TestClient
 
     engine = create_engine("sqlite:///:memory:", **SQLITE_OPTS)
     Base.metadata.create_all(engine)
     TestingSession = sessionmaker(bind=engine)
+
+    # Patch SessionLocal globally so services that call SessionLocal() directly
+    # (e.g. scripts_service._flush_to_db, launch_execution) use the same
+    # in-memory engine as the test client.
+    import backend.services.scripts_service as _scripts_svc
+    original_session_local = _db_module.SessionLocal
+    original_scripts_svc_session = _scripts_svc.SessionLocal
+    _db_module.SessionLocal = TestingSession
+    _scripts_svc.SessionLocal = TestingSession
 
     def override_get_db():
         db = TestingSession()
@@ -52,4 +62,6 @@ def test_app():
 
     yield TestClient(app, base_url="http://test")
     app.dependency_overrides.clear()
+    _db_module.SessionLocal = original_session_local
+    _scripts_svc.SessionLocal = original_scripts_svc_session
     Base.metadata.drop_all(engine)

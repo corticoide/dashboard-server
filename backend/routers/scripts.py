@@ -112,6 +112,7 @@ def run_favorite(
         script_path=fav.path,
         run_as_root=fav.run_as_root,
         triggered_by=user.username,
+        is_running=True,
     )
     db.add(exe)
     db.commit()
@@ -214,6 +215,7 @@ async def run_ws(
         script_path=fav.path,
         run_as_root=fav.run_as_root,
         triggered_by=user.username,
+        is_running=True,
     )
     db.add(exe)
     db.commit()
@@ -268,6 +270,7 @@ async def run_ws(
 
 @router.get("/executions/{exec_id}", response_model=ExecutionPoll)
 def poll_execution(exec_id: int, user=Depends(get_current_user), db: Session = Depends(get_db)):
+    # Same-worker fast path: in-memory state is freshest
     state = get_poll_state(exec_id)
     if state is not None:
         return ExecutionPoll(
@@ -277,14 +280,14 @@ def poll_execution(exec_id: int, user=Depends(get_current_user), db: Session = D
             lines=list(state["lines"]),
         )
 
-    # Not in memory — check DB (completed and evicted)
+    # Cross-worker or completed: always readable from DB
     exe = db.query(ScriptExecution).filter(ScriptExecution.id == exec_id).first()
     if not exe:
         raise HTTPException(404, detail="Execution not found")
 
     return ExecutionPoll(
         id=exec_id,
-        running=False,
+        running=exe.is_running,
         exit_code=exe.exit_code,
         lines=exe.output.splitlines() if exe.output else [],
     )

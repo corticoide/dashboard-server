@@ -24,3 +24,4 @@ class ScriptExecution(Base):
     output = Column(Text, default="")
     run_as_root = Column(Boolean, default=False)
     triggered_by = Column(String, nullable=True)
+    is_running = Column(Boolean, default=True, nullable=False)
