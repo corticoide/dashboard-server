@@ -67,7 +67,7 @@ def _parse_raw_with_envvars(text: str) -> Tuple[List[CrontabEntry], List[str]]:
             pending_comment = stripped[1:].strip()
             continue
 
-        if re.match(r'^[A-Z_][A-Z0-9_]*\s*=', stripped):
+        if re.match(r'^[A-Za-z_][A-Za-z0-9_]*\s*=', stripped):
             envvar_lines.append(stripped)
             pending_comment = None
             continue

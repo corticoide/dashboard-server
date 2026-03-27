@@ -45,3 +45,13 @@ def test_parse_raw_shim_returns_entries_only():
     entries = _parse_raw(raw)
     assert len(entries) == 1
     assert entries[0].command == "/usr/bin/true"
+
+
+def test_lowercase_env_vars_preserved():
+    """Lowercase env vars like mailto= must survive parse/save."""
+    raw = 'mailto=""\nPATH=/usr/local/bin\n* * * * * /usr/bin/true\n'
+    entries, envvars = _parse_raw_with_envvars(raw)
+    assert any("mailto" in ev for ev in envvars), f"lowercase env var missing, got: {envvars}"
+    assert any("PATH" in ev for ev in envvars)
+    output = _entries_and_envs_to_text(entries, envvars)
+    assert 'mailto=""' in output

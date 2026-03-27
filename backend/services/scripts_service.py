@@ -142,11 +142,13 @@ def _build_cmd(path: str, runner: str, args: List[str], run_as_root: bool) -> Li
     return cmd
 
 
-def _reader(stream, lines: list) -> None:
-    """Thread target: read lines from a stream into a list."""
+def _reader(stream, lines: list, exec_id: Optional[int] = None) -> None:
+    """Thread target: read lines from a stream into a list, flushing to DB if exec_id given."""
     try:
         for line in stream:
             lines.append(line.rstrip("\n"))
+            if exec_id is not None:
+                _flush_to_db(exec_id, list(lines))
     except ValueError:
         pass  # Stream closed
 
@@ -199,7 +201,7 @@ def launch_execution(
                 proc.stdin.flush()
                 proc.stdin.close()
 
-            t_err = threading.Thread(target=_reader, args=(proc.stderr, state["lines"]))
+            t_err = threading.Thread(target=_reader, args=(proc.stderr, state["lines"], exec_id))
             t_err.daemon = True
             t_err.start()
 
