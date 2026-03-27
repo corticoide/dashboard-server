@@ -102,7 +102,7 @@ const route = useRoute()
   display: flex; align-items: center; justify-content: center;
   flex-shrink: 0;
   color: var(--brand-orange);
-  font-size: 15px;
+  font-size: var(--text-base);
 }
 .brand-text {
   display: flex; flex-direction: column; gap: 2px;
@@ -146,7 +146,7 @@ const route = useRoute()
   border-bottom: 1px solid var(--p-surface-border);
   color: var(--p-text-muted-color);
   cursor: pointer;
-  font-size: 14px;
+  font-size: var(--text-base);
   transition: color 0.15s, background 0.15s;
   flex-shrink: 0;
 }
@@ -215,7 +215,7 @@ const route = useRoute()
 }
 
 .nav-icon {
-  font-size: 15px;
+  font-size: var(--text-base);
   flex-shrink: 0;
   width: 18px;
   text-align: center;

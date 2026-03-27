@@ -391,7 +391,7 @@ async function doDelete(entry) {
   gap: 10px; padding: 48px;
   color: var(--p-text-muted-color);
 }
-.empty-icon { font-size: 28px; opacity: 0.35; }
+.empty-icon { font-size: 28px; opacity: 0.4; }
 .empty-text { font-family: var(--font-mono); font-size: var(--text-sm); }
 
 /* Name cell */

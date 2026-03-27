@@ -28,111 +28,108 @@
       />
     </div>
 
-    <!-- System info panel -->
-    <Panel class="info-panel">
-      <template #header>
-        <div class="panel-header">
-          <span class="panel-title">SYSTEM</span>
-          <span class="panel-os">{{ metrics.os_name }}</span>
+    <!-- System info card -->
+    <Card class="dash-card">
+      <template #content>
+        <div class="card-section-header">
+          <i class="pi pi-desktop section-icon" />
+          <span class="section-title">SYSTEM</span>
+          <span class="section-extra">{{ metrics.os_name }}</span>
+        </div>
+        <Divider class="section-divider" />
+        <div class="info-grid">
+          <div class="info-item">
+            <span class="info-key">HOSTNAME</span>
+            <span class="info-val">{{ metrics.hostname || '—' }}</span>
+          </div>
+          <div class="info-item">
+            <span class="info-key">UPTIME</span>
+            <Tag :value="uptimeFormatted" severity="success" icon="pi pi-clock" class="uptime-tag" />
+          </div>
+          <div class="info-item">
+            <span class="info-key">ARCH</span>
+            <span class="info-val">{{ metrics.cpu_arch || '—' }}</span>
+          </div>
+          <div class="info-item">
+            <span class="info-key">CPU CORES</span>
+            <span class="info-val">{{ metrics.cpu_count ?? '—' }}</span>
+          </div>
+        </div>
+        <Divider class="section-divider" />
+        <div class="load-row">
+          <span class="info-key">LOAD AVG</span>
+          <div class="load-values">
+            <div class="load-item">
+              <Badge
+                :value="String(metrics.load_average?.[0] ?? '—')"
+                :class="loadBadgeClass(metrics.load_average?.[0])"
+              />
+              <span class="load-period">1m</span>
+            </div>
+            <span class="load-sep">·</span>
+            <div class="load-item">
+              <Badge
+                :value="String(metrics.load_average?.[1] ?? '—')"
+                :class="loadBadgeClass(metrics.load_average?.[1])"
+              />
+              <span class="load-period">5m</span>
+            </div>
+            <span class="load-sep">·</span>
+            <div class="load-item">
+              <Badge
+                :value="String(metrics.load_average?.[2] ?? '—')"
+                :class="loadBadgeClass(metrics.load_average?.[2])"
+              />
+              <span class="load-period">15m</span>
+            </div>
+          </div>
         </div>
       </template>
+    </Card>
 
-      <div class="info-grid">
-        <div class="info-item">
-          <span class="info-key">HOSTNAME</span>
-          <span class="info-val font-mono">{{ metrics.hostname || '—' }}</span>
-        </div>
-        <div class="info-item">
-          <span class="info-key">UPTIME</span>
-          <Tag :value="uptimeFormatted" severity="success" icon="pi pi-clock" class="uptime-tag" />
-        </div>
-        <div class="info-item">
-          <span class="info-key">ARCH</span>
-          <span class="info-val font-mono">{{ metrics.cpu_arch || '—' }}</span>
-        </div>
-        <div class="info-item">
-          <span class="info-key">CPU CORES</span>
-          <span class="info-val font-mono">{{ metrics.cpu_count ?? '—' }}</span>
-        </div>
-      </div>
-
-      <Divider />
-
-      <!-- Load average -->
-      <div class="load-row">
-        <span class="load-label">LOAD AVG</span>
-        <div class="load-values">
-          <div class="load-item">
-            <Badge
-              :value="String(metrics.load_average?.[0] ?? '—')"
-              :class="loadBadgeClass(metrics.load_average?.[0])"
-              class="load-badge"
-            />
-            <span class="load-period">1m</span>
-          </div>
-          <span class="load-sep">·</span>
-          <div class="load-item">
-            <Badge
-              :value="String(metrics.load_average?.[1] ?? '—')"
-              :class="loadBadgeClass(metrics.load_average?.[1])"
-              class="load-badge"
-            />
-            <span class="load-period">5m</span>
-          </div>
-          <span class="load-sep">·</span>
-          <div class="load-item">
-            <Badge
-              :value="String(metrics.load_average?.[2] ?? '—')"
-              :class="loadBadgeClass(metrics.load_average?.[2])"
-              class="load-badge"
-            />
-            <span class="load-period">15m</span>
-          </div>
-        </div>
-      </div>
-    </Panel>
-
-    <!-- Recent executions panel -->
-    <Panel class="info-panel">
-      <template #header>
-        <div class="panel-header">
-          <span class="panel-title">RECENT EXECUTIONS</span>
+    <!-- Recent executions card -->
+    <Card class="dash-card">
+      <template #content>
+        <div class="card-section-header">
+          <i class="pi pi-list section-icon" />
+          <span class="section-title">RECENT EXECUTIONS</span>
           <RouterLink to="/logs" class="view-all-link">View all →</RouterLink>
         </div>
+        <Divider class="section-divider" />
+        <DataTable :value="recentLogs" size="small" :show-gridlines="false" class="recent-table">
+          <template #empty>
+            <span class="cell-empty">No executions yet</span>
+          </template>
+          <Column field="script_path" header="Script">
+            <template #body="{ data }">
+              <span class="cell-name">{{ data.script_path?.split('/').at(-1) }}</span>
+            </template>
+          </Column>
+          <Column field="username" header="User" style="width: 110px">
+            <template #body="{ data }">
+              <Chip :label="data.username" class="cell-chip" />
+            </template>
+          </Column>
+          <Column field="exit_code" header="Status" style="width: 90px">
+            <template #body="{ data }">
+              <Tag v-if="data.exit_code === null"   value="running"              severity="info"    />
+              <Tag v-else-if="data.exit_code === 0" value="ok"                   severity="success" />
+              <Tag v-else                            :value="`exit ${data.exit_code}`" severity="danger"  />
+            </template>
+          </Column>
+          <Column field="started_at" header="When" style="width: 140px">
+            <template #body="{ data }">
+              <span class="cell-meta">{{ formatLogDate(data.started_at) }}</span>
+            </template>
+          </Column>
+          <Column field="duration_seconds" header="Duration" style="width: 90px">
+            <template #body="{ data }">
+              <span class="cell-meta cell-mono">{{ data.duration_seconds != null ? `${data.duration_seconds.toFixed(1)}s` : '—' }}</span>
+            </template>
+          </Column>
+        </DataTable>
       </template>
-      <DataTable :value="recentLogs" size="small" :show-gridlines="false" class="recent-table">
-        <template #empty>
-          <span class="cell-empty">No executions yet</span>
-        </template>
-        <Column field="script_path" header="Script">
-          <template #body="{ data }">
-            <span class="cell-name">{{ data.script_path?.split('/').at(-1) }}</span>
-          </template>
-        </Column>
-        <Column field="username" header="User" style="width: 110px">
-          <template #body="{ data }">
-            <Chip :label="data.username" class="cell-chip" />
-          </template>
-        </Column>
-        <Column field="exit_code" header="Status" style="width: 90px">
-          <template #body="{ data }">
-            <Tag v-if="data.exit_code === null"  value="running"              severity="info"    />
-            <Tag v-else-if="data.exit_code === 0" value="ok"                  severity="success" />
-            <Tag v-else                           :value="`exit ${data.exit_code}`" severity="danger"  />
-          </template>
-        </Column>
-        <Column field="started_at" header="When" style="width: 140px">
-          <template #body="{ data }">
-            <span class="cell-meta">{{ formatLogDate(data.started_at) }}</span>
-          </template>
-        </Column>
-        <Column field="duration_seconds" header="Duration" style="width: 90px">
-          <template #body="{ data }">
-            <span class="cell-meta cell-mono">{{ data.duration_seconds != null ? `${data.duration_seconds.toFixed(1)}s` : '—' }}</span>
-          </template>
-        </Column>
-      </DataTable>
-    </Panel>
+    </Card>
 
   </div>
 </template>
@@ -141,11 +138,11 @@
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { RouterLink } from 'vue-router'
 import Message from 'primevue/message'
-import Panel from 'primevue/panel'
+import Card from 'primevue/card'
+import Divider from 'primevue/divider'
 import Tag from 'primevue/tag'
 import Badge from 'primevue/badge'
 import Chip from 'primevue/chip'
-import Divider from 'primevue/divider'
 import DataTable from 'primevue/datatable'
 import Column from 'primevue/column'
 import MetricCard from '../components/dashboard/MetricCard.vue'
@@ -213,6 +210,7 @@ function loadBadgeClass(val) {
 <style scoped>
 .dashboard { display: flex; flex-direction: column; gap: 16px; }
 
+/* ── Gauge row ────────────────────────────────── */
 .gauge-row {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
@@ -222,32 +220,42 @@ function loadBadgeClass(val) {
   .gauge-row { grid-template-columns: 1fr; }
 }
 
-.panel-header {
-  display: flex; align-items: center; justify-content: space-between; width: 100%;
+/* ── Card inner layout ────────────────────────── */
+:deep(.dash-card .p-card-body) { padding: 0; }
+:deep(.dash-card .p-card-content) { padding: 14px 16px; }
+
+.card-section-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding-bottom: 2px;
 }
-.view-all-link {
-  font-family: var(--font-mono);
-  font-size: 10px; color: var(--p-primary-color);
-  text-decoration: none;
+.section-icon {
+  font-size: 12px;
+  color: var(--brand-orange);
+  flex-shrink: 0;
 }
-.view-all-link:hover { text-decoration: underline; }
-.panel-title {
+.section-title {
   font-family: var(--font-mono);
-  font-size: var(--text-2xs); letter-spacing: 2px;
-  color: var(--p-text-muted-color);
+  font-size: var(--text-2xs);
+  letter-spacing: 2px;
   text-transform: uppercase;
+  color: var(--p-text-muted-color);
+  flex: 1;
 }
-.panel-os {
+.section-extra {
   font-family: var(--font-mono);
   font-size: var(--text-xs);
   color: var(--p-text-muted-color);
 }
 
+.section-divider { margin: 10px 0 !important; }
+
+/* ── Info grid ────────────────────────────────── */
 .info-grid {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
   gap: 12px;
-  margin-bottom: 4px;
 }
 @media (max-width: 700px) {
   .info-grid { grid-template-columns: 1fr 1fr; }
@@ -255,61 +263,59 @@ function loadBadgeClass(val) {
 .info-item { display: flex; flex-direction: column; gap: 5px; }
 .info-key {
   font-family: var(--font-mono);
-  font-size: 8px; letter-spacing: 1.5px;
+  font-size: var(--text-2xs);
+  letter-spacing: 1.5px;
   color: var(--p-text-muted-color);
   text-transform: uppercase;
 }
 .info-val {
-  font-size: 13px; font-weight: 500;
+  font-family: var(--font-mono);
+  font-size: var(--text-sm);
+  font-weight: 500;
   color: var(--p-text-color);
 }
+:deep(.uptime-tag) { font-family: var(--font-mono); font-size: var(--text-xs); }
 
-/* Load average */
-.load-row {
-  display: flex; align-items: center; gap: 14px;
-}
-.load-label {
-  font-family: var(--font-mono);
-  font-size: 8px; letter-spacing: 1.5px;
-  color: var(--p-text-muted-color);
-  white-space: nowrap;
-}
+/* ── Load average ─────────────────────────────── */
+.load-row { display: flex; align-items: center; gap: 14px; }
 .load-values { display: flex; align-items: center; gap: 8px; }
 .load-sep { color: var(--p-text-muted-color); }
 .load-item { display: flex; align-items: baseline; gap: 4px; }
 .load-period {
   font-family: var(--font-mono);
-  font-size: 9px; color: var(--p-text-muted-color);
+  font-size: var(--text-2xs);
+  color: var(--p-text-muted-color);
 }
+:deep(.load-ok .p-badge)   { background: var(--p-green-500) !important; color: #fff !important; font-family: var(--font-mono); font-size: var(--text-xs) !important; font-weight: 600; }
+:deep(.load-mid .p-badge)  { background: var(--p-yellow-500) !important; color: #000 !important; font-family: var(--font-mono); font-size: var(--text-xs) !important; font-weight: 600; }
+:deep(.load-high .p-badge) { background: var(--p-red-500) !important; color: #fff !important; font-family: var(--font-mono); font-size: var(--text-xs) !important; font-weight: 600; }
 
-/* Cell utility classes — replaces all inline style="" */
-.cell-name  { font-family: var(--font-mono); font-size: var(--text-sm); }
-.cell-meta  { font-size: var(--text-xs); color: var(--p-text-muted-color); }
-.cell-mono  { font-family: var(--font-mono); }
-.cell-empty { font-size: var(--text-sm); color: var(--p-text-muted-color); }
-:deep(.cell-chip) { font-size: var(--text-xs) !important; }
-:deep(.uptime-tag) { font-family: var(--font-mono); font-size: var(--text-xs); }
+/* ── Recent executions table ──────────────────── */
+.view-all-link {
+  font-family: var(--font-mono);
+  font-size: var(--text-2xs);
+  color: var(--p-primary-color);
+  text-decoration: none;
+}
+.view-all-link:hover { text-decoration: underline; }
 
-/* Load badge color overrides */
-.load-badge { font-family: var(--font-mono); font-size: 11px; font-weight: 600; }
-:deep(.load-ok .p-badge)   { background: var(--p-green-500) !important; color: #fff !important; }
-:deep(.load-mid .p-badge)  { background: var(--p-yellow-500) !important; color: #000 !important; }
-:deep(.load-high .p-badge) { background: var(--p-red-500) !important; color: #fff !important; }
-
-/* Normalize DataTable headers to match System panel aesthetic */
 :deep(.recent-table .p-datatable-thead th) {
   padding: 6px 10px;
   background: transparent;
 }
 :deep(.recent-table .p-datatable-column-header-content) {
   font-family: var(--font-mono);
-  font-size: 8px;
+  font-size: var(--text-2xs);
   letter-spacing: 1.5px;
   color: var(--p-text-muted-color);
   text-transform: uppercase;
   font-weight: 600;
 }
-:deep(.recent-table .p-datatable-tbody td) {
-  padding: 5px 10px;
-}
+:deep(.recent-table .p-datatable-tbody td) { padding: 5px 10px; }
+
+.cell-name  { font-family: var(--font-mono); font-size: var(--text-sm); }
+.cell-meta  { font-size: var(--text-xs); color: var(--p-text-muted-color); }
+.cell-mono  { font-family: var(--font-mono); }
+.cell-empty { font-size: var(--text-sm); color: var(--p-text-muted-color); }
+:deep(.cell-chip) { font-size: var(--text-xs) !important; }
 </style>

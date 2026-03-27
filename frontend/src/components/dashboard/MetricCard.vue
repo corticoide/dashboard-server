@@ -1,9 +1,8 @@
 <template>
   <Card class="metric-card" :class="`accent-${resolvedColor}`">
-    <template #title>
-      <span class="card-label">{{ label }}</span>
-    </template>
     <template #content>
+      <span class="card-label">{{ label }}</span>
+
       <!-- Arc gauge — custom SVG, no PrimeVue equivalent -->
       <div class="gauge-wrap">
         <svg class="gauge-svg" viewBox="0 0 100 56" xmlns="http://www.w3.org/2000/svg">
@@ -67,30 +66,33 @@ const displayValue = computed(() => typeof props.value === 'number' ? props.valu
 </script>
 
 <style scoped>
+/* Card root: accent left border */
 .metric-card {
-  border-top: 2px solid var(--p-surface-border);
-  transition: border-top-color 0.3s;
+  border-left: 3px solid var(--p-surface-border) !important;
+  transition: border-left-color 0.3s;
 }
-.metric-card.accent-green  { border-top-color: var(--p-green-500); }
-.metric-card.accent-yellow { border-top-color: var(--p-yellow-500); }
-.metric-card.accent-red    { border-top-color: var(--p-red-500); }
-.metric-card.accent-blue   { border-top-color: var(--p-blue-500); }
+.metric-card.accent-green  { border-left-color: var(--p-green-500) !important; }
+.metric-card.accent-yellow { border-left-color: var(--p-yellow-500) !important; }
+.metric-card.accent-red    { border-left-color: var(--p-red-500) !important; }
+.metric-card.accent-blue   { border-left-color: var(--p-blue-500) !important; }
 
-:deep(.p-card-body) {
-  display: flex; flex-direction: column; align-items: center; gap: 8px;
-  padding: 14px;
-}
-:deep(.p-card-title) { width: 100%; margin: 0; padding: 0; }
-:deep(.p-card-content) {
-  width: 100%; display: flex; flex-direction: column; align-items: center;
-  gap: 8px; padding: 0;
+/* Card content layout */
+:deep(.metric-card .p-card-body) { padding: 0; }
+:deep(.metric-card .p-card-content) {
+  padding: 16px 20px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
 }
 
 .card-label {
   font-family: var(--font-mono);
-  font-size: 9px; letter-spacing: 2px;
+  font-size: var(--text-2xs);
+  letter-spacing: 2px;
   color: var(--p-text-muted-color);
   text-transform: uppercase;
+  width: 100%;
 }
 
 /* Arc gauge */
@@ -98,7 +100,7 @@ const displayValue = computed(() => typeof props.value === 'number' ? props.valu
   position: relative; width: 100%; max-width: 120px;
 }
 .gauge-svg { width: 100%; display: block; }
-.gauge-track { stroke: var(--p-surface-400); }
+.gauge-track { stroke: var(--p-surface-border); opacity: 0.6; }
 .gauge-fill { transition: stroke-dashoffset 0.5s ease, stroke 0.3s ease; }
 
 .gauge-center {
@@ -109,18 +111,20 @@ const displayValue = computed(() => typeof props.value === 'number' ? props.valu
 }
 .gauge-value {
   font-family: var(--font-mono);
-  font-size: 26px; font-weight: 600;
+  font-size: var(--text-2xl);
+  font-weight: 600;
   color: var(--p-text-color);
   line-height: 1;
 }
 .gauge-unit {
   font-family: var(--font-mono);
-  font-size: 11px; color: var(--p-text-muted-color);
+  font-size: var(--text-xs);
+  color: var(--p-text-muted-color);
 }
 
-.subtitle-tag { font-family: var(--font-mono); font-size: 10px; }
+.subtitle-tag { font-family: var(--font-mono); font-size: var(--text-2xs); }
 
 .metric-bar { width: 100%; height: 4px; }
-:deep(.metric-bar .p-progressbar-track) { background: var(--p-surface-300); height: 4px; border-radius: 2px; }
+:deep(.metric-bar .p-progressbar-track) { background: var(--p-surface-border); height: 4px; border-radius: 2px; }
 :deep(.metric-bar .p-progressbar-value) { height: 4px; border-radius: 2px; transition: width 0.5s ease, background 0.3s; }
 </style>

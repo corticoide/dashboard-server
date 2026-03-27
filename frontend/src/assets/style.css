@@ -10,17 +10,27 @@
   --font-mono: 'Fira Code', 'JetBrains Mono', 'Cascadia Code', monospace;
   --font-ui: 'Fira Sans', system-ui, -apple-system, sans-serif;
 
-  /* Type scale */
-  --text-2xs: 8px;
-  --text-xs:  11px;
-  --text-sm:  12px;
+  /* Type scale — minimum readable: 10px. Never use raw px in components. */
+  --text-2xs:  10px;
+  --text-xs:   11px;
+  --text-sm:   12px;
   --text-base: 14px;
+  --text-lg:   16px;
+  --text-xl:   20px;
+  --text-2xl:  24px;
 
   /* Brand */
   --brand-orange:      #F97316;
   --brand-orange-hover:#EA580C;
   --brand-blue:        #2563EB;
   --brand-blue-hover:  #1D4ED8;
+
+  /* Page background — darker than card surfaces */
+  --page-bg: #f0f2f5;
+}
+
+[data-theme="dark"] {
+  --page-bg: #050507;
 }
 
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }

@@ -304,7 +304,7 @@ onMounted(loadServices)
   border: 1px solid var(--p-surface-border);
   background: var(--p-surface-card);
   cursor: pointer;
-  transition: background 0.15s, border-color 0.15s;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
   font-family: var(--font-mono);
 }
 .summary-pill:hover { background: var(--p-surface-hover); }
@@ -336,6 +336,7 @@ onMounted(loadServices)
 .pill-label {
   font-size: var(--text-2xs);
   letter-spacing: 1.5px;
+  text-transform: uppercase;
   color: var(--p-text-muted-color);
 }
 .summary-total {
@@ -356,7 +357,7 @@ onMounted(loadServices)
   gap: 6px;
 }
 .sudo-icon {
-  font-size: 12px;
+  font-size: var(--text-sm);
   color: var(--p-text-muted-color);
 }
 :deep(.sudo-field .p-password) {
@@ -435,8 +436,8 @@ onMounted(loadServices)
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 8px;
-  padding: 32px 0;
+  gap: 10px;
+  padding: 32px 16px;
   color: var(--p-text-muted-color);
 }
 .empty-icon { font-size: 28px; opacity: 0.4; }
@@ -459,7 +460,7 @@ onMounted(loadServices)
   align-items: center;
   gap: 8px;
   color: var(--brand-orange);
-  font-size: 13px;
+  font-size: var(--text-sm);
 }
 .log-svc-name {
   font-family: var(--font-mono);

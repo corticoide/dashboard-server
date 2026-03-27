@@ -39,6 +39,7 @@ onMounted(() => {
   margin-left: var(--sidebar-width);
   padding-top: var(--header-height);
   min-height: 100vh;
+  background: var(--page-bg);
   transition: margin-left 0.2s ease;
 }
 .main-content.sidebar-collapsed {

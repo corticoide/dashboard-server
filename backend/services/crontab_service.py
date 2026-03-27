@@ -1,9 +1,19 @@
 # TODO: migrate to python-crontab library (already in requirements.txt)
 import re
 import subprocess
+import sys
+from pathlib import Path
 from typing import List, Optional, Tuple
 
 from backend.schemas.crontab import CrontabEntry, CrontabEntryCreate
+
+# Absolute path to the logging wrapper so cron (minimal PATH) can find it.
+# Use the venv Python if available (same interpreter the server runs under).
+_PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
+_VENV_PYTHON = _PROJECT_ROOT / ".venv" / "bin" / "python3"
+_PYTHON = str(_VENV_PYTHON) if _VENV_PYTHON.exists() else sys.executable
+_WRAPPER = str(Path(__file__).resolve().parent.parent / "scripts" / "cron_log.py")
+_WRAPPER_PREFIX = f"{_PYTHON} {_WRAPPER} "
 
 SPECIAL_STRINGS = {
     "@reboot", "@yearly", "@annually", "@monthly",
@@ -146,10 +156,39 @@ def validate_field(value: str, name: str) -> None:
             raise ValueError(f"Invalid {name} value: {value!r}")
 
 
+# ── Wrapper helpers ───────────────────────────────────────────────────────────
+
+def _is_wrapped(cmd: str) -> bool:
+    """Return True if the command is already wrapped by cron_log.py."""
+    return _WRAPPER in cmd
+
+
+def _wrap_command(cmd: str) -> str:
+    """Prepend the logging wrapper unless the command is already wrapped."""
+    cmd = cmd.strip()
+    if _is_wrapped(cmd):
+        return cmd
+    return f"{_WRAPPER_PREFIX}{cmd}"
+
+
+def _unwrap_command(cmd: str) -> str:
+    """Strip the logging wrapper prefix so the UI shows the raw command."""
+    if cmd.startswith(_WRAPPER_PREFIX):
+        return cmd[len(_WRAPPER_PREFIX):]
+    return cmd
+
+
+def _strip_wrapper_from_entries(entries: List[CrontabEntry]) -> List[CrontabEntry]:
+    """Return entries with wrapper stripped from command (for display)."""
+    for e in entries:
+        e.command = _unwrap_command(e.command)
+    return entries
+
+
 # ── Public API ────────────────────────────────────────────────────────────────
 
 def list_entries() -> List[CrontabEntry]:
-    return _parse_raw(_load_raw())
+    return _strip_wrapper_from_entries(_parse_raw(_load_raw()))
 
 
 def add_entry(data: CrontabEntryCreate) -> List[CrontabEntry]:
@@ -162,7 +201,7 @@ def add_entry(data: CrontabEntryCreate) -> List[CrontabEntry]:
         dom=data.dom,
         month=data.month,
         dow=data.dow,
-        command=data.command,
+        command=_wrap_command(data.command),
         comment=data.comment,
         is_special=data.is_special,
         special=data.special,
@@ -170,7 +209,7 @@ def add_entry(data: CrontabEntryCreate) -> List[CrontabEntry]:
     )
     entries.append(new_entry)
     _save(entries)
-    return _parse_raw(_load_raw())
+    return _strip_wrapper_from_entries(_parse_raw(_load_raw()))
 
 
 def update_entry(entry_id: int, data: CrontabEntryCreate) -> List[CrontabEntry]:
@@ -185,14 +224,14 @@ def update_entry(entry_id: int, data: CrontabEntryCreate) -> List[CrontabEntry]:
         dom=data.dom,
         month=data.month,
         dow=data.dow,
-        command=data.command,
+        command=_wrap_command(data.command),
         comment=data.comment,
         is_special=data.is_special,
         special=data.special,
         raw="",
     )
     _save(entries)
-    return _parse_raw(_load_raw())
+    return _strip_wrapper_from_entries(_parse_raw(_load_raw()))
 
 
 def delete_entry(entry_id: int) -> List[CrontabEntry]:
@@ -202,4 +241,4 @@ def delete_entry(entry_id: int) -> List[CrontabEntry]:
     if len(entries) == before:
         raise ValueError(f"Entry {entry_id} not found")
     _save(entries)
-    return _parse_raw(_load_raw())
+    return _strip_wrapper_from_entries(_parse_raw(_load_raw()))

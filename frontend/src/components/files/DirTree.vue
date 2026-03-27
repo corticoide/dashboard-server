@@ -85,7 +85,7 @@ watch(() => props.currentPath, (newPath) => {
   padding: 5px 8px; border-radius: 4px; cursor: pointer;
   font-family: var(--font-mono); font-size: var(--text-sm);
   color: var(--p-text-muted-color);
-  transition: background 0.1s, color 0.1s;
+  transition: background 0.15s, color 0.15s;
   white-space: nowrap;
 }
 .tree-item:hover {
@@ -105,12 +105,12 @@ watch(() => props.currentPath, (newPath) => {
   display: flex; align-items: center;
 }
 .tree-arrow.expanded { transform: rotate(90deg); }
-.tree-arrow-icon { font-size: 10px; }
+.tree-arrow-icon { font-size: var(--text-2xs); }
 
 .folder-icon {
   flex-shrink: 0;
   color: var(--p-yellow-400);
-  font-size: 13px;
+  font-size: var(--text-sm);
 }
 .tree-item.active .folder-icon {
   color: var(--brand-orange);

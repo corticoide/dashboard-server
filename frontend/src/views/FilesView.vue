@@ -9,6 +9,14 @@
         <div class="tree-panel-header">
           <i class="pi pi-folder tree-header-icon" />
           <span class="tree-header-label">FILESYSTEM</span>
+          <button
+            class="fav-filter-btn"
+            :class="{ active: favoritesOnly }"
+            v-tooltip.right="favoritesOnly ? 'Show all files' : 'Show script favorites only'"
+            @click="favoritesOnly = !favoritesOnly"
+          >
+            <i class="pi pi-star" />
+          </button>
           <div class="sudo-inline" v-tooltip.right="'sudo password for protected paths'">
             <i class="pi pi-lock sudo-icon" />
             <Password
@@ -21,7 +29,29 @@
             />
           </div>
         </div>
-        <div class="tree-scroll">
+
+        <!-- Favorites mode: flat list of script favorites -->
+        <div v-if="favoritesOnly" class="fav-list">
+          <div v-if="scriptsStore.favorites.length === 0" class="fav-empty">
+            <i class="pi pi-star fav-empty-icon" />
+            <span class="fav-empty-text">No script favorites yet.</span>
+          </div>
+          <button
+            v-for="fav in scriptsStore.favorites"
+            :key="fav.path"
+            class="fav-item"
+            @click="openFavorite(fav)"
+          >
+            <i class="pi pi-file-code fav-item-icon" />
+            <div class="fav-item-info">
+              <span class="fav-item-name">{{ basename(fav.path) }}</span>
+              <span class="fav-item-dir">{{ dirname(fav.path) }}</span>
+            </div>
+          </button>
+        </div>
+
+        <!-- Normal mode: directory tree -->
+        <div v-else class="tree-scroll">
           <DirTree
             :node="{ name: '/', path: '/' }"
             :current-path="currentPath"
@@ -93,6 +123,8 @@
 import { ref, onMounted } from 'vue'
 import { VueMonacoEditor } from '@guolao/vue-monaco-editor'
 import { useRoute } from 'vue-router'
+import { useRouter } from 'vue-router'
+import { useScriptsStore } from '../stores/scripts.js'
 import { useToast } from 'primevue/usetoast'
 import { useConfirm } from 'primevue/useconfirm'
 import Password from 'primevue/password'
@@ -110,6 +142,10 @@ const toast = useToast()
 const confirm = useConfirm()
 const auth = useAuthStore()
 const route = useRoute()
+
+const router = useRouter()
+const scriptsStore = useScriptsStore()
+const favoritesOnly = ref(false)
 
 const currentPath  = ref(route.query.dir || '/')
 const entries      = ref([])
@@ -132,6 +168,17 @@ function navigateTo(path) {
   currentPath.value = path
   loadDir()
 }
+
+async function openFavorite(fav) {
+  const dir = fav.path.split('/').slice(0, -1).join('/') || '/'
+  favoritesOnly.value = false
+  currentPath.value = dir
+  await loadDir()
+  const entry = entries.value.find(e => e.path === fav.path)
+  if (entry) openFile(entry)
+}
+function basename(p) { return p.split('/').pop() }
+function dirname(p) { const parts = p.split('/'); parts.pop(); return parts.join('/') || '/' }
 
 // Editor
 const editorVisible  = ref(false)
@@ -215,7 +262,10 @@ async function saveFile() {
   }
 }
 
-onMounted(loadDir)
+onMounted(() => {
+  loadDir()
+  scriptsStore.loadFavorites()
+})
 </script>
 
 <style scoped>
@@ -269,7 +319,7 @@ onMounted(loadDir)
   gap: 4px;
 }
 .sudo-icon {
-  font-size: 11px;
+  font-size: var(--text-xs);
   color: var(--p-text-muted-color);
   flex-shrink: 0;
 }
@@ -281,7 +331,7 @@ onMounted(loadDir)
   flex: 1;
   min-width: 0;
   font-family: var(--font-mono);
-  font-size: 10px;
+  font-size: var(--text-2xs);
   padding: 4px 6px;
 }
 
@@ -322,6 +372,86 @@ onMounted(loadDir)
   height: 200px;
   color: var(--p-text-muted-color);
 }
-.editor-spinner { font-size: 24px; }
+.editor-spinner { font-size: var(--text-2xl); }
 .monaco-editor-wrap { height: calc(100vh - 120px); }
+
+/* ── Favorites filter button ──────────────── */
+.fav-filter-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border: none;
+  background: transparent;
+  border-radius: 4px;
+  cursor: pointer;
+  color: var(--p-text-muted-color);
+  font-size: var(--text-xs);
+  padding: 0;
+  transition: color 0.15s, background 0.15s;
+  flex-shrink: 0;
+}
+.fav-filter-btn:hover { color: var(--brand-orange); background: color-mix(in srgb, var(--brand-orange) 12%, transparent); }
+.fav-filter-btn.active { color: var(--brand-orange); background: color-mix(in srgb, var(--brand-orange) 15%, transparent); }
+
+/* ── Favorites list ───────────────────────── */
+.fav-list {
+  flex: 1;
+  overflow-y: auto;
+  padding: 6px 4px;
+}
+
+.fav-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 24px 12px;
+  color: var(--p-text-muted-color);
+}
+.fav-empty-icon { font-size: 28px; opacity: 0.4; }
+.fav-empty-text { font-family: var(--font-mono); font-size: var(--text-sm); text-align: center; }
+
+.fav-item {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  width: 100%;
+  padding: 6px 8px;
+  border: none;
+  background: transparent;
+  border-radius: 5px;
+  cursor: pointer;
+  text-align: left;
+  transition: background 0.15s, color 0.15s;
+}
+.fav-item:hover { background: color-mix(in srgb, var(--brand-orange) 10%, transparent); }
+.fav-item-icon {
+  font-size: 12px;
+  color: var(--brand-orange);
+  flex-shrink: 0;
+}
+.fav-item-info {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+.fav-item-name {
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  color: var(--p-text-color);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.fav-item-dir {
+  font-family: var(--font-mono);
+  font-size: var(--text-2xs);
+  color: var(--p-text-muted-color);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  margin-top: 1px;
+}
 </style>
