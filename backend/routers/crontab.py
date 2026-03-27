@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException
 from typing import List
 
+from backend.core.logging import get_audit_logger
 from backend.dependencies import get_current_user, require_role
 from backend.models.user import UserRole
 from backend.schemas.crontab import CrontabEntry, CrontabEntryCreate
@@ -38,7 +39,9 @@ def get_crontab(user=Depends(get_current_user)):
 def create_entry(body: CrontabEntryCreate, user=Depends(require_role(UserRole.admin))):
     _validate_create(body)
     try:
-        return add_entry(body)
+        result = add_entry(body)
+        get_audit_logger().info("crontab_add user=%s", user.username)
+        return result
     except RuntimeError as e:
         raise HTTPException(500, detail=str(e))
 
@@ -51,7 +54,9 @@ def edit_entry(
 ):
     _validate_create(body)
     try:
-        return update_entry(entry_id, body)
+        result = update_entry(entry_id, body)
+        get_audit_logger().info("crontab_update user=%s entry_id=%s", user.username, entry_id)
+        return result
     except ValueError as e:
         raise HTTPException(404, detail=str(e))
     except RuntimeError as e:
@@ -61,7 +66,9 @@ def edit_entry(
 @router.delete("/{entry_id}", response_model=List[CrontabEntry])
 def remove_entry(entry_id: int, user=Depends(require_role(UserRole.admin))):
     try:
-        return delete_entry(entry_id)
+        result = delete_entry(entry_id)
+        get_audit_logger().info("crontab_delete user=%s entry_id=%s", user.username, entry_id)
+        return result
     except ValueError as e:
         raise HTTPException(404, detail=str(e))
     except RuntimeError as e:

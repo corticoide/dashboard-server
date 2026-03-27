@@ -1,5 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException
 from typing import List
+from backend.core.logging import get_audit_logger
 from backend.dependencies import get_current_user, require_role
 from backend.models.user import UserRole
 from backend.schemas.services import ServiceInfo, ServiceLog, ServiceActionRequest
@@ -35,7 +36,9 @@ def service_action(
 ):
     password = body.sudo_password if body else None
     try:
-        return control_service(name, action, password)
+        result = control_service(name, action, password)
+        get_audit_logger().info("service_control user=%s service=%s action=%s", user.username, name, action)
+        return result
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
     except RuntimeError as e:

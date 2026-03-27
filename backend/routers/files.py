@@ -2,6 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Query, 
 from fastapi.responses import StreamingResponse
 from pathlib import Path
 from typing import List, Optional
+from backend.core.logging import get_audit_logger
 from backend.dependencies import get_current_user, require_role
 from backend.models.user import UserRole
 from backend.schemas.files import DirListing, FileContent, MkdirRequest, RenameRequest, FileWriteRequest
@@ -87,6 +88,7 @@ def api_rename(body: RenameRequest, user=Depends(require_role(UserRole.admin))):
 def api_delete(path: str = Query(...), user=Depends(require_role(UserRole.admin))):
     try:
         delete_path(path)
+        get_audit_logger().info("file_delete user=%s path=%s", user.username, path)
         return {"ok": True}
     except FileNotFoundError as e:
         raise HTTPException(404, detail=str(e))
@@ -124,6 +126,7 @@ def api_write(
 ):
     try:
         write_file(path, body.content, sudo_password=x_sudo_password)
+        get_audit_logger().info("file_write user=%s path=%s", user.username, path)
         return {"ok": True}
     except (ValueError, PermissionError) as e:
         raise HTTPException(400, detail=str(e))
