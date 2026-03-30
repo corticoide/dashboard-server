@@ -203,6 +203,15 @@
       </template>
     </DataTable>
 
+    <Paginator
+      v-if="totalLogs > pageSize"
+      :rows="pageSize"
+      :total-records="totalLogs"
+      :first="pageOffset"
+      class="logs-paginator"
+      @page="onPageChange"
+    />
+
   </div>
 </template>
 
@@ -220,6 +229,7 @@ import DataTable from 'primevue/datatable'
 import Column from 'primevue/column'
 import Tag from 'primevue/tag'
 import Chip from 'primevue/chip'
+import Paginator from 'primevue/paginator'
 import { usePolling } from '../composables/usePolling.js'
 import { useDebounce } from '../composables/useDebounce.js'
 import api from '../api/client.js'
@@ -236,6 +246,10 @@ const filterScript = ref('')
 const filterStatus = ref('all')
 const dateRange = ref(null)
 
+const totalLogs = ref(0)
+const pageSize = ref(50)
+const pageOffset = ref(0)
+
 const statusOptions = [
   { label: 'All',     value: 'all',     dot: false },
   { label: 'Success', value: 'success', dot: true  },
@@ -248,6 +262,7 @@ const hasActiveFilters = computed(() =>
 
 function setStatus(val) {
   filterStatus.value = val
+  pageOffset.value = 0
   loadLogs()
 }
 
@@ -255,6 +270,7 @@ function clearFilters() {
   filterScript.value = ''
   filterStatus.value = 'all'
   dateRange.value = null
+  pageOffset.value = 0
   loadLogs()
 }
 
@@ -267,11 +283,19 @@ async function loadLogs() {
     if (filterStatus.value === 'failed') params.exit_code = 1
     if (dateRange.value?.[0]) params.from_date = dateRange.value[0].toISOString()
     if (dateRange.value?.[1]) params.to_date = dateRange.value[1].toISOString()
-    const { data } = await api.get('/logs/executions', { params })
+    params.limit = pageSize.value
+    params.offset = pageOffset.value
+    const { data, headers } = await api.get('/logs/executions', { params })
     logs.value = data
+    totalLogs.value = parseInt(headers['x-total-count'] || '0', 10)
   } finally {
     loading.value = false
   }
+}
+
+function onPageChange(event) {
+  pageOffset.value = event.first
+  loadLogs()
 }
 
 const debouncedLoadLogs = useDebounce(loadLogs, 400)
@@ -520,4 +544,9 @@ function formatDate(iso) {
 }
 .empty-icon { font-size: 28px; opacity: 0.4; color: var(--p-text-muted-color); }
 .empty-text { font-family: var(--font-mono); font-size: var(--text-sm); color: var(--p-text-muted-color); }
+
+.logs-paginator {
+  flex-shrink: 0;
+  border-top: 1px solid var(--p-surface-border);
+}
 </style>
