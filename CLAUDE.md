@@ -2,6 +2,24 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+## ⚠️ MANDATORY: Performance & Correctness Skill
+
+**Before writing any code — feature, bugfix, or refactor — you MUST load and follow the local skill:**
+
+```
+serverdash-performance   (.claude/skills/serverdash-performance/SKILL.md)
+```
+
+This skill contains binding rules for:
+- DB index requirements and the `add_indexes.py` migration pattern
+- COUNT query caching (never call `q.count()` inline on paginated endpoints)
+- SQLite datetime comparisons (naive UTC only — `datetime.utcnow()`)
+- Background scheduler patterns (`_do_*` / `_*_job` split)
+- Frontend lazy-loading and bounded state rules
+- Test fixtures, cache reset requirements, and `SessionLocal` patching
+
+**Ignoring this skill will silently degrade performance or introduce subtle bugs.**
+
 ## Project Overview
 
 **ServerDash** — a self-hosted Linux server management dashboard. Each server runs its own independent instance. FastAPI serves both the REST API and the Vue 3 SPA (built as static files into `backend/static/`). No separate web server required.
@@ -147,6 +165,8 @@ All config via `.env` file (see `.env.example`). Key variables:
 ## Key Constraints
 
 - **Single-user system**: only one admin user exists (seeded by `init_db.py`). No user registration.
-- **SQLite only**: no migration tooling. Schema changes are manual.
+- **SQLite only**: no migration tooling. Schema changes are manual. New indexes → update `add_indexes.py`.
 - **HTTPS required**: the frontend Axios client is configured for the HTTPS base URL. Dev mode uses Vite's proxy.
 - **Rate limiting**: login endpoint is limited to 10 requests/minute via slowapi.
+- **Background scheduler**: `backend/scheduler.py` runs via FastAPI lifespan. All periodic tasks go here. See `serverdash-performance` skill for the required pattern.
+- **LOG_RETENTION_DAYS**: execution logs older than this (default 30) are deleted nightly at 2 AM. Configurable via `.env`.
