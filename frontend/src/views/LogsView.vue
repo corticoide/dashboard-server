@@ -39,7 +39,7 @@
         <div class="filters-start">
           <IconField>
             <InputIcon class="pi pi-search" />
-            <InputText v-model="filterScript" placeholder="Filter by script…" size="small" @input="loadLogs" />
+            <InputText v-model="filterScript" placeholder="Filter by script…" size="small" @input="debouncedLoadLogs" />
           </IconField>
           <div class="status-pills">
             <button
@@ -220,6 +220,7 @@ import Column from 'primevue/column'
 import Tag from 'primevue/tag'
 import Chip from 'primevue/chip'
 import { usePolling } from '../composables/usePolling.js'
+import { useDebounce } from '../composables/useDebounce.js'
 import api from '../api/client.js'
 
 const router = useRouter()
@@ -271,6 +272,8 @@ async function loadLogs() {
     loading.value = false
   }
 }
+
+const debouncedLoadLogs = useDebounce(loadLogs, 400)
 
 async function loadStats() {
   try {
