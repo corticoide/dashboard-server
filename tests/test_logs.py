@@ -57,3 +57,54 @@ def test_get_logs_filters(test_app):
     r = test_app.get("/api/logs/executions?exit_code=0", headers=headers)
     assert r.status_code == 200
     assert all(e["exit_code"] == 0 for e in r.json())
+
+
+def test_stats_query_counts_correctly(test_app):
+    from backend.main import app
+    from backend.database import get_db
+    from datetime import datetime, timezone
+
+    db = next(app.dependency_overrides[get_db]())
+    now = datetime.now(timezone.utc)
+    db.add(ExecutionLog(script_path="/a.sh", username="admin", started_at=now, exit_code=0))
+    db.add(ExecutionLog(script_path="/b.sh", username="admin", started_at=now, exit_code=0))
+    db.add(ExecutionLog(script_path="/c.sh", username="admin", started_at=now, exit_code=1))
+    db.commit()
+    db.close()
+    token = get_token(test_app)
+    r = test_app.get("/api/logs/executions/stats", headers={"Authorization": f"Bearer {token}"})
+    assert r.status_code == 200
+    data = r.json()
+    assert data["total"] == 3
+    assert data["success"] == 2
+    assert data["failed"] == 1
+    assert data["last_24h"] == 3
+
+
+def test_pagination_offset_and_limit(test_app):
+    from backend.main import app
+    from backend.database import get_db
+    from datetime import datetime, timezone
+
+    db = next(app.dependency_overrides[get_db]())
+    for i in range(10):
+        db.add(ExecutionLog(
+            script_path=f"/script_{i}.sh",
+            username="admin",
+            started_at=datetime.now(timezone.utc),
+            exit_code=0,
+        ))
+    db.commit()
+    db.close()
+    token = get_token(test_app)
+    headers = {"Authorization": f"Bearer {token}"}
+    r = test_app.get("/api/logs/executions?limit=5&offset=0", headers=headers)
+    assert r.status_code == 200
+    assert len(r.json()) == 5
+    assert r.headers.get("x-total-count") == "10"
+    r2 = test_app.get("/api/logs/executions?limit=5&offset=5", headers=headers)
+    assert r2.status_code == 200
+    assert len(r2.json()) == 5
+    ids_p1 = {item["id"] for item in r.json()}
+    ids_p2 = {item["id"] for item in r2.json()}
+    assert ids_p1.isdisjoint(ids_p2)
