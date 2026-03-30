@@ -4,7 +4,7 @@ from backend.models.execution_log import ExecutionLog
 
 
 def make_log(db, script, days_ago, exit_code=0):
-    started = datetime.now(timezone.utc) - timedelta(days=days_ago)
+    started = datetime.utcnow() - timedelta(days=days_ago)
     log = ExecutionLog(
         script_path=script,
         username="admin",

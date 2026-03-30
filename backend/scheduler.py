@@ -1,6 +1,6 @@
 import logging
 import sqlite3
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timedelta
 
 from sqlalchemy.orm import Session
 
@@ -11,7 +11,7 @@ logger = logging.getLogger(__name__)
 
 def _do_cleanup(db: Session, retention_days: int) -> int:
     """Delete execution logs older than retention_days. Returns count deleted."""
-    cutoff = datetime.now(timezone.utc) - timedelta(days=retention_days)
+    cutoff = datetime.utcnow() - timedelta(days=retention_days)
     deleted = db.query(ExecutionLog).filter(
         ExecutionLog.started_at < cutoff
     ).delete(synchronize_session=False)
