@@ -1,18 +1,14 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import { useAuthStore } from '../stores/auth.js'
-import ServicesView from '../views/ServicesView.vue'
-import FilesView from '../views/FilesView.vue'
-import ScriptsView from '../views/ScriptsView.vue'
-import CrontabView from '../views/CrontabView.vue'
 
 const routes = [
-  { path: '/login', component: () => import('../views/LoginView.vue'), meta: { public: true, title: 'Login' } },
-  { path: '/', component: () => import('../views/DashboardView.vue'), meta: { requiresAuth: true, title: 'Dashboard' } },
-  { path: '/services', component: ServicesView, meta: { requiresAuth: true, title: 'Services' } },
-  { path: '/files', component: FilesView, meta: { title: 'Files', requiresAuth: true } },
-  { path: '/scripts', component: ScriptsView, meta: { title: 'Scripts', requiresAuth: true } },
-  { path: '/crontab', component: CrontabView, meta: { title: 'Crontab', requiresAuth: true } },
-  { path: '/logs', component: () => import('../views/LogsView.vue'), meta: { title: 'Logs', requiresAuth: true } },
+  { path: '/login',    component: () => import('../views/LoginView.vue'),    meta: { public: true,        title: 'Login'     } },
+  { path: '/',         component: () => import('../views/DashboardView.vue'), meta: { requiresAuth: true,  title: 'Dashboard' } },
+  { path: '/services', component: () => import('../views/ServicesView.vue'),  meta: { requiresAuth: true,  title: 'Services'  } },
+  { path: '/files',    component: () => import('../views/FilesView.vue'),     meta: { requiresAuth: true,  title: 'Files'     } },
+  { path: '/scripts',  component: () => import('../views/ScriptsView.vue'),   meta: { requiresAuth: true,  title: 'Scripts'   } },
+  { path: '/crontab',  component: () => import('../views/CrontabView.vue'),   meta: { requiresAuth: true,  title: 'Crontab'   } },
+  { path: '/logs',     component: () => import('../views/LogsView.vue'),      meta: { requiresAuth: true,  title: 'Logs'      } },
   { path: '/:pathMatch(.*)*', redirect: '/' },
 ]
 
