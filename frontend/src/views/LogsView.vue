@@ -97,6 +97,7 @@
       data-key="id"
       scrollable
       scroll-height="flex"
+      :virtual-scroller-options="{ itemSize: 50 }"
       removableSort
       class="logs-table"
     >
