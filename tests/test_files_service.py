@@ -55,3 +55,18 @@ def test_path_traversal_blocked():
     from backend.services.files_service import _safe_path
     p = _safe_path("/etc/hosts")
     assert p == Path("/etc/hosts")
+
+import gc
+
+def test_stream_file_closes_handle_on_partial_read(tmp):
+    """Partially consume iterator then close — verifies generator finalizes cleanly."""
+    from backend.services.files_service import stream_file
+    iterator, filename, size = stream_file(str(tmp / "hello.txt"))
+    next(iterator)
+    iterator.close()  # triggers GeneratorExit
+    gc.collect()
+    try:
+        next(iterator)
+        assert False, "Should have raised StopIteration"
+    except StopIteration:
+        pass

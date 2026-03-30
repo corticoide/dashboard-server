@@ -187,9 +187,12 @@ def stream_file(path: str, sudo_password: Optional[str] = None):
         size = p.stat().st_size
 
         def _iter():
-            with open(p, "rb") as f:
+            f = open(p, "rb")  # noqa: WPS515
+            try:
                 while chunk := f.read(65536):
                     yield chunk
+            finally:
+                f.close()
 
         return _iter(), p.name, size
     except PermissionError:
