@@ -92,6 +92,7 @@
       :loading="loading"
       v-model:expanded-rows="expandedRows"
       @row-expand="onRowExpand"
+      @row-collapse="onRowCollapse"
       striped-rows
       size="small"
       data-key="id"
@@ -238,6 +239,8 @@ const router = useRouter()
 const scriptsStore = useScriptsStore()
 const cronEntries = ref([])
 const expandedRows = ref({})
+const expandedOrder = ref([])
+const MAX_EXPANDED = 5
 
 const logs = ref([])
 const stats = ref({ total: 0, success: 0, failed: 0, last_24h: 0 })
@@ -331,7 +334,19 @@ function navigateToScript(path) {
   }
 }
 
-function onRowExpand() {}
+function onRowExpand(event) {
+  const id = event.data.id
+  expandedOrder.value.push(id)
+  if (expandedOrder.value.length > MAX_EXPANDED) {
+    const evicted = expandedOrder.value.shift()
+    delete expandedRows.value[evicted]
+  }
+}
+
+function onRowCollapse(event) {
+  const id = event.data.id
+  expandedOrder.value = expandedOrder.value.filter(i => i !== id)
+}
 
 async function loadAll() {
   await Promise.all([loadLogs(), loadStats(), loadCronEntries(), scriptsStore.loadFavorites()])
