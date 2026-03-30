@@ -1,5 +1,5 @@
 import pytest
-from datetime import datetime, timezone, timedelta
+from datetime import datetime, timedelta
 from backend.models.execution_log import ExecutionLog
 
 
