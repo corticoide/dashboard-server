@@ -25,3 +25,25 @@ def test_metrics_endpoint_returns_data(test_app):
 def test_metrics_endpoint_requires_auth(test_app):
     response = test_app.get("/api/system/metrics")
     assert response.status_code == 403
+
+
+def test_metrics_endpoint_uses_cache(test_app, monkeypatch):
+    import backend.services.system_service as sys_svc
+    import backend.routers.system as sys_router
+    from backend.services.cache import TTLCache
+
+    call_count = {"n": 0}
+    original = sys_svc.get_metrics
+    def counting_get_metrics():
+        call_count["n"] += 1
+        return original()
+    # Patch the name as seen by the router module (imported reference)
+    monkeypatch.setattr(sys_router, "get_metrics", counting_get_metrics)
+    # Reset the module-level cache so previous test runs don't interfere
+    sys_router._metrics_cache = TTLCache()
+
+    token = test_app.post("/api/auth/login", json={"username": "admin", "password": "adminpass"}).json()["access_token"]
+    headers = {"Authorization": f"Bearer {token}"}
+    test_app.get("/api/system/metrics", headers=headers)
+    test_app.get("/api/system/metrics", headers=headers)
+    assert call_count["n"] == 1, f"get_metrics() called {call_count['n']} times, expected 1"

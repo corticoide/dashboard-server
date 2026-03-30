@@ -2,6 +2,7 @@ import os
 import uvicorn
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.middleware.gzip import GZipMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
 from slowapi import _rate_limit_exceeded_handler
@@ -39,6 +40,9 @@ app.add_middleware(
 
 # Security headers
 app.add_middleware(SecurityHeadersMiddleware)
+
+# GZIP compression
+app.add_middleware(GZipMiddleware, minimum_size=500)
 
 # Create tables that don't exist yet (non-destructive)
 Base.metadata.create_all(bind=engine)

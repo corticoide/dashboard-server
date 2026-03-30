@@ -1,7 +1,8 @@
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, Query, Response
 from typing import List, Optional
 from datetime import datetime, timedelta, timezone
 from sqlalchemy.orm import Session
+from sqlalchemy import func, case
 
 from backend.database import get_db
 from backend.dependencies import get_current_user
@@ -18,8 +19,11 @@ def list_executions(
     exit_code: Optional[int] = Query(None),
     from_date: Optional[datetime] = Query(None),
     to_date: Optional[datetime] = Query(None),
+    limit: int = Query(50, ge=1, le=500),
+    offset: int = Query(0, ge=0),
     db: Session = Depends(get_db),
     user=Depends(get_current_user),
+    response: Response = None,
 ):
     q = db.query(ExecutionLog).order_by(ExecutionLog.started_at.desc())
     if script:
@@ -32,7 +36,10 @@ def list_executions(
         q = q.filter(ExecutionLog.started_at >= from_date)
     if to_date:
         q = q.filter(ExecutionLog.started_at <= to_date)
-    return q.limit(100).all()
+    total = q.count()
+    if response is not None:
+        response.headers["X-Total-Count"] = str(total)
+    return q.offset(offset).limit(limit).all()
 
 
 @router.get("/executions/stats", response_model=ExecutionStatsOut)
@@ -40,11 +47,19 @@ def execution_stats(
     db: Session = Depends(get_db),
     user=Depends(get_current_user),
 ):
-    total = db.query(ExecutionLog).count()
-    success = db.query(ExecutionLog).filter(ExecutionLog.exit_code == 0).count()
-    failed = db.query(ExecutionLog).filter(
-        ExecutionLog.exit_code != 0, ExecutionLog.exit_code.isnot(None)
-    ).count()
     cutoff = datetime.now(timezone.utc) - timedelta(hours=24)
-    last_24h = db.query(ExecutionLog).filter(ExecutionLog.started_at >= cutoff).count()
-    return ExecutionStatsOut(total=total, success=success, failed=failed, last_24h=last_24h)
+    row = db.query(
+        func.count().label("total"),
+        func.sum(case((ExecutionLog.exit_code == 0, 1), else_=0)).label("success"),
+        func.sum(case(
+            ((ExecutionLog.exit_code != 0) & ExecutionLog.exit_code.isnot(None), 1),
+            else_=0,
+        )).label("failed"),
+        func.sum(case((ExecutionLog.started_at >= cutoff, 1), else_=0)).label("last_24h"),
+    ).one()
+    return ExecutionStatsOut(
+        total=row.total or 0,
+        success=row.success or 0,
+        failed=row.failed or 0,
+        last_24h=row.last_24h or 0,
+    )
