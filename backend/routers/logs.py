@@ -23,7 +23,9 @@ def _count_key(
     from_date: Optional[datetime],
     to_date: Optional[datetime],
 ) -> str:
-    return f"{script}|{username}|{exit_code}|{from_date}|{to_date}"
+    fd = from_date.isoformat() if from_date else None
+    td = to_date.isoformat() if to_date else None
+    return f"{script}|{username}|{exit_code}|{fd}|{td}"
 
 
 @router.get("/executions", response_model=List[ExecutionLogOut])
