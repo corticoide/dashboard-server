@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Float, DateTime
+from sqlalchemy import Column, Integer, String, Float, DateTime, Index
 from sqlalchemy.sql import func
 from backend.database import Base
 
@@ -14,3 +14,9 @@ class ExecutionLog(Base):
     exit_code = Column(Integer, nullable=True)
     duration_seconds = Column(Float, nullable=True)
     output_summary = Column(String, nullable=True)
+
+    __table_args__ = (
+        Index("ix_execution_logs_started_at", "started_at"),
+        Index("ix_execution_logs_username", "username"),
+        Index("ix_execution_logs_exit_code", "exit_code"),
+    )
