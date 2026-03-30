@@ -108,3 +108,44 @@ def test_pagination_offset_and_limit(test_app):
     ids_p1 = {item["id"] for item in r.json()}
     ids_p2 = {item["id"] for item in r2.json()}
     assert ids_p1.isdisjoint(ids_p2)
+
+
+def test_x_total_count_header_present(test_app):
+    """Paginated response includes X-Total-Count header."""
+    from backend.main import app
+    from backend.database import get_db
+    db = next(app.dependency_overrides[get_db]())
+    for i in range(3):
+        db.add(ExecutionLog(
+            script_path=f"/cached_{i}.sh", username="admin",
+            started_at=datetime.now(timezone.utc), exit_code=0,
+        ))
+    db.commit()
+    db.close()
+    token = get_token(test_app)
+    r = test_app.get("/api/logs/executions?limit=2&offset=0",
+                     headers={"Authorization": f"Bearer {token}"})
+    assert r.status_code == 200
+    assert "x-total-count" in r.headers
+    assert int(r.headers["x-total-count"]) == 3
+
+
+def test_count_varies_by_filter(test_app):
+    """Different filters produce different X-Total-Count values."""
+    from backend.main import app
+    from backend.database import get_db
+    db = next(app.dependency_overrides[get_db]())
+    db.add(ExecutionLog(script_path="/ok.sh", username="admin",
+                        started_at=datetime.now(timezone.utc), exit_code=0))
+    db.add(ExecutionLog(script_path="/fail.sh", username="admin",
+                        started_at=datetime.now(timezone.utc), exit_code=1))
+    db.commit()
+    db.close()
+    token = get_token(test_app)
+    headers = {"Authorization": f"Bearer {token}"}
+    r_all  = test_app.get("/api/logs/executions", headers=headers)
+    r_ok   = test_app.get("/api/logs/executions?exit_code=0", headers=headers)
+    r_fail = test_app.get("/api/logs/executions?exit_code=1", headers=headers)
+    assert int(r_all.headers["x-total-count"])  == 2
+    assert int(r_ok.headers["x-total-count"])   == 1
+    assert int(r_fail.headers["x-total-count"]) == 1

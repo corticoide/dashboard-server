@@ -14,6 +14,14 @@ def reset_rate_limiter():
     limiter._limiter.storage.reset()
     yield
 
+
+@pytest.fixture(autouse=True)
+def reset_count_cache():
+    """Clear the logs COUNT cache before each test to avoid stale counts across test DBs."""
+    from backend.routers.logs import _count_cache
+    _count_cache.clear()
+    yield
+
 SQLITE_OPTS = {"connect_args": {"check_same_thread": False}, "poolclass": StaticPool}
 
 @pytest.fixture
