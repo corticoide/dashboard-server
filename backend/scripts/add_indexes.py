@@ -12,6 +12,7 @@ def main() -> None:
         "CREATE INDEX IF NOT EXISTS ix_execution_logs_started_at ON execution_logs (started_at)",
         "CREATE INDEX IF NOT EXISTS ix_execution_logs_username ON execution_logs (username)",
         "CREATE INDEX IF NOT EXISTS ix_execution_logs_exit_code ON execution_logs (exit_code)",
+        "CREATE INDEX IF NOT EXISTS ix_execution_logs_username_started_at ON execution_logs (username, started_at)",
     ]
     with engine.connect() as conn:
         for stmt in statements:

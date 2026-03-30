@@ -19,4 +19,5 @@ class ExecutionLog(Base):
         Index("ix_execution_logs_started_at", "started_at"),
         Index("ix_execution_logs_username", "username"),
         Index("ix_execution_logs_exit_code", "exit_code"),
+        Index("ix_execution_logs_username_started_at", "username", "started_at"),
     )

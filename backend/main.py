@@ -1,5 +1,6 @@
 import os
 import uvicorn
+from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.gzip import GZipMiddleware
@@ -23,7 +24,16 @@ import backend.models.execution_log  # ensure execution_logs table is registered
 
 init_logging()
 
-app = FastAPI(title="ServerDash", docs_url="/api/docs", redoc_url=None)
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    from backend.scheduler import init_scheduler, shutdown_scheduler
+    init_scheduler()
+    yield
+    shutdown_scheduler()
+
+
+app = FastAPI(title="ServerDash", docs_url="/api/docs", redoc_url=None, lifespan=lifespan)
 
 # Rate limiting
 app.state.limiter = limiter

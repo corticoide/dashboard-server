@@ -8,8 +8,24 @@ from backend.database import get_db
 from backend.dependencies import get_current_user
 from backend.models.execution_log import ExecutionLog
 from backend.schemas.logs import ExecutionLogOut, ExecutionStatsOut
+from backend.services.cache import TTLCache
 
 router = APIRouter(prefix="/api/logs", tags=["logs"])
+
+_count_cache: TTLCache = TTLCache()
+_COUNT_TTL = 300  # seconds
+
+
+def _count_key(
+    script: Optional[str],
+    username: Optional[str],
+    exit_code: Optional[int],
+    from_date: Optional[datetime],
+    to_date: Optional[datetime],
+) -> str:
+    fd = from_date.isoformat() if from_date else None
+    td = to_date.isoformat() if to_date else None
+    return f"{script}|{username}|{exit_code}|{fd}|{td}"
 
 
 @router.get("/executions", response_model=List[ExecutionLogOut])
@@ -36,7 +52,13 @@ def list_executions(
         q = q.filter(ExecutionLog.started_at >= from_date)
     if to_date:
         q = q.filter(ExecutionLog.started_at <= to_date)
-    total = q.count()
+
+    key = _count_key(script, username, exit_code, from_date, to_date)
+    total = _count_cache.get(key)
+    if total is None:
+        total = q.count()
+        _count_cache.set(key, total, _COUNT_TTL)
+
     if response is not None:
         response.headers["X-Total-Count"] = str(total)
     return q.offset(offset).limit(limit).all()
@@ -63,3 +85,15 @@ def execution_stats(
         failed=row.failed or 0,
         last_24h=row.last_24h or 0,
     )
+
+
+@router.post("/maintenance/cleanup")
+def run_cleanup(
+    db: Session = Depends(get_db),
+    user=Depends(get_current_user),
+):
+    """Manually trigger log retention cleanup."""
+    from backend.scheduler import _do_cleanup
+    from backend.config import settings
+    deleted = _do_cleanup(db, settings.log_retention_days)
+    return {"deleted": deleted, "retention_days": settings.log_retention_days}

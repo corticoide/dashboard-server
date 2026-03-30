@@ -20,3 +20,6 @@ class TTLCache:
 
     def set(self, key: str, value: Any, ttl: float) -> None:
         self._store[key] = (value, time.monotonic() + ttl)
+
+    def clear(self) -> None:
+        self._store.clear()
