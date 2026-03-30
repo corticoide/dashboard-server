@@ -122,6 +122,9 @@ fi
 if [ ! -f "data/serverdash.db" ]; then
   echo "--> Initialising database and admin user..."
   .venv/bin/python -m backend.scripts.init_db
+else
+  echo "--> Database already exists — skipping init."
+  echo "    If login fails, delete data/serverdash.db and re-run to reset credentials."
 fi
 
 # --- Node.js (requires >= 18 for Vite/Vue 3) ---
