@@ -22,6 +22,13 @@ def reset_count_cache():
     _count_cache.clear()
     yield
 
+@pytest.fixture(autouse=True)
+def reset_permission_cache():
+    """Clear the permission cache before each test."""
+    from backend.dependencies import _perm_cache
+    _perm_cache.clear()
+    yield
+
 SQLITE_OPTS = {"connect_args": {"check_same_thread": False}, "poolclass": StaticPool}
 
 @pytest.fixture
