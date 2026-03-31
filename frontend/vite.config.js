@@ -6,6 +6,13 @@ export default defineConfig({
   build: {
     outDir: '../backend/static',
     emptyOutDir: true,
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          'monaco-core': ['monaco-editor'],
+        },
+      },
+    },
   },
   server: {
     proxy: {

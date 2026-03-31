@@ -21,6 +21,7 @@ from backend.core.logging import init_logging
 from backend.core.health import router as health_router
 import backend.models.script  # ensure script tables are registered  # noqa: F401
 import backend.models.execution_log  # ensure execution_logs table is registered  # noqa: F401
+import backend.models.metrics_snapshot  # ensure metrics_snapshots table is registered  # noqa: F401
 
 init_logging()
 
