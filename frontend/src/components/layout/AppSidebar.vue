@@ -22,35 +22,29 @@
 
     <!-- Nav -->
     <nav class="nav">
-      <div class="nav-section">
+      <div class="nav-section" v-if="monitorItems.length > 0">
         <span class="nav-section-label">MONITOR</span>
-        <RouterLink class="nav-item" to="/" :class="{ active: route.path === '/' }">
-          <i class="pi pi-th-large nav-icon" />
-          <span class="nav-label">Dashboard</span>
-        </RouterLink>
-        <RouterLink class="nav-item" to="/services" :class="{ active: route.path === '/services' }">
-          <i class="pi pi-cog nav-icon" />
-          <span class="nav-label">Services</span>
-        </RouterLink>
-        <RouterLink class="nav-item" to="/files" :class="{ active: route.path === '/files' }">
-          <i class="pi pi-folder-open nav-icon" />
-          <span class="nav-label">Files</span>
+        <RouterLink v-for="item in monitorItems" :key="item.to"
+          class="nav-item" :to="item.to" :class="{ active: route.path === item.to }">
+          <i :class="['pi', item.icon, 'nav-icon']" />
+          <span class="nav-label">{{ item.label }}</span>
         </RouterLink>
       </div>
 
-      <div class="nav-section">
+      <div class="nav-section" v-if="manageItems.length > 0">
         <span class="nav-section-label">MANAGE</span>
-        <RouterLink class="nav-item" to="/scripts" :class="{ active: route.path === '/scripts' }">
-          <i class="pi pi-code nav-icon" />
-          <span class="nav-label">Scripts</span>
+        <RouterLink v-for="item in manageItems" :key="item.to"
+          class="nav-item" :to="item.to" :class="{ active: route.path === item.to }">
+          <i :class="['pi', item.icon, 'nav-icon']" />
+          <span class="nav-label">{{ item.label }}</span>
         </RouterLink>
-        <RouterLink class="nav-item" to="/crontab" :class="{ active: route.path === '/crontab' }">
-          <i class="pi pi-clock nav-icon" />
-          <span class="nav-label">Crontab</span>
-        </RouterLink>
-        <RouterLink class="nav-item" to="/logs" :class="{ active: route.path === '/logs' }">
-          <i class="pi pi-list nav-icon" />
-          <span class="nav-label">Logs</span>
+      </div>
+
+      <div class="nav-section" v-if="auth.isAdmin">
+        <span class="nav-section-label">ADMIN</span>
+        <RouterLink class="nav-item" to="/admin/users" :class="{ active: route.path === '/admin/users' }">
+          <i class="pi pi-users nav-icon" />
+          <span class="nav-label">Users</span>
         </RouterLink>
       </div>
     </nav>
@@ -59,13 +53,34 @@
 </template>
 
 <script setup>
+import { computed } from 'vue'
 import { useRoute } from 'vue-router'
 import { RouterLink } from 'vue-router'
+import { useAuthStore } from '../../stores/auth.js'
 
 defineProps({ collapsed: Boolean })
 defineEmits(['toggle'])
 
 const route = useRoute()
+const auth = useAuthStore()
+
+const monitorItems = computed(() => {
+  const items = [
+    { to: '/', icon: 'pi-th-large', label: 'Dashboard', resource: 'system' },
+    { to: '/services', icon: 'pi-cog', label: 'Services', resource: 'services' },
+    { to: '/files', icon: 'pi-folder-open', label: 'Files', resource: 'files' },
+  ]
+  return items.filter(i => auth.hasPermission(i.resource, 'read'))
+})
+
+const manageItems = computed(() => {
+  const items = [
+    { to: '/scripts', icon: 'pi-code', label: 'Scripts', resource: 'scripts' },
+    { to: '/crontab', icon: 'pi-clock', label: 'Crontab', resource: 'crontab' },
+    { to: '/logs', icon: 'pi-list', label: 'Logs', resource: 'logs' },
+  ]
+  return items.filter(i => auth.hasPermission(i.resource, 'read'))
+})
 </script>
 
 <style scoped>
