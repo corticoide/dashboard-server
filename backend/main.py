@@ -16,6 +16,7 @@ from backend.routers.scripts import router as scripts_router
 from backend.routers.crontab import router as crontab_router
 from backend.routers.logs import router as logs_router
 from backend.routers.metrics_history import router as metrics_history_router
+from backend.routers.admin import router as admin_router
 from backend.config import settings
 from backend.database import engine, Base
 from backend.core.logging import init_logging
@@ -69,6 +70,7 @@ app.include_router(scripts_router)
 app.include_router(crontab_router)
 app.include_router(logs_router)
 app.include_router(metrics_history_router)
+app.include_router(admin_router)
 
 # Serve Vue SPA (built files)
 static_dir = os.path.join(os.path.dirname(__file__), "static")

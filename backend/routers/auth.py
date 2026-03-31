@@ -4,7 +4,9 @@ from backend.database import get_db
 from backend.dependencies import get_current_user
 from backend.limiter import limiter
 from backend.models.user import User
+from backend.models.permission import Permission
 from backend.schemas.auth import LoginRequest, TokenResponse
+from backend.schemas.users import MeOut, PermissionOut
 from backend.services.auth_service import verify_password, create_access_token
 
 router = APIRouter(prefix="/api/auth", tags=["auth"])
@@ -33,3 +35,14 @@ def refresh(current_user: User = Depends(get_current_user)):
 @router.post("/logout")
 def logout():
     return {"ok": True}
+
+
+@router.get("/me", response_model=MeOut)
+def get_me(current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    perms = db.query(Permission).filter(Permission.role == current_user.role).all()
+    return MeOut(
+        id=current_user.id,
+        username=current_user.username,
+        role=current_user.role.value,
+        permissions=[PermissionOut(resource=p.resource, action=p.action) for p in perms]
+    )

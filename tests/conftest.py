@@ -73,6 +73,8 @@ def test_app():
     db = TestingSession()
     db.add(User(username="admin", hashed_password=hash_password("adminpass"), role=UserRole.admin))
     db.commit()
+    from backend.scripts.init_db import seed_permissions
+    seed_permissions(db)
     db.close()
 
     yield TestClient(app, base_url="http://test")
