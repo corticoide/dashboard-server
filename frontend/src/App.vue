@@ -22,15 +22,18 @@ import Toast from 'primevue/toast'
 import ConfirmDialog from 'primevue/confirmdialog'
 import AppSidebar from './components/layout/AppSidebar.vue'
 import AppHeader from './components/layout/AppHeader.vue'
+import { useAuthStore } from './stores/auth.js'
 
 const route = useRoute()
+const auth = useAuthStore()
 const sidebarCollapsed = ref(false)
 const isAuthRoute = computed(() => route.meta.public)
 const pageTitle = computed(() => route.meta.title || 'Dashboard')
 
-onMounted(() => {
+onMounted(async () => {
   const saved = localStorage.getItem('theme') || 'dark'
   document.documentElement.setAttribute('data-theme', saved)
+  if (auth.isAuthenticated) await auth.fetchMe()
 })
 </script>
 
