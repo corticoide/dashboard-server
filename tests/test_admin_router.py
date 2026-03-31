@@ -65,3 +65,12 @@ def test_non_admin_cannot_access(test_app):
     viewer_token = get_token(test_app, "viewer", "viewerpass")
     r = test_app.get("/api/admin/users", headers={"Authorization": f"Bearer {viewer_token}"})
     assert r.status_code == 403
+
+
+def test_inactive_user_cannot_login(test_app):
+    token = get_token(test_app)
+    r = test_app.post("/api/admin/users", json={"username": "inactive", "password": "pass", "role": "readonly"}, headers={"Authorization": f"Bearer {token}"})
+    user_id = r.json()["id"]
+    test_app.patch(f"/api/admin/users/{user_id}", json={"is_active": False}, headers={"Authorization": f"Bearer {token}"})
+    r = test_app.post("/api/auth/login", json={"username": "inactive", "password": "pass"})
+    assert r.status_code == 403
