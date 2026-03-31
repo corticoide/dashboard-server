@@ -10,6 +10,7 @@ class Settings(BaseSettings):
     admin_password: str = "changeme"
     allowed_origins: list[str] = ["https://localhost:8443"]
     log_retention_days: int = 30
+    metrics_retention_days: int = 30
 
     class Config:
         env_file = ".env"
