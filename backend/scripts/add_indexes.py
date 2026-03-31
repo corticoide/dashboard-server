@@ -14,6 +14,8 @@ def main() -> None:
         "CREATE INDEX IF NOT EXISTS ix_execution_logs_exit_code ON execution_logs (exit_code)",
         "CREATE INDEX IF NOT EXISTS ix_execution_logs_username_started_at ON execution_logs (username, started_at)",
         "CREATE INDEX IF NOT EXISTS ix_metrics_snapshots_timestamp ON metrics_snapshots (timestamp)",
+        "CREATE INDEX IF NOT EXISTS ix_permissions_role ON permissions (role)",
+        "CREATE INDEX IF NOT EXISTS ix_permissions_role_resource ON permissions (role, resource)",
     ]
     with engine.connect() as conn:
         for stmt in statements:

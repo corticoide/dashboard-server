@@ -1,5 +1,6 @@
 import enum
-from sqlalchemy import Column, Integer, String, Enum
+from sqlalchemy import Column, Integer, String, Boolean, DateTime, Enum
+from sqlalchemy.sql import func
 from backend.database import Base
 
 class UserRole(str, enum.Enum):
@@ -14,3 +15,5 @@ class User(Base):
     username = Column(String, unique=True, index=True, nullable=False)
     hashed_password = Column(String, nullable=False)
     role = Column(Enum(UserRole), nullable=False, default=UserRole.readonly)
+    is_active = Column(Boolean, nullable=False, default=True)
+    created_at = Column(DateTime, server_default=func.now())

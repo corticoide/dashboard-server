@@ -87,6 +87,22 @@
       </template>
     </Card>
 
+    <!-- Resource history card -->
+    <Card class="dash-card">
+      <template #content>
+        <div class="card-section-header">
+          <i class="pi pi-chart-line section-icon" />
+          <span class="section-title">RESOURCE HISTORY</span>
+          <Select v-model="historyHours" :options="historyHourOptions" class="hours-select" />
+        </div>
+        <Divider class="section-divider" />
+        <div class="chart-container">
+          <Line v-if="cpuChartData.labels.length > 0" :data="cpuChartData" :options="chartOptions" />
+          <span v-else class="cell-empty">No history data yet — collecting starts automatically</span>
+        </div>
+      </template>
+    </Card>
+
     <!-- Recent executions card -->
     <Card class="dash-card">
       <template #content>
@@ -135,7 +151,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
 import { RouterLink } from 'vue-router'
 import Message from 'primevue/message'
 import Card from 'primevue/card'
@@ -145,9 +161,14 @@ import Badge from 'primevue/badge'
 import Chip from 'primevue/chip'
 import DataTable from 'primevue/datatable'
 import Column from 'primevue/column'
+import Select from 'primevue/select'
+import { Line } from 'vue-chartjs'
+import { Chart as ChartJS, LineElement, PointElement, LinearScale, CategoryScale, Tooltip, Legend, Filler } from 'chart.js'
 import MetricCard from '../components/dashboard/MetricCard.vue'
 import { usePolling } from '../composables/usePolling.js'
 import api from '../api/client.js'
+
+ChartJS.register(LineElement, PointElement, LinearScale, CategoryScale, Tooltip, Legend, Filler)
 
 const recentLogs = ref([])
 
@@ -155,6 +176,19 @@ async function fetchRecentLogs() {
   try {
     const { data } = await api.get('/logs/executions', { params: { } })
     recentLogs.value = data.slice(0, 5)
+  } catch {
+    // non-critical
+  }
+}
+
+const historyData = ref([])
+const historyHours = ref(24)
+const historyHourOptions = [1, 6, 12, 24, 48, 168]
+
+async function fetchHistory() {
+  try {
+    const { data } = await api.get('/metrics/history', { params: { hours: historyHours.value } })
+    historyData.value = data
   } catch {
     // non-critical
   }
@@ -173,6 +207,59 @@ const metrics = ref({
 })
 const error = ref('')
 
+const cpuChartData = computed(() => ({
+  labels: historyData.value.map(p => {
+    const d = new Date(p.timestamp)
+    return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+  }),
+  datasets: [
+    {
+      label: 'CPU %',
+      data: historyData.value.map(p => p.cpu_percent),
+      borderColor: '#f97316',
+      backgroundColor: 'rgba(249, 115, 22, 0.1)',
+      fill: true,
+      tension: 0.3,
+      pointRadius: 0
+    },
+    {
+      label: 'RAM %',
+      data: historyData.value.map(p => p.ram_percent),
+      borderColor: '#3b82f6',
+      backgroundColor: 'rgba(59, 130, 246, 0.1)',
+      fill: true,
+      tension: 0.3,
+      pointRadius: 0
+    },
+    {
+      label: 'Disk %',
+      data: historyData.value.map(p => p.disk_percent),
+      borderColor: '#10b981',
+      backgroundColor: 'rgba(16, 185, 129, 0.1)',
+      fill: true,
+      tension: 0.3,
+      pointRadius: 0
+    },
+  ],
+}))
+
+const chartOptions = {
+  responsive: true,
+  maintainAspectRatio: false,
+  plugins: {
+    legend: { position: 'top' }
+  },
+  scales: {
+    y: {
+      min: 0,
+      max: 100,
+      ticks: {
+        callback: (v) => `${v}%`
+      }
+    }
+  }
+}
+
 async function fetchMetrics() {
   try {
     const { data } = await api.get('/system/metrics')
@@ -185,8 +272,20 @@ async function fetchMetrics() {
 
 const { start, stop } = usePolling(fetchMetrics, 5000)
 const { start: startLogs, stop: stopLogs } = usePolling(fetchRecentLogs, 30000)
-onMounted(() => { start(); startLogs() })
-onUnmounted(() => { stop(); stopLogs() })
+const { start: startHistory, stop: stopHistory } = usePolling(fetchHistory, 60000)
+
+watch(historyHours, fetchHistory)
+
+onMounted(() => {
+  start()
+  startLogs()
+  startHistory()
+})
+onUnmounted(() => {
+  stop()
+  stopLogs()
+  stopHistory()
+})
 
 const uptimeFormatted = computed(() => {
   const s = metrics.value.uptime_seconds
@@ -289,6 +388,15 @@ function loadBadgeClass(val) {
 :deep(.load-ok .p-badge)   { background: var(--p-green-500) !important; color: #fff !important; font-family: var(--font-mono); font-size: var(--text-xs) !important; font-weight: 600; }
 :deep(.load-mid .p-badge)  { background: var(--p-yellow-500) !important; color: #000 !important; font-family: var(--font-mono); font-size: var(--text-xs) !important; font-weight: 600; }
 :deep(.load-high .p-badge) { background: var(--p-red-500) !important; color: #fff !important; font-family: var(--font-mono); font-size: var(--text-xs) !important; font-weight: 600; }
+
+/* ── Resource history chart ──────────────────── */
+.chart-container {
+  height: 300px;
+  position: relative;
+}
+.hours-select {
+  width: 80px;
+}
 
 /* ── Recent executions table ──────────────────── */
 .view-all-link {
