@@ -17,7 +17,7 @@
 - Modify: `backend/main.py:22` (add model import)
 - Modify: `backend/scripts/add_indexes.py` (add new indexes)
 
-- [ ] **Step 1: Create the model file**
+- [x] **Step 1: Create the model file**
 
 ```python
 # backend/models/network_snapshot.py
@@ -46,7 +46,7 @@ class NetworkSnapshot(Base):
     )
 ```
 
-- [ ] **Step 2: Register the model in main.py**
+- [x] **Step 2: Register the model in main.py**
 
 Add after line 23 in `backend/main.py`:
 
@@ -54,7 +54,7 @@ Add after line 23 in `backend/main.py`:
 import backend.models.network_snapshot  # noqa: F401
 ```
 
-- [ ] **Step 3: Add indexes to add_indexes.py**
+- [x] **Step 3: Add indexes to add_indexes.py**
 
 Append these statements to the `statements` list in `backend/scripts/add_indexes.py`:
 
@@ -64,7 +64,7 @@ Append these statements to the `statements` list in `backend/scripts/add_indexes
 "CREATE INDEX IF NOT EXISTS ix_network_snapshots_interface_timestamp ON network_snapshots (interface, timestamp)",
 ```
 
-- [ ] **Step 4: Verify table creation**
+- [x] **Step 4: Verify table creation**
 
 ```bash
 python -c "
@@ -77,7 +77,7 @@ print('network_snapshots table created')
 
 Expected: `network_snapshots table created` with no errors.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add backend/models/network_snapshot.py backend/main.py backend/scripts/add_indexes.py
@@ -124,7 +124,7 @@ def test_get_active_connections_returns_list():
         assert "status" in conn
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 ```bash
 pytest tests/test_network_service.py -v
@@ -132,7 +132,7 @@ pytest tests/test_network_service.py -v
 
 Expected: FAIL with `ModuleNotFoundError` or `ImportError`.
 
-- [ ] **Step 3: Write the service**
+- [x] **Step 3: Write the service**
 
 ```python
 # backend/services/network_service.py
@@ -183,7 +183,7 @@ def get_active_connections() -> list[dict]:
     return connections
 ```
 
-- [ ] **Step 4: Run tests to verify they pass**
+- [x] **Step 4: Run tests to verify they pass**
 
 ```bash
 pytest tests/test_network_service.py -v
@@ -191,7 +191,7 @@ pytest tests/test_network_service.py -v
 
 Expected: PASS (both tests).
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add backend/services/network_service.py tests/test_network_service.py
@@ -254,7 +254,7 @@ class BandwidthPoint(BaseModel):
     bytes_recv: float
 ```
 
-- [ ] **Step 2: Commit**
+- [x] **Step 2: Commit**
 
 ```bash
 git add backend/schemas/network.py
@@ -308,7 +308,7 @@ def test_unauthenticated_returns_403(test_app):
     assert r.status_code == 403
 ```
 
-- [ ] **Step 2: Run tests to verify they fail**
+- [x] **Step 2: Run tests to verify they fail**
 
 ```bash
 pytest tests/test_network_router.py -v
@@ -316,7 +316,7 @@ pytest tests/test_network_router.py -v
 
 Expected: FAIL (404, router not registered).
 
-- [ ] **Step 3: Write the router**
+- [x] **Step 3: Write the router**
 
 ```python
 # backend/routers/network.py
@@ -378,7 +378,7 @@ def bandwidth_history(
     ]
 ```
 
-- [ ] **Step 4: Register router in main.py**
+- [x] **Step 4: Register router in main.py**
 
 Add import after line 17 in `backend/main.py`:
 
@@ -392,7 +392,7 @@ Add after line 67 (after `logs_router`):
 app.include_router(network_router)
 ```
 
-- [ ] **Step 5: Add cache reset fixture to conftest.py**
+- [x] **Step 5: Add cache reset fixture to conftest.py**
 
 Add to `tests/conftest.py` after the `reset_count_cache` fixture:
 
@@ -405,7 +405,7 @@ def reset_network_caches():
     yield
 ```
 
-- [ ] **Step 6: Run tests to verify they pass**
+- [x] **Step 6: Run tests to verify they pass**
 
 ```bash
 pytest tests/test_network_router.py -v
@@ -413,7 +413,7 @@ pytest tests/test_network_router.py -v
 
 Expected: All 4 tests PASS.
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ```bash
 git add backend/routers/network.py backend/main.py tests/test_network_router.py tests/conftest.py
@@ -469,7 +469,7 @@ def test_do_network_cleanup(db_session):
     assert db_session.query(NetworkSnapshot).count() == 0
 ```
 
-- [ ] **Step 2: Run tests to verify they fail**
+- [x] **Step 2: Run tests to verify they fail**
 
 ```bash
 pytest tests/test_network_service.py::test_do_network_sample tests/test_network_service.py::test_do_network_cleanup -v
@@ -477,7 +477,7 @@ pytest tests/test_network_service.py::test_do_network_sample tests/test_network_
 
 Expected: FAIL with `ImportError`.
 
-- [ ] **Step 3: Add config setting**
+- [x] **Step 3: Add config setting**
 
 In `backend/config.py`, add to the `Settings` class:
 
@@ -485,7 +485,7 @@ In `backend/config.py`, add to the `Settings` class:
 network_retention_days: int = 30
 ```
 
-- [ ] **Step 4: Implement scheduler functions**
+- [x] **Step 4: Implement scheduler functions**
 
 Add to `backend/scheduler.py` (after the `_vacuum_job` function):
 
@@ -555,7 +555,7 @@ def _network_cleanup_job() -> None:
         db.close()
 ```
 
-- [ ] **Step 5: Register jobs in init_scheduler()**
+- [x] **Step 5: Register jobs in init_scheduler()**
 
 Add inside `init_scheduler()`, after the existing `add_job` calls:
 
@@ -565,7 +565,7 @@ _scheduler.add_job(_network_sample_job, IntervalTrigger(seconds=60), id="network
 _scheduler.add_job(_network_cleanup_job, CronTrigger(hour=2, minute=30), id="network_cleanup")
 ```
 
-- [ ] **Step 6: Run tests to verify they pass**
+- [x] **Step 6: Run tests to verify they pass**
 
 ```bash
 pytest tests/test_network_service.py -v
@@ -573,7 +573,7 @@ pytest tests/test_network_service.py -v
 
 Expected: All 4 tests PASS.
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ```bash
 git add backend/scheduler.py backend/config.py
@@ -596,7 +596,7 @@ git commit -m "feat(network): add scheduler jobs for sampling + retention cleanu
 cd frontend && npm install chart.js vue-chartjs
 ```
 
-- [ ] **Step 2: Add route (lazy-loaded)**
+- [x] **Step 2: Add route (lazy-loaded)**
 
 In `frontend/src/router/index.js`, add after the `/logs` route (before the catch-all):
 
@@ -604,7 +604,7 @@ In `frontend/src/router/index.js`, add after the `/logs` route (before the catch
 { path: '/network', component: () => import('../views/NetworkView.vue'), meta: { requiresAuth: true, title: 'Network' } },
 ```
 
-- [ ] **Step 3: Add sidebar nav item**
+- [x] **Step 3: Add sidebar nav item**
 
 In `frontend/src/components/layout/AppSidebar.vue`, add after the Files `<RouterLink>` (inside the MONITOR section):
 
@@ -615,7 +615,7 @@ In `frontend/src/components/layout/AppSidebar.vue`, add after the Files `<Router
 </RouterLink>
 ```
 
-- [ ] **Step 4: Create NetworkView.vue**
+- [x] **Step 4: Create NetworkView.vue**
 
 ```vue
 <!-- frontend/src/views/NetworkView.vue -->
@@ -837,7 +837,7 @@ onUnmounted(() => { stop(); stopBw() })
 </style>
 ```
 
-- [ ] **Step 5: Verify frontend builds**
+- [x] **Step 5: Verify frontend builds**
 
 ```bash
 cd frontend && npm run build
@@ -845,7 +845,7 @@ cd frontend && npm run build
 
 Expected: Build succeeds with no errors.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add frontend/package.json frontend/package-lock.json frontend/src/views/NetworkView.vue frontend/src/router/index.js frontend/src/components/layout/AppSidebar.vue
@@ -866,7 +866,7 @@ pytest -v
 
 Expected: All tests PASS (existing + new network tests).
 
-- [ ] **Step 2: Run frontend build**
+- [x] **Step 2: Run frontend build**
 
 ```bash
 cd frontend && npm run build
@@ -874,6 +874,6 @@ cd frontend && npm run build
 
 Expected: Build succeeds.
 
-- [ ] **Step 3: Final commit if any fixups needed**
+- [x] **Step 3: Final commit if any fixups needed**
 
 Only if tests revealed issues that required fixes.
