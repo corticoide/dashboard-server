@@ -16,6 +16,9 @@ def main() -> None:
         "CREATE INDEX IF NOT EXISTS ix_metrics_snapshots_timestamp ON metrics_snapshots (timestamp)",
         "CREATE INDEX IF NOT EXISTS ix_permissions_role ON permissions (role)",
         "CREATE INDEX IF NOT EXISTS ix_permissions_role_resource ON permissions (role, resource)",
+        "CREATE INDEX IF NOT EXISTS ix_network_snapshots_timestamp ON network_snapshots (timestamp)",
+        "CREATE INDEX IF NOT EXISTS ix_network_snapshots_interface ON network_snapshots (interface)",
+        "CREATE INDEX IF NOT EXISTS ix_network_snapshots_interface_timestamp ON network_snapshots (interface, timestamp)",
     ]
     with engine.connect() as conn:
         for stmt in statements:

@@ -106,6 +106,71 @@ def _metrics_cleanup_job() -> None:
         db.close()
 
 
+def _do_network_sample(db: Session) -> int:
+    """Capture current network interface stats as snapshots. Returns count inserted."""
+    from backend.models.network_snapshot import NetworkSnapshot
+    from backend.services.network_service import get_interfaces
+
+    ifaces = get_interfaces()
+    now = datetime.utcnow()
+    count = 0
+    for iface in ifaces:
+        db.add(NetworkSnapshot(
+            timestamp=now,
+            interface=iface["name"],
+            bytes_sent=iface["bytes_sent"],
+            bytes_recv=iface["bytes_recv"],
+            packets_sent=iface["packets_sent"],
+            packets_recv=iface["packets_recv"],
+            errin=iface["errin"],
+            errout=iface["errout"],
+            dropin=iface["dropin"],
+            dropout=iface["dropout"],
+        ))
+        count += 1
+    db.commit()
+    logger.info("Network sample: inserted %d interface snapshot(s)", count)
+    return count
+
+
+def _do_network_cleanup(db: Session, retention_days: int) -> int:
+    """Delete network snapshots older than retention_days. Returns count deleted."""
+    from backend.models.network_snapshot import NetworkSnapshot
+
+    cutoff = datetime.utcnow() - timedelta(days=retention_days)
+    deleted = db.query(NetworkSnapshot).filter(
+        NetworkSnapshot.timestamp < cutoff
+    ).delete(synchronize_session=False)
+    db.commit()
+    logger.info("Network cleanup: deleted %d snapshot(s) older than %d days", deleted, retention_days)
+    return deleted
+
+
+def _network_sample_job() -> None:
+    """APScheduler job: sample network stats every 60 seconds."""
+    from backend.database import SessionLocal
+    db = SessionLocal()
+    try:
+        _do_network_sample(db)
+    except Exception:
+        logger.exception("Network sample job failed")
+    finally:
+        db.close()
+
+
+def _network_cleanup_job() -> None:
+    """APScheduler job: daily network snapshot retention cleanup."""
+    from backend.database import SessionLocal
+    from backend.config import settings
+    db = SessionLocal()
+    try:
+        _do_network_cleanup(db, settings.network_retention_days)
+    except Exception:
+        logger.exception("Network cleanup job failed")
+    finally:
+        db.close()
+
+
 _scheduler = None
 
 
@@ -121,6 +186,8 @@ def init_scheduler():
     _scheduler.add_job(_vacuum_job, CronTrigger(day_of_week="sun", hour=3), id="db_vacuum")
     _scheduler.add_job(_metrics_sample_job, IntervalTrigger(seconds=60), id="metrics_sample")
     _scheduler.add_job(_metrics_cleanup_job, CronTrigger(hour=2, minute=15), id="metrics_cleanup")
+    _scheduler.add_job(_network_sample_job, IntervalTrigger(seconds=60), id="network_sample")
+    _scheduler.add_job(_network_cleanup_job, CronTrigger(hour=2, minute=30), id="network_cleanup")
     _scheduler.start()
     logger.info("Background scheduler started")
 

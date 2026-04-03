@@ -260,29 +260,48 @@ const chartOptions = {
   }
 }
 
-async function fetchMetrics() {
-  try {
-    const { data } = await api.get('/system/metrics')
-    metrics.value = data
-    error.value = ''
-  } catch {
-    error.value = 'Failed to fetch metrics'
+// ── WebSocket for real-time metrics (push every 1s, no sleep on client) ──
+let metricsWs = null
+
+function connectMetricsWs() {
+  const proto = location.protocol === 'https:' ? 'wss' : 'ws'
+  const token = localStorage.getItem('access_token') || ''
+  metricsWs = new WebSocket(`${proto}://${location.host}/api/ws/metrics?token=${token}`)
+
+  metricsWs.onmessage = (evt) => {
+    try {
+      metrics.value = JSON.parse(evt.data)
+      error.value = ''
+    } catch { /* ignore */ }
+  }
+  metricsWs.onerror = () => { error.value = 'Live metrics connection error — retrying...' }
+  metricsWs.onclose = () => {
+    if (metricsWs) setTimeout(connectMetricsWs, 3000)
   }
 }
 
-const { start, stop } = usePolling(fetchMetrics, 5000)
+function disconnectMetricsWs() {
+  if (metricsWs) {
+    const old = metricsWs
+    metricsWs = null
+    old.close()
+  }
+}
+
 const { start: startLogs, stop: stopLogs } = usePolling(fetchRecentLogs, 30000)
 const { start: startHistory, stop: stopHistory } = usePolling(fetchHistory, 60000)
 
 watch(historyHours, fetchHistory)
 
 onMounted(() => {
-  start()
+  connectMetricsWs()
   startLogs()
   startHistory()
+  fetchRecentLogs()
+  fetchHistory()
 })
 onUnmounted(() => {
-  stop()
+  disconnectMetricsWs()
   stopLogs()
   stopHistory()
 })

@@ -51,7 +51,7 @@ trap cleanup SIGINT SIGTERM
 
 # Start backend
 info "Starting backend on https://localhost:8443..."
-python -m backend.main &
+source venv/bin/activate && python -m backend.main &
 BACKEND_PID=$!
 success "Backend started (PID: $BACKEND_PID)"
 

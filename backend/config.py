@@ -11,6 +11,7 @@ class Settings(BaseSettings):
     allowed_origins: list[str] = ["https://localhost:8443"]
     log_retention_days: int = 30
     metrics_retention_days: int = 30
+    network_retention_days: int = 30
 
     class Config:
         env_file = ".env"

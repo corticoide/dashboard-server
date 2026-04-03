@@ -17,6 +17,8 @@ from backend.routers.crontab import router as crontab_router
 from backend.routers.logs import router as logs_router
 from backend.routers.metrics_history import router as metrics_history_router
 from backend.routers.admin import router as admin_router
+from backend.routers.network import router as network_router
+from backend.routers.ws import router as ws_router
 from backend.config import settings
 from backend.database import engine, Base
 from backend.core.logging import init_logging
@@ -25,6 +27,7 @@ import backend.models.script  # ensure script tables are registered  # noqa: F40
 import backend.models.execution_log  # ensure execution_logs table is registered  # noqa: F401
 import backend.models.metrics_snapshot  # ensure metrics_snapshots table is registered  # noqa: F401
 import backend.models.permission  # ensure permissions table is registered  # noqa: F401
+import backend.models.network_snapshot  # ensure network_snapshots table is registered  # noqa: F401
 
 init_logging()
 
@@ -71,6 +74,8 @@ app.include_router(crontab_router)
 app.include_router(logs_router)
 app.include_router(metrics_history_router)
 app.include_router(admin_router)
+app.include_router(network_router)
+app.include_router(ws_router)
 
 # Serve Vue SPA (built files)
 static_dir = os.path.join(os.path.dirname(__file__), "static")

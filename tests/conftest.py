@@ -29,6 +29,14 @@ def reset_permission_cache():
     _perm_cache.clear()
     yield
 
+@pytest.fixture(autouse=True)
+def reset_network_caches():
+    """Clear network router caches before each test."""
+    from backend.routers.network import _iface_cache, _conn_summary_cache
+    _iface_cache.clear()
+    _conn_summary_cache.clear()
+    yield
+
 SQLITE_OPTS = {"connect_args": {"check_same_thread": False}, "poolclass": StaticPool}
 
 @pytest.fixture
