@@ -28,6 +28,7 @@ import backend.models.execution_log  # ensure execution_logs table is registered
 import backend.models.metrics_snapshot  # ensure metrics_snapshots table is registered  # noqa: F401
 import backend.models.permission  # ensure permissions table is registered  # noqa: F401
 import backend.models.network_snapshot  # ensure network_snapshots table is registered  # noqa: F401
+import backend.models.pipeline  # ensure pipeline tables are registered  # noqa: F401
 
 init_logging()
 

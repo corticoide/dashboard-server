@@ -19,6 +19,10 @@ def main() -> None:
         "CREATE INDEX IF NOT EXISTS ix_network_snapshots_timestamp ON network_snapshots (timestamp)",
         "CREATE INDEX IF NOT EXISTS ix_network_snapshots_interface ON network_snapshots (interface)",
         "CREATE INDEX IF NOT EXISTS ix_network_snapshots_interface_timestamp ON network_snapshots (interface, timestamp)",
+        "CREATE INDEX IF NOT EXISTS ix_pipeline_steps_pipeline_id ON pipeline_steps (pipeline_id)",
+        "CREATE INDEX IF NOT EXISTS ix_pipeline_runs_pipeline_id  ON pipeline_runs  (pipeline_id)",
+        "CREATE INDEX IF NOT EXISTS ix_pipeline_runs_started_at   ON pipeline_runs  (started_at)",
+        "CREATE INDEX IF NOT EXISTS ix_pipeline_step_runs_run_id  ON pipeline_step_runs (run_id)",
     ]
     with engine.connect() as conn:
         for stmt in statements:
