@@ -1,11 +1,15 @@
-# Roadmap de Features
+# ServerDash — Bitácora de Desarrollo & Roadmap
 
-## Features en desarrollo
+---
+
+## Roadmap de Features
+
+### Features en desarrollo
 1) Pausar/reanudar programaciones de crontab
 
-## Features Planificadas (Ordenadas por Prioridad)
+### Features Planificadas (Ordenadas por Prioridad)
 
-### 1. Network Monitoring (IMPORTANTE)
+#### 1. Network Monitoring (IMPLEMENTADO ✓)
 **Descripción:** Visualizar interfaces de red, ancho de banda en tiempo real, conexiones activas, estadísticas históricas.
 
 **Integración con la app:**
@@ -38,7 +42,7 @@
 
 ---
 
-### 2. Resource Usage History
+#### 2. Resource Usage History (IMPLEMENTADO ✓)
 **Descripción:** Gráficos históricos de CPU, RAM, disco a lo largo del tiempo (últimas 24h, 7 días, 30 días).
 
 **Integración con la app:**
@@ -65,7 +69,7 @@
 
 ---
 
-### 3. Gestión de Usuarios con Permisos Dinámicos
+#### 3. Gestión de Usuarios con Permisos Dinámicos
 **Descripción:** Sistema multi-usuario con roles y permisos granulares. Control de acceso a rutas, funcionalidades específicas y áreas de trabajo.
 
 **Integración con la app:**
@@ -96,7 +100,7 @@
 
 ---
 
-### 4. Alertas & Notificaciones
+#### 4. Alertas & Notificaciones
 **Descripción:** Sistema de alertas en tiempo real cuando métricas exceden umbrales (CPU >80%, disco bajo, servicios caídos). Notificaciones inicialmente por email, con soporte futuro para webhooks.
 
 **Integración con la app:**
@@ -127,7 +131,7 @@
 
 ---
 
-### 5. Logs Centralizado
+#### 5. Logs Centralizado
 **Descripción:** Visualizar, filtrar, buscar y exportar logs del sistema (`/var/log/`) en tiempo real.
 
 **Integración con la app:**
@@ -157,7 +161,7 @@
 
 ---
 
-### 6. Process Manager
+#### 6. Process Manager
 **Descripción:** Listar procesos activos, ver detalles (PID, usuario, CPU%, RAM%, comando), matar procesos.
 
 **Integración con la app:**
@@ -184,7 +188,7 @@
 
 ---
 
-### 7. Backups Automated (CON SOPORTE FUTURO "GIT-STYLE")
+#### 7. Backups Automated (CON SOPORTE FUTURO "GIT-STYLE")
 **Descripción:** Crear/restaurar backups de directorios. Buscar discos disponibles, centralizar copias, con arquitectura preparada para versionado estilo git.
 
 **Integración con la app:**
@@ -223,7 +227,7 @@
 
 ---
 
-### 8. Webhooks & Integraciones
+#### 8. Webhooks & Integraciones
 **Descripción:** Disparar webhooks cuando ciertos eventos ocurren (alerta disparada, backup completado, proceso muerto, etc). Integración futura con Slack/Discord.
 
 **Integración con la app:**
@@ -255,7 +259,7 @@
 
 ---
 
-### 9. Terminal Web SSH
+#### 9. Terminal Web SSH
 **Descripción:** Terminal interactivo en el navegador para ejecutar comandos directamente. No urgente.
 
 **Integración con la app:**
@@ -284,7 +288,7 @@
 
 ---
 
-### 10. Package Manager
+#### 10. Package Manager
 **Descripción:** Instalar/actualizar/remover paquetes (apt, yum, etc) desde el dashboard. No urgente.
 
 **Integración con la app:**
@@ -313,7 +317,7 @@
 
 ---
 
-### 11. Dark Mode Toggle
+#### 11. Dark Mode Toggle
 **Descripción:** Mejorar selector de tema con persistencia mejorada.
 
 **Integración con la app:**
@@ -331,7 +335,7 @@
 
 ---
 
-### 12. Environment Variables Manager
+#### 12. Environment Variables Manager
 **Descripción:** Editar variables de entorno del sistema (`.bashrc`, `.profile`, etc). No urgente.
 
 **Integración con la app:**
@@ -355,3 +359,155 @@
 3. Endpoint POST para actualizar (con backup)
 4. Frontend: tabla editable
 5. Notificación: "Requiere logout para aplicar cambios"
+
+---
+
+# Historial de Desarrollo
+
+## 2026-04-03
+
+### Sesión anterior
+- Implementación inicial de monitoreo de red (network monitoring)
+- WebSocket para métricas en tiempo real
+- Arreglos en gestión de usuarios (user management)
+
+---
+
+## 2026-04-04
+
+### Características implementadas
+
+#### ECG Live Charts (Dashboard)
+- Card "LIVE METRICS" con Chart.js en estilo ECG (electrocardiógrafo)
+- Buffer rodante de 120 puntos (2 minutos a 1Hz)
+- Tres líneas: CPU (naranja), RAM (cian), Disk (verde)
+- Plugins personalizados: fondo oscuro `#080c10`, glow por `shadowBlur` en canvas
+- Actualización eficiente con `chart.update('none')` sin reactividad Vue
+- Dot animado pulsante "LIVE" indicando conexión activa
+
+#### Vista de Historial (`/history`)
+- Nueva ruta `/history` con `HistoryView.vue`
+- Dos gráficos de área: Resource History (CPU/RAM/Disk) y Bandwidth History
+- Selectores de rango: 1h, 6h, 12h, 24h, 48h, 7d, 30d
+- Selector de interfaz para historial de ancho de banda
+- Fuentes de datos: `/api/metrics/history` y `/api/network/bandwidth`
+- Entrada en sidebar: "History" con icono `pi-chart-bar`
+- CTAs "View History →" en Dashboard y Network con animación de flecha
+
+#### Network View — Rediseño completo
+- Iconos dinámicos por tipo de interfaz (eth, wlan, tun/vpn, docker, genérico)
+- Cards de interfaz rediseñadas: bloque bps prominente con fondo `#080c10`, TX naranja / RX azul, hover glow
+- Traffic Analysis: gráfico ECG en vivo desde datos bps del WebSocket, buffer de 90 puntos
+- Device Detection: tabla ARP devices vía `/api/network/devices`
+- Config Management: panel DNS + gateways vía `/api/network/config`
+- CTA "View Bandwidth History →" reemplaza historial inline
+
+#### Consistencia visual
+- DataTable deep overrides aplicados a AdminUsersView y NetworkView
+  - `font-mono`, `text-2xs`, uppercase, letter-spacing 1.5px en headers
+  - Padding uniforme `6px 10px` en th, `5px 10px` en td
+- Tipografía y espaciado alineados con el resto de la app en todas las vistas nuevas
+
+### Bugs corregidos
+
+#### WebSocket en dev mode (Vite)
+- **Problema:** "Live metrics connection error" en localhost:5173 — el proxy de Vite no reenviaba conexiones WebSocket
+- **Fix:** Añadido `ws: true` en la entrada `/api` de `vite.config.js`
+
+#### Network View se congelaba
+- **Problema:** `startBw()` era llamado en `onMounted` pero la función había sido eliminada durante el refactor → `ReferenceError` → crash del componente → UI congelada, sin navegación
+- **Fix:** Eliminada la llamada `startBw()` huérfana de `onMounted`
+
+#### "No connections detected" (sin root)
+- **Problema:** `psutil.net_connections()` requiere root en Linux → retornaba vacío silenciosamente
+- **Fix:** Añadido `_read_connections_proc()` que parsea `/proc/net/tcp`, `/proc/net/tcp6`, `/proc/net/udp`, `/proc/net/udp6` directamente (funciona sin root). IPs little-endian hex, estados hex mapeados a strings.
+
+#### Event loop bloqueado en WebSocket handlers
+- **Problema:** `get_metrics()` y `get_interfaces()` son llamadas síncronas de psutil dentro de handlers async — bloqueaban el event loop de uvicorn
+- **Fix:** Envueltos con `await run_in_threadpool(...)` en ambos endpoints de `backend/routers/ws.py`
+
+#### AdminUsersView slot incorrecto (PrimeVue 4)
+- **Problema:** Contenido en slot `#header` (solo para media) y slot default (no se renderiza) — PrimeVue 4 Card requiere `#content`
+- **Fix:** Todo el contenido movido a `<template #content>`
+
+### Archivos modificados
+- `frontend/vite.config.js` — proxy ws: true
+- `frontend/src/views/DashboardView.vue` — ECG live chart, eliminar historial inline, CTA history
+- `frontend/src/views/HistoryView.vue` — NUEVA: vista unificada de historial
+- `frontend/src/views/NetworkView.vue` — rediseño completo, bugfix startBw, ECG tráfico, ARP devices, config
+- `frontend/src/views/AdminUsersView.vue` — deep DataTable overrides, fix slot PrimeVue
+- `frontend/src/components/layout/AppSidebar.vue` — icono Network, entrada History
+- `frontend/src/router/index.js` — ruta /history
+- `backend/routers/ws.py` — run_in_threadpool para ambos WS endpoints
+- `backend/services/network_service.py` — _read_connections_proc, get_arp_devices, get_network_config
+- `backend/routers/network.py` — endpoints /devices y /config
+
+---
+
+## 2026-04-05
+
+### Características implementadas
+
+#### Composable `useChartTheme` (NUEVO)
+- `frontend/src/composables/useChartTheme.js`
+- Observa `data-theme` en `<html>` vía `MutationObserver` — reactivo instantáneo
+- Retorna: `chartBg` (`#080c10` dark / `#f1f5f9` light), `axisColor`, `gridColorWeak`, `gridColorMid`
+- Usado por Dashboard, Network y History para adaptar charts al tema
+
+#### ECG Charts dinámicos (Dashboard + Network)
+- Plugin `ecgBg` reemplaza `ecgDarkBg` — usa `chartBg.value` reactivo
+- `watchEffect` actualiza colores de ejes y grid cuando cambia el tema
+- Selector "VENTANA" (30s / 1m / 2m / MAX) — controla cuántos puntos visibles
+- Leyenda clickeable para ocultar/mostrar series individuales (`chart.setDatasetVisibility`)
+
+#### History View pulida
+- Tema dinámico via `useChartTheme` + `watchEffect` en opciones de chart
+- Labels inteligentes: `HH:MM` para rangos ≤48h, `DD Mon HH:MM` para 7d/30d
+- Loading spinner (`ProgressSpinner`) mientras carga
+- Header de página con back-link `← Dashboard`
+
+#### PrimeVue nativo en inputs
+- NetworkView: `InputText` envuelto en `IconField` + `InputIcon`
+- AdminUsersView: `Toolbar` con `IconField` + `InputIcon` + `filteredUsers` computed
+
+#### Network — Filtro de conexiones locales
+- Toggle `ToggleButton` "− LOCAL / + LOCAL" en Active Connections
+- `showLocal = false` por defecto — oculta `127.0.0.1` y `::1`
+- Estas son conexiones internas de FastAPI/Vite, no tráfico real de red
+
+#### Network — Interfaz con internet + subnet
+- `_get_internet_ifaces()` detecta interfaces con ruta default en `/proc/net/route`
+- `_get_subnet()` calcula CIDR con `ipaddress.IPv4Network`
+- Badge "INTERNET" en cards de interfaces con gateway default
+- Subnet mostrado en cada card (e.g. `172.29.160.0/20`)
+
+#### UTC automático del sistema
+- `datetime.now(timezone.utc).astimezone()` — respeta DST
+- Retorna `utc_label`, `timezone_name`, `utc_offset_seconds`
+- WS `/metrics` incluye los campos; Dashboard System card muestra "TIMEZONE"
+
+### Verificación backend
+- `UTC: UTC+0 UTC` — timezone detectado correctamente
+- `eth0: is_internet_gateway=True, subnet=172.29.160.0/20` — red detectada correctamente
+
+### Archivos modificados
+- `frontend/src/composables/useChartTheme.js` — NUEVO
+- `frontend/src/views/DashboardView.vue`
+- `frontend/src/views/NetworkView.vue`
+- `frontend/src/views/AdminUsersView.vue`
+- `frontend/src/views/HistoryView.vue`
+- `backend/services/system_service.py`
+- `backend/schemas/system.py`
+- `backend/services/network_service.py`
+- `backend/schemas/network.py`
+- `backend/routers/ws.py`
+
+---
+
+## 2026-04-06
+
+### Tareas Completadas
+- Consolidación de bitácoras: combinadas en un único archivo `/docs/bitacora.md`
+- Actualización de CLAUDE.md: agregadas notas de desarrollo sobre documentación, frontend, backend y performance
+
+**Nota importante:** Cualquier nueva característica, bug fix importante o cambio significativo debe ser documentado en esta bitácora con descripción del cambio, archivos modificados y consideraciones importantes.

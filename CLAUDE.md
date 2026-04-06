@@ -170,3 +170,17 @@ All config via `.env` file (see `.env.example`). Key variables:
 - **Rate limiting**: login endpoint is limited to 10 requests/minute via slowapi.
 - **Background scheduler**: `backend/scheduler.py` runs via FastAPI lifespan. All periodic tasks go here. See `serverdash-performance` skill for the required pattern.
 - **LOG_RETENTION_DAYS**: execution logs older than this (default 30) are deleted nightly at 2 AM. Configurable via `.env`.
+
+## Development Notes
+
+### Documentation & Logging
+- **Always document significant changes**: Each feature, bugfix, or major change must be logged in `/docs/bitacora.md` under the current date. Include: description, files modified, bugs fixed, and important notes.
+
+### Frontend & Chart.js
+- **WebSocket proxy in Vite**: Add `ws: true` to vite.config.js proxy config to forward WebSocket connections correctly in dev mode.
+- **Chart.js in Vue**: Update charts with `chart.update('none')` instead of reactive properties to avoid unnecessary re-renders. Use `watchEffect` for theme changes.
+- **PrimeVue 4 breaking changes**: Card component uses `#content` slot (not `#header` or default). DataTable styling requires deep CSS overrides on cells.
+
+### Backend & Performance
+- **Async blocking calls**: Sync calls (psutil, subprocess) in FastAPI handlers must be wrapped with `await run_in_threadpool(...)` to prevent event loop blocking.
+- **Network data without root**: Parse `/proc/net/{tcp,tcp6,udp,udp6}` directly for connection data instead of `psutil.net_connections()`, which fails silently without sudo.
