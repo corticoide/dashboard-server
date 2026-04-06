@@ -12,6 +12,11 @@ class Settings(BaseSettings):
     log_retention_days: int = 30
     metrics_retention_days: int = 30
     network_retention_days: int = 30
+    smtp_host: str = ""
+    smtp_port: int = 587
+    smtp_user: str = ""
+    smtp_password: str = ""
+    smtp_from: str = ""
 
     class Config:
         env_file = ".env"

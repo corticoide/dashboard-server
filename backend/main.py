@@ -19,6 +19,7 @@ from backend.routers.metrics_history import router as metrics_history_router
 from backend.routers.admin import router as admin_router
 from backend.routers.network import router as network_router
 from backend.routers.ws import router as ws_router
+from backend.routers.pipelines import router as pipelines_router
 from backend.config import settings
 from backend.database import engine, Base
 from backend.core.logging import init_logging
@@ -77,6 +78,7 @@ app.include_router(metrics_history_router)
 app.include_router(admin_router)
 app.include_router(network_router)
 app.include_router(ws_router)
+app.include_router(pipelines_router)
 
 # Serve Vue SPA (built files)
 static_dir = os.path.join(os.path.dirname(__file__), "static")

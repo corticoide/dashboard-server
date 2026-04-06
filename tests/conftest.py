@@ -64,10 +64,13 @@ def test_app():
     # (e.g. scripts_service._flush_to_db, launch_execution) use the same
     # in-memory engine as the test client.
     import backend.services.scripts_service as _scripts_svc
+    import backend.routers.pipelines as _pipelines_router
     original_session_local = _db_module.SessionLocal
     original_scripts_svc_session = _scripts_svc.SessionLocal
+    original_pipelines_router_session = _pipelines_router.SessionLocal
     _db_module.SessionLocal = TestingSession
     _scripts_svc.SessionLocal = TestingSession
+    _pipelines_router.SessionLocal = TestingSession
 
     def override_get_db():
         db = TestingSession()
@@ -89,4 +92,5 @@ def test_app():
     app.dependency_overrides.clear()
     _db_module.SessionLocal = original_session_local
     _scripts_svc.SessionLocal = original_scripts_svc_session
+    _pipelines_router.SessionLocal = original_pipelines_router_session
     Base.metadata.drop_all(engine)
