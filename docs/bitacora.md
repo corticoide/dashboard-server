@@ -553,3 +553,49 @@ Feature diseñada y especificada en sesión de brainstorming. Se agrega como pr�
 **Artefactos generados:**
 - Spec: `docs/superpowers/specs/2026-04-06-pipelines-design.md`
 - Plan: `docs/superpowers/plans/2026-04-06-pipelines.md` ✓
+
+---
+
+## 2026-04-06 — Sistema de Pipelines Programables (IMPLEMENTADO ✓)
+
+### Feature: Pipeline System (feat/pipeline-system)
+
+Implementación completa del sistema de pipelines programables.
+
+**Archivos creados:**
+- `backend/models/pipeline.py` — ORM: Pipeline, PipelineStep, PipelineRun, PipelineStepRun + indexes
+- `backend/schemas/pipeline.py` — Pydantic schemas (PipelineIn/Out, PipelineDetailOut, PipelineRunDetailOut)
+- `backend/services/pipeline_modules.py` — 13 módulos nativos + MODULE_REGISTRY (call_pipeline en pipeline_service)
+- `backend/services/pipeline_service.py` — Motor de ejecución: interpolate, _should_run, run_pipeline
+- `backend/routers/pipelines.py` — API REST completa + ThreadPoolExecutor para ejecución manual
+- `backend/scripts/pipeline_runner.py` — CLI entry point para crontab
+- `frontend/src/views/PipelinesView.vue` — Vista 3 paneles: lista, editor de steps, mini-flujo + historial
+- `frontend/src/components/pipelines/StepConfigEditor.vue` — Editor adaptativo por tipo de step/módulo
+- `tests/test_pipeline_modules.py` — 14 tests unitarios de módulos
+- `tests/test_pipeline_service.py` — 36 tests del motor de ejecución
+- `tests/test_pipelines_api.py` — 6 tests de integración de la API
+
+**Archivos modificados:**
+- `backend/main.py` — import pipeline models + register pipelines_router
+- `backend/config.py` — campos SMTP opcionales (smtp_host, smtp_port, smtp_user, smtp_password, smtp_from)
+- `backend/scripts/add_indexes.py` — 4 índices de pipeline
+- `tests/conftest.py` — patch SessionLocal para backend.routers.pipelines
+- `frontend/src/router/index.js` — ruta /pipelines (lazy import)
+- `frontend/src/components/layout/AppSidebar.vue` — entrada "Pipelines" con pi-sitemap entre Scripts y Crontab
+- `frontend/src/views/CrontabView.vue` — Tab "PIPELINE ⚡" en Step 2 del wizard
+
+**Decisiones técnicas:**
+- on_success/on_failure semántica: "si YO termino con éxito/fallo, el próximo step corre/salta". Implementado en _should_run usando el estado del paso anterior.
+- call_pipeline manejado en pipeline_service (no en MODULE_REGISTRY) para evitar import circular.
+- ThreadPoolExecutor (4 workers) para ejecución manual desde la API — mismo patrón que scripts.
+- Ruta POST /api/pipelines usa "" no "/" para evitar trailing slash 405 con FastAPI.
+- No hay scheduler interno: Crontab es la única fuente de scheduling.
+- Pipeline tab en CrontabView genera: `python -m backend.scripts.pipeline_runner --pipeline-id N`
+
+**Tests:** 155+ pasando, 0 fallas en backend.
+
+---
+
+### Roadmap actualizado (2026-04-06)
+
+**Sistema de Pipelines Programables** — IMPLEMENTADO ✓
