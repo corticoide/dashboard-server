@@ -9,8 +9,10 @@ const routes = [
   { path: '/scripts',  component: () => import('../views/ScriptsView.vue'),   meta: { requiresAuth: true,  title: 'Scripts',   resource: 'scripts' } },
   { path: '/crontab',  component: () => import('../views/CrontabView.vue'),   meta: { requiresAuth: true,  title: 'Crontab',   resource: 'crontab' } },
   { path: '/logs',     component: () => import('../views/LogsView.vue'),      meta: { requiresAuth: true,  title: 'Logs',      resource: 'logs' } },
-  { path: '/network',    component: () => import('../views/NetworkView.vue'),    meta: { requiresAuth: true,  title: 'Network',  resource: 'network' } },
+  { path: '/network',  component: () => import('../views/NetworkView.vue'),  meta: { requiresAuth: true, title: 'Network', resource: 'network' } },
+  { path: '/history', component: () => import('../views/HistoryView.vue'),  meta: { requiresAuth: true, title: 'History', resource: 'system'  } },
   { path: '/admin/users', component: () => import('../views/AdminUsersView.vue'), meta: { requiresAuth: true, title: 'Users', adminOnly: true } },
+  { path: '/pipelines', component: () => import('../views/PipelinesView.vue'), meta: { requiresAuth: true, title: 'Pipelines', resource: 'scripts' } },
   { path: '/:pathMatch(.*)*', redirect: '/' },
 ]
 

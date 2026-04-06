@@ -69,15 +69,17 @@ const monitorItems = computed(() => {
     { to: '/', icon: 'pi-th-large', label: 'Dashboard', resource: 'system' },
     { to: '/services', icon: 'pi-cog', label: 'Services', resource: 'services' },
     { to: '/files', icon: 'pi-folder-open', label: 'Files', resource: 'files' },
-    { to: '/network', icon: 'pi-chart-line', label: 'Network', resource: 'network' },
+    { to: '/network', icon: 'pi-wifi',      label: 'Network', resource: 'network' },
+    { to: '/history', icon: 'pi-chart-bar', label: 'History', resource: 'system'  },
   ]
   return items.filter(i => auth.hasPermission(i.resource, 'read'))
 })
 
 const manageItems = computed(() => {
   const items = [
-    { to: '/scripts', icon: 'pi-code', label: 'Scripts', resource: 'scripts' },
-    { to: '/crontab', icon: 'pi-clock', label: 'Crontab', resource: 'crontab' },
+    { to: '/scripts',   icon: 'pi-code',    label: 'Scripts',   resource: 'scripts' },
+    { to: '/pipelines', icon: 'pi-sitemap', label: 'Pipelines', resource: 'scripts' },
+    { to: '/crontab',   icon: 'pi-clock',   label: 'Crontab',   resource: 'crontab' },
     { to: '/logs', icon: 'pi-list', label: 'Logs', resource: 'logs' },
   ]
   return items.filter(i => auth.hasPermission(i.resource, 'read'))
