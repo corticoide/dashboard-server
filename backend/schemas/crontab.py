@@ -14,6 +14,7 @@ class CrontabEntry(BaseModel):
     is_special: bool = False
     special: Optional[str] = None   # @reboot, @daily, etc.
     raw: str = ''
+    enabled: bool = True
 
 
 class CrontabEntryCreate(BaseModel):

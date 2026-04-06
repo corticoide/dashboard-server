@@ -61,6 +61,40 @@ def _parse_raw_with_envvars(text: str) -> Tuple[List[CrontabEntry], List[str]]:
             pending_comment = None
             continue
 
+        if stripped.startswith("#PAUSED:"):
+            rest = stripped[len("#PAUSED:"):]
+            if rest.startswith("@"):
+                parts = rest.split(None, 1)
+                special = parts[0].lower()
+                if special in SPECIAL_STRINGS:
+                    entries.append(CrontabEntry(
+                        id=logical_idx,
+                        minute="", hour="", dom="", month="", dow="",
+                        command=parts[1] if len(parts) > 1 else "",
+                        comment=pending_comment,
+                        is_special=True,
+                        special=parts[0],
+                        raw=line,
+                        enabled=False,
+                    ))
+                    logical_idx += 1
+            else:
+                m = _CRON_RE.match(rest)
+                if m:
+                    entries.append(CrontabEntry(
+                        id=logical_idx,
+                        minute=m.group(1), hour=m.group(2), dom=m.group(3),
+                        month=m.group(4), dow=m.group(5), command=m.group(6),
+                        comment=pending_comment,
+                        is_special=False,
+                        special=None,
+                        raw=line,
+                        enabled=False,
+                    ))
+                    logical_idx += 1
+            pending_comment = None
+            continue
+
         if stripped.startswith("#"):
             if stripped.startswith("# DO NOT EDIT") or stripped.startswith("# ("):
                 continue
@@ -127,10 +161,11 @@ def _entries_and_envs_to_text(entries: List[CrontabEntry], envvar_lines: List[st
     for e in entries:
         if e.comment:
             lines.append(f"# {e.comment}")
+        prefix = "" if e.enabled else "#PAUSED:"
         if e.is_special and e.special:
-            lines.append(f"{e.special} {e.command}")
+            lines.append(f"{prefix}{e.special} {e.command}")
         else:
-            lines.append(f"{e.minute} {e.hour} {e.dom} {e.month} {e.dow} {e.command}")
+            lines.append(f"{prefix}{e.minute} {e.hour} {e.dom} {e.month} {e.dow} {e.command}")
     lines.append("")
     return "\n".join(lines)
 
@@ -253,6 +288,18 @@ def delete_entry(entry_id: int) -> List[CrontabEntry]:
     entries = [e for e in entries if e.id != entry_id]
     if len(entries) == before:
         raise ValueError(f"Entry {entry_id} not found")
+    _save(entries, envvar_lines)
+    entries_out, _ = _parse_raw_with_envvars(_load_raw())
+    return _strip_wrapper_from_entries(entries_out)
+
+
+def toggle_entry(entry_id: int) -> List[CrontabEntry]:
+    raw = _load_raw()
+    entries, envvar_lines = _parse_raw_with_envvars(raw)
+    idx = next((i for i, e in enumerate(entries) if e.id == entry_id), None)
+    if idx is None:
+        raise ValueError(f"Entry {entry_id} not found")
+    entries[idx].enabled = not entries[idx].enabled
     _save(entries, envvar_lines)
     entries_out, _ = _parse_raw_with_envvars(_load_raw())
     return _strip_wrapper_from_entries(entries_out)

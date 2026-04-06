@@ -510,4 +510,22 @@
 - Consolidación de bitácoras: combinadas en un único archivo `/docs/bitacora.md`
 - Actualización de CLAUDE.md: agregadas notas de desarrollo sobre documentación, frontend, backend y performance
 
+### Feature: Pause/Resume de entradas crontab
+
+**Descripción:** Permite pausar y reanudar entradas de crontab individualmente sin eliminarlas. El estado pausado se almacena directamente en el archivo crontab con un marcador `#PAUSED:` (sin espacio después de `#`, para distinguirlo de comentarios normales `# descripción`).
+
+**Mecanismo:**
+- Entrada activa: `0 * * * * /usr/bin/backup.sh`
+- Entrada pausada: `#PAUSED:0 * * * * /usr/bin/backup.sh`
+- El cron daemon ignora líneas con `#`, por lo que la entrada queda efectivamente deshabilitada
+- El estado es completamente autónomo en el crontab (sin cambios de BD)
+
+**Archivos modificados:**
+- `backend/schemas/crontab.py` — campo `enabled: bool = True` en `CrontabEntry`
+- `backend/services/crontab_service.py` — parser detecta `#PAUSED:` como entries con `enabled=False`; serializer emite `#PAUSED:` prefix cuando `enabled=False`; nueva función `toggle_entry(entry_id)`
+- `backend/routers/crontab.py` — endpoint `PATCH /api/crontab/{id}/toggle` (requiere admin, retorna lista completa, audit log)
+- `frontend/src/views/CrontabView.vue` — pills de filtro ALL/ACTIVE/PAUSED; botón pause/play por fila; filas pausadas con opacity 0.45 y expression tachada
+
+**Sin cambios de BD, sin scheduler, sin índices nuevos.**
+
 **Nota importante:** Cualquier nueva característica, bug fix importante o cambio significativo debe ser documentado en esta bitácora con descripción del cambio, archivos modificados y consideraciones importantes.

@@ -14,12 +14,18 @@
             <Button icon="pi pi-refresh" text rounded size="small" :loading="loading"
               v-tooltip.right="'Refresh'" @click="loadEntries" />
           </div>
+          <div class="filter-pills">
+            <button class="filter-pill" :class="{ active: filterMode === 'all' }" @click="filterMode = 'all'">ALL</button>
+            <button class="filter-pill filter-pill--active" :class="{ active: filterMode === 'active' }" @click="filterMode = 'active'">ACTIVE</button>
+            <button class="filter-pill filter-pill--paused" :class="{ active: filterMode === 'paused' }" @click="filterMode = 'paused'">PAUSED</button>
+          </div>
           <div class="table-wrap">
             <DataTable
-              :value="entries" :loading="loading"
+              :value="filteredEntries" :loading="loading"
               selectionMode="single" v-model:selection="editingEntry"
               dataKey="id" size="small" scrollable scrollHeight="flex"
               class="entries-table" @row-select="onRowSelect"
+              :rowClass="(data) => !data.enabled ? 'entry--paused' : ''"
             >
               <template #empty>
                 <div class="empty-state">
@@ -56,10 +62,19 @@
                   >{{ data.command }}</span>
                 </template>
               </Column>
-              <Column header="" style="width: 40px">
+              <Column header="" style="width: 80px">
                 <template #body="{ data }">
-                  <Button v-if="isAdmin" icon="pi pi-trash" text rounded size="small"
-                    severity="danger" v-tooltip.left="'Delete'" @click.stop="confirmDeleteEntry(data)" />
+                  <span v-if="isAdmin" class="row-actions">
+                    <Button
+                      :icon="data.enabled ? 'pi pi-pause' : 'pi pi-play'"
+                      text rounded size="small"
+                      :severity="data.enabled ? 'warn' : 'success'"
+                      :v-tooltip.left="data.enabled ? 'Pause' : 'Resume'"
+                      @click.stop="toggleEntry(data)"
+                    />
+                    <Button icon="pi pi-trash" text rounded size="small"
+                      severity="danger" v-tooltip.left="'Delete'" @click.stop="confirmDeleteEntry(data)" />
+                  </span>
                 </template>
               </Column>
             </DataTable>
@@ -381,6 +396,12 @@ const step = ref(1)
 const showManual = ref(false)
 
 const entries = ref([])
+const filterMode = ref('all')
+const filteredEntries = computed(() => {
+  if (filterMode.value === 'active') return entries.value.filter(e => e.enabled)
+  if (filterMode.value === 'paused') return entries.value.filter(e => !e.enabled)
+  return entries.value
+})
 const loading = ref(false)
 const saving = ref(false)
 const saveError = ref('')
@@ -672,6 +693,22 @@ async function saveEntry() {
     saveError.value = e.response?.data?.detail || 'Save failed'
   } finally {
     saving.value = false
+  }
+}
+
+async function toggleEntry(entry) {
+  try {
+    const { data } = await api.patch(`/crontab/${entry.id}/toggle`)
+    entries.value = data
+    const updated = data.find(e => e.id === entry.id)
+    toast.add({
+      severity: updated?.enabled ? 'success' : 'warn',
+      summary: updated?.enabled ? 'Resumed' : 'Paused',
+      detail: `Entry "${entryExpr(entry)}" ${updated?.enabled ? 'resumed' : 'paused'}.`,
+      life: 3000,
+    })
+  } catch (e) {
+    toast.add({ severity: 'error', summary: 'Toggle failed', detail: e.response?.data?.detail || 'Failed', life: 5000 })
   }
 }
 
@@ -1197,4 +1234,37 @@ onMounted(() => {
   color: var(--p-text-color) !important;
   opacity: 0.85;
 }
+
+/* ── Filter pills ────────────────────────────── */
+.filter-pills {
+  display: flex;
+  gap: 4px;
+  padding: 6px 10px;
+  border-bottom: 1px solid var(--p-surface-border);
+  flex-shrink: 0;
+}
+.filter-pill {
+  font-family: var(--font-mono);
+  font-size: var(--text-2xs);
+  letter-spacing: 1.5px;
+  font-weight: 600;
+  padding: 3px 10px;
+  border-radius: 20px;
+  border: 1px solid var(--p-surface-border);
+  background: transparent;
+  color: var(--p-text-muted-color);
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+}
+.filter-pill:hover { background: var(--p-surface-hover); color: var(--p-text-color); }
+.filter-pill.active { background: color-mix(in srgb, var(--p-text-muted-color) 15%, transparent); color: var(--p-text-color); border-color: var(--p-text-muted-color); }
+.filter-pill--active.active { background: color-mix(in srgb, var(--p-green-500) 15%, transparent); color: var(--p-green-500); border-color: var(--p-green-500); }
+.filter-pill--paused.active { background: color-mix(in srgb, var(--p-yellow-500) 15%, transparent); color: var(--p-yellow-500); border-color: var(--p-yellow-500); }
+
+/* ── Paused row ──────────────────────────────── */
+:deep(.entry--paused td) { opacity: 0.45; }
+:deep(.entry--paused .cron-expr) { text-decoration: line-through; }
+
+/* ── Row actions ─────────────────────────────── */
+.row-actions { display: flex; align-items: center; gap: 2px; }
 </style>

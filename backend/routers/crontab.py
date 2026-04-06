@@ -6,7 +6,7 @@ from backend.dependencies import get_current_user, require_role
 from backend.models.user import UserRole
 from backend.schemas.crontab import CrontabEntry, CrontabEntryCreate
 from backend.services.crontab_service import (
-    list_entries, add_entry, update_entry, delete_entry, validate_field,
+    list_entries, add_entry, update_entry, delete_entry, validate_field, toggle_entry,
 )
 
 router = APIRouter(prefix="/api/crontab", tags=["crontab"])
@@ -68,6 +68,19 @@ def remove_entry(entry_id: int, user=Depends(require_role(UserRole.admin))):
     try:
         result = delete_entry(entry_id)
         get_audit_logger().info("crontab_delete user=%s entry_id=%s", user.username, entry_id)
+        return result
+    except ValueError as e:
+        raise HTTPException(404, detail=str(e))
+    except RuntimeError as e:
+        raise HTTPException(500, detail=str(e))
+
+
+@router.patch("/{entry_id}/toggle", response_model=List[CrontabEntry])
+def toggle_entry_endpoint(entry_id: int, user=Depends(require_role(UserRole.admin))):
+    try:
+        result = toggle_entry(entry_id)
+        enabled = next((e.enabled for e in result if e.id == entry_id), None)
+        get_audit_logger().info("crontab_toggle user=%s entry_id=%s enabled=%s", user.username, entry_id, enabled)
         return result
     except ValueError as e:
         raise HTTPException(404, detail=str(e))
