@@ -259,34 +259,70 @@
             <!-- ── Step 2: COMMAND ────────────────────────────────────────── -->
             <div v-show="step === 2" class="step-panel">
 
-              <!-- Favorites (horizontal scrollable cards) -->
-              <template v-if="scriptsStore.favorites.filter(f => f.exists).length">
-                <div class="section-label">FROM FAVORITES — click to use</div>
-                <div class="fav-scroll mb-4">
-                  <button
-                    v-for="fav in scriptsStore.favorites.filter(f => f.exists)"
-                    :key="fav.id"
-                    class="fav-card"
-                    :class="{ active: form.command === buildCommand(fav) }"
-                    v-tooltip.top="fav.path"
-                    @click="form.command = buildCommand(fav)"
-                  >
-                    <code class="fav-card-runner">{{ runnerLabel(fav.path) }}</code>
-                    <i class="pi pi-code fav-card-icon" />
-                    <span class="fav-card-name">{{ fileName(fav.path) }}</span>
-                  </button>
-                </div>
+              <!-- Tab selector -->
+              <div class="cmd-tabs">
+                <button class="cmd-tab" :class="{ active: formTab === 'command' }" @click="formTab = 'command'">
+                  COMANDO
+                </button>
+                <button class="cmd-tab cmd-tab--pipeline" :class="{ active: formTab === 'pipeline' }" @click="formTab = 'pipeline'">
+                  ⚡ PIPELINE
+                </button>
+              </div>
+
+              <!-- Tab: Command (existing UI) -->
+              <template v-if="formTab === 'command'">
+                <!-- Favorites (horizontal scrollable cards) -->
+                <template v-if="scriptsStore.favorites.filter(f => f.exists).length">
+                  <div class="section-label">FROM FAVORITES — click to use</div>
+                  <div class="fav-scroll mb-4">
+                    <button
+                      v-for="fav in scriptsStore.favorites.filter(f => f.exists)"
+                      :key="fav.id"
+                      class="fav-card"
+                      :class="{ active: form.command === buildCommand(fav) }"
+                      v-tooltip.top="fav.path"
+                      @click="form.command = buildCommand(fav)"
+                    >
+                      <code class="fav-card-runner">{{ runnerLabel(fav.path) }}</code>
+                      <i class="pi pi-code fav-card-icon" />
+                      <span class="fav-card-name">{{ fileName(fav.path) }}</span>
+                    </button>
+                  </div>
+                </template>
+
+                <!-- Command input -->
+                <div class="section-label">COMMAND</div>
+                <InputGroup class="mb-2">
+                  <InputGroupAddon><i class="pi pi-terminal" /></InputGroupAddon>
+                  <InputText v-model="form.command" placeholder="/path/to/script.sh or shell command" />
+                  <Button v-if="form.command" icon="pi pi-times" severity="secondary"
+                    v-tooltip.top="'Clear'" @click="form.command = ''" />
+                </InputGroup>
+                <span class="input-hint">Full path or shell command that cron will execute</span>
               </template>
 
-              <!-- Command input -->
-              <div class="section-label">COMMAND</div>
-              <InputGroup class="mb-2">
-                <InputGroupAddon><i class="pi pi-terminal" /></InputGroupAddon>
-                <InputText v-model="form.command" placeholder="/path/to/script.sh or shell command" />
-                <Button v-if="form.command" icon="pi pi-times" severity="secondary"
-                  v-tooltip.top="'Clear'" @click="form.command = ''" />
-              </InputGroup>
-              <span class="input-hint">Full path or shell command that cron will execute</span>
+              <!-- Tab: Pipeline -->
+              <div v-if="formTab === 'pipeline'" class="pipeline-tab">
+                <div class="section-label">SELECCIONÁ UN PIPELINE</div>
+                <div class="pipeline-select-list">
+                  <div
+                    v-for="p in availablePipelines" :key="p.id"
+                    class="pipeline-select-card"
+                    :class="{ active: selectedPipelineId === p.id }"
+                    @click="selectedPipelineId = p.id"
+                  >
+                    <span class="pipeline-select-name">⚡ {{ p.name }}</span>
+                    <span class="pipeline-select-steps">{{ p.step_count }} pasos</span>
+                  </div>
+                  <div v-if="!availablePipelines.length" class="pipeline-select-empty">
+                    No hay pipelines. Creá uno en la sección Pipelines.
+                  </div>
+                </div>
+                <div v-if="pipelineCommand" class="pipeline-cmd-preview">
+                  <span class="pipeline-cmd-label">COMANDO GENERADO</span>
+                  <code class="pipeline-cmd-code">{{ pipelineCommand }}</code>
+                </div>
+              </div>
 
             </div>
 
@@ -409,6 +445,22 @@ const editing = ref(null)
 const editingEntry = ref(null)
 const form = ref(null)
 const formMode = ref('regular')
+
+// Pipelines para la tab de integración
+const availablePipelines = ref([])
+const formTab = ref('command')  // 'command' | 'pipeline'
+const selectedPipelineId = ref(null)
+
+const pipelineCommand = computed(() => {
+  if (!selectedPipelineId.value) return ''
+  return `python -m backend.scripts.pipeline_runner --pipeline-id ${selectedPipelineId.value}`
+})
+
+watch(pipelineCommand, (cmd) => {
+  if (formTab.value === 'pipeline' && cmd) {
+    form.value.command = cmd
+  }
+})
 
 const modeOptions = [
   { label: 'Regular schedule', value: 'regular' },
@@ -613,6 +665,13 @@ function buildCommand(fav) {
   return runner ? `${runner} ${fav.path}` : fav.path
 }
 
+async function loadPipelinesList() {
+  try {
+    const { data } = await api.get('/pipelines/')
+    availablePipelines.value = data
+  } catch { /* silencioso */ }
+}
+
 // ── CRUD ──────────────────────────────────────────────────────────────────────
 
 async function loadEntries() {
@@ -737,6 +796,7 @@ async function doDelete(entry) {
 onMounted(() => {
   loadEntries()
   scriptsStore.loadFavorites()
+  loadPipelinesList()
 })
 </script>
 
@@ -1267,4 +1327,24 @@ onMounted(() => {
 
 /* ── Row actions ─────────────────────────────── */
 .row-actions { display: flex; align-items: center; gap: 2px; }
+
+/* ── Command/Pipeline tabs ───────────────────────── */
+.cmd-tabs { display: flex; gap: 0; margin-bottom: 12px; border-bottom: 1px solid var(--p-surface-border); }
+.cmd-tab { padding: 6px 14px; font-family: var(--font-mono); font-size: var(--text-2xs); letter-spacing: 1px; background: none; border: none; border-bottom: 2px solid transparent; color: var(--p-text-muted-color); cursor: pointer; transition: color 0.15s, border-color 0.15s; }
+.cmd-tab:hover { color: var(--p-text-color); }
+.cmd-tab.active { color: var(--brand-orange); border-bottom-color: var(--brand-orange); }
+.cmd-tab--pipeline.active { color: var(--p-green-400); border-bottom-color: var(--p-green-400); }
+
+/* ── Pipeline tab ────────────────────────────────── */
+.pipeline-tab { display: flex; flex-direction: column; gap: 10px; }
+.pipeline-select-list { display: flex; flex-direction: column; gap: 4px; max-height: 200px; overflow-y: auto; }
+.pipeline-select-card { display: flex; align-items: center; justify-content: space-between; padding: 8px 12px; background: var(--p-surface-ground); border: 1px solid var(--p-surface-border); border-radius: 6px; cursor: pointer; transition: border-color 0.15s; }
+.pipeline-select-card:hover { border-color: var(--p-text-muted-color); }
+.pipeline-select-card.active { border-color: var(--p-green-400); background: color-mix(in srgb, var(--p-green-400) 8%, transparent); }
+.pipeline-select-name { font-family: var(--font-mono); font-size: var(--text-xs); color: var(--p-text-color); }
+.pipeline-select-steps { font-family: var(--font-mono); font-size: 9px; color: var(--p-text-muted-color); }
+.pipeline-select-empty { font-family: var(--font-mono); font-size: var(--text-xs); color: var(--p-text-muted-color); padding: 12px; text-align: center; }
+.pipeline-cmd-preview { background: var(--p-surface-ground); border: 1px solid var(--p-surface-border); border-radius: 6px; padding: 8px 12px; }
+.pipeline-cmd-label { font-family: var(--font-mono); font-size: var(--text-2xs); letter-spacing: 1px; color: var(--p-text-muted-color); display: block; margin-bottom: 4px; }
+.pipeline-cmd-code { font-family: var(--font-mono); font-size: var(--text-xs); color: var(--p-cyan-400); }
 </style>
