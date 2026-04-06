@@ -667,7 +667,7 @@ function buildCommand(fav) {
 
 async function loadPipelinesList() {
   try {
-    const { data } = await api.get('/pipelines/')
+    const { data } = await api.get('/pipelines')
     availablePipelines.value = data
   } catch { /* silencioso */ }
 }

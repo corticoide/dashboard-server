@@ -235,7 +235,7 @@ function emptyStep() {
 async function loadPipelines() {
   loading.value = true
   try {
-    const { data } = await api.get('/pipelines/')
+    const { data } = await api.get('/pipelines')
     pipelines.value = data
   } catch (e) {
     toast.add({ severity: 'error', summary: 'Error', detail: 'No se pudieron cargar los pipelines', life: 4000 })
@@ -296,7 +296,7 @@ async function savePipeline() {
       })),
     }
     if (editingNew.value) {
-      const { data } = await api.post('/pipelines/', body)
+      const { data } = await api.post('/pipelines', body)
       await loadPipelines()
       await selectPipeline(data)
       editingNew.value = false
