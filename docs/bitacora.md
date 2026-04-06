@@ -529,3 +529,27 @@
 **Sin cambios de BD, sin scheduler, sin índices nuevos.**
 
 **Nota importante:** Cualquier nueva característica, bug fix importante o cambio significativo debe ser documentado en esta bitácora con descripción del cambio, archivos modificados y consideraciones importantes.
+
+---
+
+## Roadmap actualizado (2026-04-06)
+
+### Agregado al roadmap: Sistema de Pipelines Programables
+
+Feature diseñada y especificada en sesión de brainstorming. Se agrega como próxima prioridad (antes de "Gestión de Usuarios con Permisos Dinámicos").
+
+**Descripción:** Sistema de automatización basado en pipelines — secuencias ordenadas de pasos con condiciones de continuación y contexto de variables compartido. Los pipelines se disparan manualmente desde el dashboard o se programan vía Crontab (que sigue siendo el centro de scheduling por tiempo).
+
+**Decisiones de diseño clave:**
+- Estado en BD (SQLite) — 4 tablas nuevas: `pipelines`, `pipeline_steps`, `pipeline_runs`, `pipeline_step_runs`
+- Ejecución vía `pipeline_runner.py` (mismo patrón que `cron_log.py`) — crontab lo llama como comando normal
+- Contexto de variables en memoria durante la run, con interpolación `{VARIABLE}` en configs de pasos
+- Condiciones por paso: `on_success` + `on_failure` (cada uno `"continue"` | `"stop"`)
+- 3 tipos de pasos: script favorito, comando shell, módulo nativo
+- 14 módulos nativos: `load_env`, `move_file`, `copy_file`, `delete_file`, `mkdir`, `write_file`, `rename_file`, `compress`, `decompress`, `check_exists`, `delay`, `log`, `email`, `call_pipeline`
+- UI híbrida: 3 paneles (lista pipelines | editor de steps | mini-flujo + historial)
+- Integración en CrontabView: nueva tab "PIPELINE" en Step 2
+
+**Artefactos generados:**
+- Spec: `docs/superpowers/specs/2026-04-06-pipelines-design.md`
+- Plan: `docs/superpowers/plans/2026-04-06-pipelines.md` ✓
