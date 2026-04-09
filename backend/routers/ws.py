@@ -37,9 +37,10 @@ async def ws_metrics(websocket: WebSocket, token: str = Query("")):
 
     await websocket.accept()
     logger.info("WS /metrics client connected")
+    from fastapi.concurrency import run_in_threadpool
     try:
         while True:
-            m = get_metrics()
+            m = await run_in_threadpool(get_metrics)
             await websocket.send_text(json.dumps({
                 "cpu_percent": m.cpu_percent,
                 "ram_percent": m.ram_percent,
@@ -54,6 +55,9 @@ async def ws_metrics(websocket: WebSocket, token: str = Query("")):
                 "hostname": m.hostname,
                 "cpu_count": m.cpu_count,
                 "cpu_arch": m.cpu_arch,
+                "utc_offset_seconds": m.utc_offset_seconds,
+                "utc_label": m.utc_label,
+                "timezone_name": m.timezone_name,
             }))
             await asyncio.sleep(1)
     except WebSocketDisconnect:
@@ -78,11 +82,12 @@ async def ws_network(websocket: WebSocket, token: str = Query("")):
 
     prev: dict[str, dict] = {}
     import time
+    from fastapi.concurrency import run_in_threadpool
 
     try:
         while True:
             now = time.monotonic()
-            ifaces = get_interfaces()
+            ifaces = await run_in_threadpool(get_interfaces)
 
             bps: dict[str, dict] = {}
             for iface in ifaces:

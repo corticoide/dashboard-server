@@ -3,6 +3,7 @@ data/
 certs/
 backend/static/
 frontend/node_modules/
+frontend/public/monaco-editor/
 __pycache__/
 *.pyc
 .pytest_cache/

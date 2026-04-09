@@ -16,3 +16,6 @@ class SystemMetrics(BaseModel):
     hostname: str
     cpu_count: int
     cpu_arch: str               # e.g. "x86_64"
+    utc_offset_seconds: int = 0
+    utc_label: str = "UTC+00:00"   # e.g. "UTC-03:00" or "UTC+05:30"
+    timezone_name: str = ""         # e.g. "ART", "EST", "UTC"

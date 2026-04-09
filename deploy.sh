@@ -156,10 +156,8 @@ fi
 [ "$NODE_OK" = false ] && install_nodejs
 
 # --- Frontend build ---
-if [ ! -f "backend/static/index.html" ]; then
-  echo "--> Building frontend..."
-  (cd frontend && npm install --silent && npm run build)
-fi
+echo "--> Building frontend..."
+(cd frontend && npm install --silent && npm run build)
 
 # --- Start server ---
 echo ""

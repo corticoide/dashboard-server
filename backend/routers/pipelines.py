@@ -1,6 +1,8 @@
 import json
+import sys
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime
+from pathlib import Path
 from typing import List
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
@@ -72,6 +74,24 @@ def create_pipeline(body: PipelineIn, db: Session = Depends(get_db), user=Depend
     return _build_pipeline_out(p, db)
 
 
+@router.post("/import", response_model=PipelineOut)
+def import_pipeline(body: PipelineIn, db: Session = Depends(get_db), user=Depends(require_role(UserRole.admin))):
+    name = body.name.strip() or "Pipeline importado"
+    if db.query(Pipeline).filter(Pipeline.name == name).first():
+        counter = 1
+        while db.query(Pipeline).filter(Pipeline.name == f"{name} ({counter})").first():
+            counter += 1
+        name = f"{name} ({counter})"
+    p = Pipeline(name=name, description=body.description)
+    db.add(p)
+    db.flush()
+    _save_steps(p.id, body.steps, db)
+    db.commit()
+    db.refresh(p)
+    get_audit_logger().info("pipeline_import user=%s name=%s", user.username, p.name)
+    return _build_pipeline_out(p, db)
+
+
 @router.get("/runs/{run_id}", response_model=PipelineRunDetailOut)
 def get_run_detail(run_id: int, db: Session = Depends(get_db), user=Depends(get_current_user)):
     run = db.query(PipelineRun).filter(PipelineRun.id == run_id).first()
@@ -101,6 +121,34 @@ def get_pipeline(pipeline_id: int, db: Session = Depends(get_db), user=Depends(g
         steps=[PipelineStepOut.from_orm_step(s) for s in steps],
         created_at=p.created_at, updated_at=p.updated_at,
     )
+
+
+@router.get("/{pipeline_id}/export")
+def export_pipeline(pipeline_id: int, db: Session = Depends(get_db), user=Depends(get_current_user)):
+    p = db.query(Pipeline).filter(Pipeline.id == pipeline_id).first()
+    if not p:
+        raise HTTPException(404, detail="Pipeline not found")
+    steps = (
+        db.query(PipelineStep)
+        .filter(PipelineStep.pipeline_id == pipeline_id)
+        .order_by(PipelineStep.order)
+        .all()
+    )
+    return {
+        "name": p.name,
+        "description": p.description or "",
+        "steps": [
+            {
+                "name": s.name,
+                "step_type": s.step_type,
+                "config": json.loads(s.config or "{}"),
+                "on_success": s.on_success,
+                "on_failure": s.on_failure,
+                "order": s.order,
+            }
+            for s in steps
+        ],
+    }
 
 
 @router.put("/{pipeline_id}", response_model=PipelineOut)
@@ -139,6 +187,17 @@ def delete_pipeline(pipeline_id: int, db: Session = Depends(get_db), user=Depend
     return {"ok": True}
 
 
+@router.get("/{pipeline_id}/cron-command")
+def get_cron_command(pipeline_id: int, db: Session = Depends(get_db), user=Depends(get_current_user)):
+    p = db.query(Pipeline).filter(Pipeline.id == pipeline_id).first()
+    if not p:
+        raise HTTPException(404, detail="Pipeline not found")
+    _project_root = Path(__file__).resolve().parent.parent.parent
+    _venv_python = _project_root / ".venv" / "bin" / "python3"
+    python_exe = str(_venv_python) if _venv_python.exists() else sys.executable
+    return {"command": f"{python_exe} -m backend.scripts.pipeline_runner --pipeline-id {pipeline_id}"}
+
+
 @router.post("/{pipeline_id}/run")
 def run_pipeline_endpoint(pipeline_id: int, db: Session = Depends(get_db), user=Depends(get_current_user)):
     if user.role == UserRole.readonly:
@@ -159,7 +218,7 @@ def run_pipeline_endpoint(pipeline_id: int, db: Session = Depends(get_db), user=
     def _background(pid, triggered_by, rid):
         _db = SessionLocal()
         try:
-            _run(pid, triggered_by, _db)
+            _run(pid, triggered_by, _db, existing_run_id=rid)
         except Exception:
             import logging
             logging.getLogger(__name__).exception("Pipeline run %s failed", rid)

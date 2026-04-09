@@ -54,6 +54,10 @@
             <span class="info-key">CPU CORES</span>
             <span class="info-val">{{ metrics.cpu_count ?? '—' }}</span>
           </div>
+          <div class="info-item">
+            <span class="info-key">TIMEZONE</span>
+            <span class="info-val">{{ metrics.utc_label || metrics.timezone_name || '—' }}</span>
+          </div>
         </div>
         <Divider class="section-divider" />
         <div class="load-row">
@@ -87,21 +91,36 @@
       </template>
     </Card>
 
-    <!-- Resource history card -->
+    <!-- Live ECG chart card -->
     <Card class="dash-card">
       <template #content>
         <div class="card-section-header">
-          <i class="pi pi-chart-line section-icon" />
-          <span class="section-title">RESOURCE HISTORY</span>
-          <Select v-model="historyHours" :options="historyHourOptions" class="hours-select" />
+          <i class="pi pi-wave-pulse section-icon" />
+          <span class="section-title">LIVE METRICS</span>
+          <span class="live-dot-wrapper"><span class="live-dot" />LIVE</span>
+          <div class="chart-controls">
+            <Select v-model="windowSize" :options="windowOptions" option-label="label" option-value="value"
+              class="window-select" size="small" />
+          </div>
         </div>
         <Divider class="section-divider" />
-        <div class="chart-container">
-          <Line v-if="cpuChartData.labels.length > 0" :data="cpuChartData" :options="chartOptions" />
-          <span v-else class="cell-empty">No history data yet — collecting starts automatically</span>
+        <div class="chart-container" :style="containerStyle">
+          <Chart type="line" :data="chartData" :options="chartOptions" :plugins="ecgPlugins" class="ecg-chart" />
+        </div>
+        <div class="ecg-legend">
+          <span class="ecg-legend-item" :class="{ 'legend-hidden': hiddenSeries.has('CPU %') }" style="--c:#f97316" @click="toggleSeries('CPU %', 0)">CPU</span>
+          <span class="ecg-legend-item" :class="{ 'legend-hidden': hiddenSeries.has('RAM %') }" style="--c:#3b82f6" @click="toggleSeries('RAM %', 1)">RAM</span>
+          <span class="ecg-legend-item" :class="{ 'legend-hidden': hiddenSeries.has('Disk %') }" style="--c:#10b981" @click="toggleSeries('Disk %', 2)">Disk</span>
         </div>
       </template>
     </Card>
+
+    <!-- History CTA -->
+    <RouterLink to="/history" class="history-cta">
+      <i class="pi pi-chart-bar history-cta-icon" />
+      <span class="history-cta-text">View Resource &amp; Bandwidth History</span>
+      <i class="pi pi-arrow-right history-cta-arrow" />
+    </RouterLink>
 
     <!-- Recent executions card -->
     <Card class="dash-card">
@@ -151,7 +170,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { RouterLink } from 'vue-router'
 import Message from 'primevue/message'
 import Card from 'primevue/card'
@@ -159,39 +178,130 @@ import Divider from 'primevue/divider'
 import Tag from 'primevue/tag'
 import Badge from 'primevue/badge'
 import Chip from 'primevue/chip'
+import Select from 'primevue/select'
 import DataTable from 'primevue/datatable'
 import Column from 'primevue/column'
-import Select from 'primevue/select'
-import { Line } from 'vue-chartjs'
-import { Chart as ChartJS, LineElement, PointElement, LinearScale, CategoryScale, Tooltip, Legend, Filler } from 'chart.js'
+import Chart from 'primevue/chart'
 import MetricCard from '../components/dashboard/MetricCard.vue'
 import { usePolling } from '../composables/usePolling.js'
+import { useChartTheme } from '../composables/useChartTheme.js'
 import api from '../api/client.js'
 
-ChartJS.register(LineElement, PointElement, LinearScale, CategoryScale, Tooltip, Legend, Filler)
+const { chartBg, containerStyle, buildScales, buildTooltip } = useChartTheme()
+
+// ── ECG live chart ─────────────────────────────────────────────────────────
+const LIVE_BUFFER = 120
+
+const windowSize = ref(60)
+const windowOptions = [
+  { label: '30s', value: 30 },
+  { label: '1m',  value: 60 },
+  { label: '2m',  value: 90 },
+  { label: 'MAX', value: 120 },
+]
+
+const hiddenSeries = ref(new Set())
+const live = { labels: [], cpu: [], ram: [], disk: [] }
+
+// Reactive chart data — PrimeVue Chart watches this ref
+const chartData = ref({
+  labels: [],
+  datasets: [
+    { label: 'CPU %',  data: [], borderColor: '#f97316', borderWidth: 2, tension: 0.3, pointRadius: 0, fill: false },
+    { label: 'RAM %',  data: [], borderColor: '#3b82f6', borderWidth: 2, tension: 0.3, pointRadius: 0, fill: false },
+    { label: 'Disk %', data: [], borderColor: '#10b981', borderWidth: 2, tension: 0.3, pointRadius: 0, fill: false },
+  ],
+})
+
+// Reactive options — PrimeVue Chart re-renders when this changes
+const chartOptions = computed(() => ({
+  responsive: true,
+  maintainAspectRatio: false,
+  animation: false,
+  plugins: {
+    legend: { display: false },
+    tooltip: buildTooltip((ctx) => ` ${ctx.dataset.label}: ${ctx.parsed.y.toFixed(1)}%`),
+  },
+  scales: buildScales({ yMin: 0, yMax: 100, yCallback: (v) => `${v}%` }),
+}))
+
+// ECG glow plugin — background uses reactive chartBg
+const ecgPlugins = [
+  {
+    id: 'ecgBg',
+    beforeDraw(chart) {
+      const ctx = chart.ctx
+      ctx.save()
+      ctx.fillStyle = chartBg.value
+      const { left, top, right, bottom } = chart.chartArea || {}
+      if (left != null) ctx.fillRect(left, top, right - left, bottom - top)
+      ctx.restore()
+    },
+  },
+  {
+    id: 'ecgGlow',
+    beforeDatasetsDraw(chart) { chart.ctx.save() },
+    beforeDatasetDraw(chart, { index }) {
+      const color = chart.data.datasets[index].borderColor
+      chart.ctx.shadowColor = color
+      chart.ctx.shadowBlur = 10
+    },
+    afterDatasetsDraw(chart) { chart.ctx.restore() },
+  },
+]
+
+function toggleSeries(label, idx) {
+  if (hiddenSeries.value.has(label)) {
+    hiddenSeries.value.delete(label)
+  } else {
+    hiddenSeries.value.add(label)
+  }
+  // Rebuild chart data with hidden series having empty data
+  updateChartData()
+}
+
+function updateChartData() {
+  const w = windowSize.value
+  const labels = live.labels.slice(-w)
+  const sources = [
+    { label: 'CPU %',  arr: live.cpu,  color: '#f97316' },
+    { label: 'RAM %',  arr: live.ram,  color: '#3b82f6' },
+    { label: 'Disk %', arr: live.disk, color: '#10b981' },
+  ]
+  chartData.value = {
+    labels,
+    datasets: sources.map(s => ({
+      label: s.label,
+      data: hiddenSeries.value.has(s.label) ? [] : s.arr.slice(-w),
+      borderColor: s.color,
+      borderWidth: 2,
+      tension: 0.3,
+      pointRadius: 0,
+      fill: false,
+      hidden: hiddenSeries.value.has(s.label),
+    })),
+  }
+}
+
+function pushLivePoint(d) {
+  const now = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })
+  live.labels.push(now)
+  live.cpu.push(+(d.cpu_percent ?? 0).toFixed(1))
+  live.ram.push(+(d.ram_percent ?? 0).toFixed(1))
+  live.disk.push(+(d.disk_percent ?? 0).toFixed(1))
+  if (live.labels.length > LIVE_BUFFER) {
+    live.labels.shift(); live.cpu.shift(); live.ram.shift(); live.disk.shift()
+  }
+  updateChartData()
+}
 
 const recentLogs = ref([])
 
 async function fetchRecentLogs() {
   try {
-    const { data } = await api.get('/logs/executions', { params: { } })
+    const { data } = await api.get('/logs/executions', { params: {} })
     recentLogs.value = data.slice(0, 5)
-  } catch {
-    // non-critical
-  }
-}
-
-const historyData = ref([])
-const historyHours = ref(24)
-const historyHourOptions = [1, 6, 12, 24, 48, 168]
-
-async function fetchHistory() {
-  try {
-    const { data } = await api.get('/metrics/history', { params: { hours: historyHours.value } })
-    historyData.value = data
-  } catch {
-    // non-critical
-  }
+  } catch { /* non-critical */ }
 }
 
 function formatLogDate(iso) {
@@ -204,63 +314,11 @@ const metrics = ref({
   cpu_percent: 0, ram_percent: 0, ram_used_gb: 0, ram_total_gb: 0,
   disk_percent: 0, disk_used_gb: 0, disk_total_gb: 0, uptime_seconds: 0,
   load_average: [0, 0, 0], os_name: '', hostname: '', cpu_count: 0, cpu_arch: '',
+  utc_offset_seconds: 0, utc_label: '', timezone_name: '',
 })
 const error = ref('')
 
-const cpuChartData = computed(() => ({
-  labels: historyData.value.map(p => {
-    const d = new Date(p.timestamp)
-    return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-  }),
-  datasets: [
-    {
-      label: 'CPU %',
-      data: historyData.value.map(p => p.cpu_percent),
-      borderColor: '#f97316',
-      backgroundColor: 'rgba(249, 115, 22, 0.1)',
-      fill: true,
-      tension: 0.3,
-      pointRadius: 0
-    },
-    {
-      label: 'RAM %',
-      data: historyData.value.map(p => p.ram_percent),
-      borderColor: '#3b82f6',
-      backgroundColor: 'rgba(59, 130, 246, 0.1)',
-      fill: true,
-      tension: 0.3,
-      pointRadius: 0
-    },
-    {
-      label: 'Disk %',
-      data: historyData.value.map(p => p.disk_percent),
-      borderColor: '#10b981',
-      backgroundColor: 'rgba(16, 185, 129, 0.1)',
-      fill: true,
-      tension: 0.3,
-      pointRadius: 0
-    },
-  ],
-}))
-
-const chartOptions = {
-  responsive: true,
-  maintainAspectRatio: false,
-  plugins: {
-    legend: { position: 'top' }
-  },
-  scales: {
-    y: {
-      min: 0,
-      max: 100,
-      ticks: {
-        callback: (v) => `${v}%`
-      }
-    }
-  }
-}
-
-// ── WebSocket for real-time metrics (push every 1s, no sleep on client) ──
+// ── WebSocket for real-time metrics ──
 let metricsWs = null
 
 function connectMetricsWs() {
@@ -270,8 +328,10 @@ function connectMetricsWs() {
 
   metricsWs.onmessage = (evt) => {
     try {
-      metrics.value = JSON.parse(evt.data)
+      const d = JSON.parse(evt.data)
+      metrics.value = d
       error.value = ''
+      pushLivePoint(d)
     } catch { /* ignore */ }
   }
   metricsWs.onerror = () => { error.value = 'Live metrics connection error — retrying...' }
@@ -289,21 +349,15 @@ function disconnectMetricsWs() {
 }
 
 const { start: startLogs, stop: stopLogs } = usePolling(fetchRecentLogs, 30000)
-const { start: startHistory, stop: stopHistory } = usePolling(fetchHistory, 60000)
-
-watch(historyHours, fetchHistory)
 
 onMounted(() => {
   connectMetricsWs()
   startLogs()
-  startHistory()
   fetchRecentLogs()
-  fetchHistory()
 })
 onUnmounted(() => {
   disconnectMetricsWs()
   stopLogs()
-  stopHistory()
 })
 
 const uptimeFormatted = computed(() => {
@@ -372,7 +426,7 @@ function loadBadgeClass(val) {
 /* ── Info grid ────────────────────────────────── */
 .info-grid {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
   gap: 12px;
 }
 @media (max-width: 700px) {
@@ -408,14 +462,92 @@ function loadBadgeClass(val) {
 :deep(.load-mid .p-badge)  { background: var(--p-yellow-500) !important; color: #000 !important; font-family: var(--font-mono); font-size: var(--text-xs) !important; font-weight: 600; }
 :deep(.load-high .p-badge) { background: var(--p-red-500) !important; color: #fff !important; font-family: var(--font-mono); font-size: var(--text-xs) !important; font-weight: 600; }
 
-/* ── Resource history chart ──────────────────── */
+/* ── Live ECG chart ───────────────────────────── */
 .chart-container {
   height: 300px;
   position: relative;
 }
-.hours-select {
-  width: 80px;
+.ecg-chart {
+  height: 100%;
+  width: 100%;
 }
+.live-dot-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-family: var(--font-mono);
+  font-size: var(--text-2xs);
+  letter-spacing: 1.5px;
+  color: #22c55e;
+}
+.live-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #22c55e;
+  box-shadow: 0 0 6px #22c55e;
+  animation: pulse-dot 1.4s ease-in-out infinite;
+}
+@keyframes pulse-dot {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.5; transform: scale(0.8); }
+}
+.ecg-legend {
+  display: flex;
+  gap: 16px;
+  margin-top: 8px;
+  padding-left: 2px;
+}
+.ecg-legend-item {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-family: var(--font-mono);
+  font-size: var(--text-2xs);
+  color: var(--p-text-muted-color);
+  letter-spacing: 1px;
+  cursor: pointer;
+  user-select: none;
+  transition: opacity 0.2s;
+}
+.ecg-legend-item:hover { opacity: 0.7; }
+.ecg-legend-item::before {
+  content: '';
+  display: inline-block;
+  width: 16px;
+  height: 2px;
+  background: var(--c);
+  box-shadow: 0 0 5px var(--c);
+  border-radius: 1px;
+}
+.legend-hidden { opacity: 0.25; }
+
+/* ── History CTA ──────────────────────────────── */
+.history-cta {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 16px;
+  border-radius: 8px;
+  border: 1px solid var(--p-surface-border);
+  background: var(--p-surface-card);
+  text-decoration: none;
+  color: var(--p-text-muted-color);
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  letter-spacing: 0.5px;
+  transition: border-color 0.15s, color 0.15s, background 0.15s;
+  cursor: pointer;
+}
+.history-cta:hover {
+  border-color: color-mix(in srgb, var(--brand-orange) 40%, transparent);
+  color: var(--brand-orange);
+  background: color-mix(in srgb, var(--brand-orange) 5%, transparent);
+}
+.history-cta-icon { font-size: 13px; flex-shrink: 0; }
+.history-cta-text { flex: 1; }
+.history-cta-arrow { font-size: 11px; flex-shrink: 0; transition: transform 0.15s; }
+.history-cta:hover .history-cta-arrow { transform: translateX(3px); }
 
 /* ── Recent executions table ──────────────────── */
 .view-all-link {
@@ -445,4 +577,9 @@ function loadBadgeClass(val) {
 .cell-mono  { font-family: var(--font-mono); }
 .cell-empty { font-size: var(--text-sm); color: var(--p-text-muted-color); }
 :deep(.cell-chip) { font-size: var(--text-xs) !important; }
+
+/* Window selector */
+.chart-controls { display: flex; align-items: center; gap: 8px; margin-left: auto; }
+:deep(.window-select) { font-family: var(--font-mono); font-size: var(--text-xs); }
+:deep(.window-select .p-select-label) { padding: 4px 8px; font-size: var(--text-xs); }
 </style>

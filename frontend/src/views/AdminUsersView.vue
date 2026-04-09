@@ -1,126 +1,168 @@
 <template>
-  <Card class="card">
-    <!-- Header -->
-    <template #header>
-      <div class="card-section-header">
-        <div class="section-icon">
-          <i class="pi pi-users" />
+  <div class="users-view">
+    <Card class="users-card">
+      <template #content>
+
+        <!-- Section header -->
+        <div class="card-section-header">
+          <i class="pi pi-users section-icon" />
+          <span class="section-title">USER MANAGEMENT</span>
         </div>
-        <div class="section-title">Manage Users</div>
-      </div>
-    </template>
+        <Divider class="section-divider" />
 
-    <!-- Toolbar -->
-    <div class="toolbar">
-      <Button label="+ Create User" icon="pi pi-plus" @click="showCreateDialog = true" />
-    </div>
+        <Toolbar class="users-toolbar">
+          <template #start>
+            <IconField>
+              <InputIcon class="pi pi-search" />
+              <InputText v-model="userFilter" placeholder="Filter users…" size="small" />
+            </IconField>
+          </template>
+          <template #end>
+            <Button label="New User" icon="pi pi-plus" size="small" @click="showCreateDialog = true" />
+          </template>
+        </Toolbar>
 
-    <!-- DataTable -->
-    <DataTable
-      :value="users"
-      :loading="loading"
-      responsive-layout="scroll"
-      class="p-datatable-striped"
-      paginator
-      :rows="10"
-      :row-options="{ selectable: false }"
-    >
-      <Column field="id" header="ID" :sortable="true" style="width: 60px" />
-      <Column field="username" header="Username" :sortable="true" />
-      <Column field="role" header="Role" :sortable="true">
-        <template #body="{ data }">
-          <Tag :value="data.role" :severity="getRoleSeverity(data.role)" />
-        </template>
-      </Column>
-      <Column header="Status">
-        <template #body="{ data }">
-          <Tag :value="data.is_active ? 'Active' : 'Inactive'" :severity="data.is_active ? 'success' : 'warning'" />
-        </template>
-      </Column>
-      <Column field="created_at" header="Created" :sortable="true">
-        <template #body="{ data }">
-          {{ formatDate(data.created_at) }}
-        </template>
-      </Column>
-      <Column header="Actions" style="width: 140px">
-        <template #body="{ data }">
-          <Button
-            icon="pi pi-pencil"
-            class="p-button-rounded p-button-text"
-            @click="editUser(data)"
-            v-tooltip="'Edit'"
-          />
-          <Button
-            icon="pi pi-trash"
-            class="p-button-rounded p-button-text p-button-danger"
-            @click="confirmDelete(data)"
-            :disabled="data.username === auth.username"
-            v-tooltip="data.username === auth.username ? 'Cannot delete yourself' : 'Delete'"
-          />
-        </template>
-      </Column>
-    </DataTable>
-  </Card>
+        <!-- Data table -->
+        <DataTable
+          :value="filteredUsers"
+          :loading="loading"
+          size="small"
+          :show-gridlines="false"
+          :paginator="users.length > 10"
+          :rows="10"
+          sort-field="id"
+          :sort-order="1"
+        >
+          <template #empty>
+            <span class="cell-empty">No users found</span>
+          </template>
 
-  <!-- Create Dialog -->
-  <Dialog v-model:visible="showCreateDialog" header="Create User" :modal="true" :style="{ width: '400px' }">
-    <div class="space-y-4">
-      <div>
-        <label class="block text-sm font-medium mb-1">Username</label>
-        <InputText v-model="createForm.username" class="w-full" placeholder="Enter username" />
-      </div>
-      <div>
-        <label class="block text-sm font-medium mb-1">Password</label>
-        <Password v-model="createForm.password" class="w-full" placeholder="Enter password" :feedback="false" />
-      </div>
-      <div>
-        <label class="block text-sm font-medium mb-1">Role</label>
-        <Select v-model="createForm.role" :options="roleOptions" option-label="label" option-value="value" class="w-full" />
-      </div>
-    </div>
-    <template #footer>
-      <Button label="Cancel" @click="showCreateDialog = false" class="p-button-text" />
-      <Button label="Create" @click="createUser" :loading="creatingUser" />
-    </template>
-  </Dialog>
+          <Column field="id" header="ID" :sortable="true" style="width: 60px">
+            <template #body="{ data }">
+              <span class="cell-mono cell-muted">#{{ data.id }}</span>
+            </template>
+          </Column>
 
-  <!-- Edit Dialog -->
-  <Dialog v-model:visible="showEditDialog" header="Edit User" :modal="true" :style="{ width: '400px' }">
-    <div class="space-y-4">
-      <div>
-        <label class="block text-sm font-medium mb-1">Username</label>
-        <div class="p-3 bg-surface-100 rounded">{{ editForm.username }}</div>
+          <Column field="username" header="Username" :sortable="true">
+            <template #body="{ data }">
+              <div class="user-cell">
+                <span class="user-avatar">{{ data.username[0].toUpperCase() }}</span>
+                <span class="cell-name">{{ data.username }}</span>
+              </div>
+            </template>
+          </Column>
+
+          <Column field="role" header="Role" :sortable="true" style="width: 120px">
+            <template #body="{ data }">
+              <Tag :value="data.role" :severity="roleSeverity(data.role)" />
+            </template>
+          </Column>
+
+          <Column header="Status" style="width: 100px">
+            <template #body="{ data }">
+              <Tag
+                :value="data.is_active ? 'Active' : 'Inactive'"
+                :severity="data.is_active ? 'success' : 'secondary'"
+              />
+            </template>
+          </Column>
+
+          <Column field="created_at" header="Created" :sortable="true" style="width: 160px">
+            <template #body="{ data }">
+              <span class="cell-mono cell-muted">{{ formatDate(data.created_at) }}</span>
+            </template>
+          </Column>
+
+          <Column header="" style="width: 90px">
+            <template #body="{ data }">
+              <div class="row-actions">
+                <Button
+                  icon="pi pi-pencil"
+                  text
+                  rounded
+                  size="small"
+                  @click="openEdit(data)"
+                  v-tooltip.top="'Edit'"
+                />
+                <Button
+                  icon="pi pi-trash"
+                  text
+                  rounded
+                  size="small"
+                  severity="danger"
+                  :disabled="data.username === auth.username"
+                  @click="confirmDelete(data)"
+                  v-tooltip.top="data.username === auth.username ? 'Cannot delete yourself' : 'Delete'"
+                />
+              </div>
+            </template>
+          </Column>
+        </DataTable>
+
+      </template>
+    </Card>
+
+    <!-- Create Dialog -->
+    <Dialog v-model:visible="showCreateDialog" header="Create User" :modal="true" :style="{ width: '420px' }">
+      <div class="dialog-form">
+        <div class="form-field">
+          <label>Username</label>
+          <InputText v-model="createForm.username" placeholder="Enter username" fluid />
+        </div>
+        <div class="form-field">
+          <label>Password</label>
+          <Password v-model="createForm.password" placeholder="Enter password" :feedback="false" fluid toggleMask />
+        </div>
+        <div class="form-field">
+          <label>Role</label>
+          <Select v-model="createForm.role" :options="roleOptions" option-label="label" option-value="value" fluid />
+        </div>
       </div>
-      <div>
-        <label class="block text-sm font-medium mb-1">Role</label>
-        <Select v-model="editForm.role" :options="roleOptions" option-label="label" option-value="value" class="w-full" />
+      <template #footer>
+        <Button label="Cancel" text @click="showCreateDialog = false" />
+        <Button label="Create" icon="pi pi-check" :loading="creatingUser" @click="createUser" />
+      </template>
+    </Dialog>
+
+    <!-- Edit Dialog -->
+    <Dialog v-model:visible="showEditDialog" :header="`Edit — ${editForm.username}`" :modal="true" :style="{ width: '420px' }">
+      <div class="dialog-form">
+        <div class="form-field">
+          <label>Role</label>
+          <Select v-model="editForm.role" :options="roleOptions" option-label="label" option-value="value" fluid />
+        </div>
+        <div class="form-field">
+          <label>Status</label>
+          <div class="toggle-row">
+            <ToggleSwitch v-model="editForm.is_active" />
+            <span class="toggle-label">{{ editForm.is_active ? 'Active' : 'Inactive' }}</span>
+          </div>
+        </div>
+        <div class="form-field">
+          <label>New Password <span class="optional">(optional)</span></label>
+          <Password v-model="editForm.password" placeholder="Leave blank to keep current" :feedback="false" fluid toggleMask />
+        </div>
       </div>
-      <div>
-        <label class="flex items-center gap-2">
-          <ToggleSwitch v-model="editForm.is_active" />
-          <span class="text-sm">Active</span>
-        </label>
-      </div>
-      <div>
-        <label class="block text-sm font-medium mb-1">New Password (optional)</label>
-        <Password v-model="editForm.password" class="w-full" placeholder="Leave blank to keep current password" :feedback="false" />
-      </div>
-    </div>
-    <template #footer>
-      <Button label="Cancel" @click="showEditDialog = false" class="p-button-text" />
-      <Button label="Save" @click="saveUser" :loading="savingUser" />
-    </template>
-  </Dialog>
+      <template #footer>
+        <Button label="Cancel" text @click="showEditDialog = false" />
+        <Button label="Save" icon="pi pi-check" :loading="savingUser" @click="saveUser" />
+      </template>
+    </Dialog>
+  </div>
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useToast } from 'primevue/usetoast'
 import { useConfirm } from 'primevue/useconfirm'
 import { useAuthStore } from '../stores/auth.js'
 import api from '../api/client.js'
 
 import Card from 'primevue/card'
+import Divider from 'primevue/divider'
+import Toolbar from 'primevue/toolbar'
+import IconField from 'primevue/iconfield'
+import InputIcon from 'primevue/inputicon'
 import Button from 'primevue/button'
 import DataTable from 'primevue/datatable'
 import Column from 'primevue/column'
@@ -137,6 +179,16 @@ const auth = useAuthStore()
 
 const users = ref([])
 const loading = ref(false)
+const userFilter = ref('')
+
+const filteredUsers = computed(() => {
+  if (!userFilter.value.trim()) return users.value
+  const q = userFilter.value.toLowerCase()
+  return users.value.filter(u =>
+    u.username.toLowerCase().includes(q) ||
+    u.role.toLowerCase().includes(q)
+  )
+})
 const showCreateDialog = ref(false)
 const showEditDialog = ref(false)
 const creatingUser = ref(false)
@@ -148,31 +200,17 @@ const roleOptions = [
   { label: 'Readonly', value: 'readonly' },
 ]
 
-const createForm = ref({
-  username: '',
-  password: '',
-  role: 'readonly',
-})
+const createForm = ref({ username: '', password: '', role: 'readonly' })
+const editForm = ref({ id: null, username: '', role: 'readonly', is_active: true, password: '' })
 
-const editForm = ref({
-  id: null,
-  username: '',
-  role: 'readonly',
-  is_active: true,
-  password: '',
-})
+const roleSeverity = (role) => ({ admin: 'danger', operator: 'warn', readonly: 'info' }[role] ?? 'secondary')
 
-const getRoleSeverity = (role) => {
-  const map = { admin: 'danger', operator: 'warning', readonly: 'info' }
-  return map[role] || 'info'
+const formatDate = (d) => {
+  if (!d) return '—'
+  return new Date(d).toLocaleDateString() + ' ' + new Date(d).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
 }
 
-const formatDate = (date) => {
-  if (!date) return '-'
-  return new Date(date).toLocaleString()
-}
-
-const loadUsers = async () => {
+async function loadUsers() {
   loading.value = true
   try {
     const { data } = await api.get('/admin/users')
@@ -184,9 +222,9 @@ const loadUsers = async () => {
   }
 }
 
-const createUser = async () => {
+async function createUser() {
   if (!createForm.value.username || !createForm.value.password) {
-    toast.add({ severity: 'warn', summary: 'Validation', detail: 'Username and password required', life: 3000 })
+    toast.add({ severity: 'warn', summary: 'Validation', detail: 'Username and password are required', life: 3000 })
     return
   }
   creatingUser.value = true
@@ -196,158 +234,132 @@ const createUser = async () => {
       password: createForm.value.password,
       role: createForm.value.role,
     })
-    toast.add({ severity: 'success', summary: 'Success', detail: 'User created', life: 3000 })
+    toast.add({ severity: 'success', summary: 'Created', detail: `User "${createForm.value.username}" created`, life: 3000 })
     showCreateDialog.value = false
     createForm.value = { username: '', password: '', role: 'readonly' }
     await loadUsers()
   } catch (e) {
-    const detail = e.response?.data?.detail || 'Failed to create user'
-    toast.add({ severity: 'error', summary: 'Error', detail, life: 3000 })
+    toast.add({ severity: 'error', summary: 'Error', detail: e.response?.data?.detail || 'Failed to create user', life: 3000 })
   } finally {
     creatingUser.value = false
   }
 }
 
-const editUser = (user) => {
-  editForm.value = {
-    id: user.id,
-    username: user.username,
-    role: user.role,
-    is_active: user.is_active,
-    password: '',
-  }
+function openEdit(user) {
+  editForm.value = { id: user.id, username: user.username, role: user.role, is_active: user.is_active, password: '' }
   showEditDialog.value = true
 }
 
-const saveUser = async () => {
+async function saveUser() {
   savingUser.value = true
   try {
-    const payload = {
-      role: editForm.value.role,
-      is_active: editForm.value.is_active,
-    }
-    if (editForm.value.password) {
-      payload.password = editForm.value.password
-    }
+    const payload = { role: editForm.value.role, is_active: editForm.value.is_active }
+    if (editForm.value.password) payload.password = editForm.value.password
     await api.patch(`/admin/users/${editForm.value.id}`, payload)
-    toast.add({ severity: 'success', summary: 'Success', detail: 'User updated', life: 3000 })
+    toast.add({ severity: 'success', summary: 'Saved', detail: 'User updated', life: 3000 })
     showEditDialog.value = false
     await loadUsers()
   } catch (e) {
-    const detail = e.response?.data?.detail || 'Failed to update user'
-    toast.add({ severity: 'error', summary: 'Error', detail, life: 3000 })
+    toast.add({ severity: 'error', summary: 'Error', detail: e.response?.data?.detail || 'Failed to update user', life: 3000 })
   } finally {
     savingUser.value = false
   }
 }
 
-const confirmDelete = (user) => {
+function confirmDelete(user) {
   confirm.require({
-    message: `Delete user "${user.username}"?`,
+    message: `Delete user "${user.username}"? This action cannot be undone.`,
     header: 'Confirm Delete',
     icon: 'pi pi-exclamation-triangle',
+    rejectLabel: 'Cancel',
+    acceptLabel: 'Delete',
+    acceptClass: 'p-button-danger',
     accept: () => deleteUser(user.id),
   })
 }
 
-const deleteUser = async (userId) => {
+async function deleteUser(userId) {
   try {
     await api.delete(`/admin/users/${userId}`)
-    toast.add({ severity: 'success', summary: 'Success', detail: 'User deleted', life: 3000 })
+    toast.add({ severity: 'success', summary: 'Deleted', detail: 'User removed', life: 3000 })
     await loadUsers()
   } catch (e) {
-    const detail = e.response?.data?.detail || 'Failed to delete user'
-    toast.add({ severity: 'error', summary: 'Error', detail, life: 3000 })
+    toast.add({ severity: 'error', summary: 'Error', detail: e.response?.data?.detail || 'Failed to delete user', life: 3000 })
   }
 }
 
-onMounted(() => {
-  loadUsers()
-})
+onMounted(loadUsers)
 </script>
 
 <style scoped>
-.card {
-  margin: 0;
-}
+.users-view { display: flex; flex-direction: column; gap: 16px; }
 
-.card-section-header {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 8px 0;
-}
+:deep(.users-card .p-card-body) { padding: 0; }
+:deep(.users-card .p-card-content) { padding: 14px 16px; }
 
-.section-icon {
-  width: 32px;
-  height: 32px;
-  background: color-mix(in srgb, var(--brand-orange) 12%, transparent);
-  border: 1px solid color-mix(in srgb, var(--brand-orange) 30%, transparent);
-  border-radius: 6px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: var(--brand-orange);
-  font-size: 18px;
-}
-
+/* Section header — consistent with other views */
+.card-section-header { display: flex; align-items: center; gap: 8px; }
+.section-icon { font-size: 12px; color: var(--brand-orange); flex-shrink: 0; }
 .section-title {
-  font-size: 18px;
+  font-family: var(--font-mono);
+  font-size: var(--text-2xs);
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: var(--p-text-muted-color);
+  flex: 1;
+}
+.section-divider { margin: 10px 0 !important; }
+
+/* User cell */
+.user-cell { display: flex; align-items: center; gap: 8px; }
+.user-avatar {
+  width: 26px; height: 26px;
+  background: color-mix(in srgb, var(--brand-orange) 15%, transparent);
+  border: 1px solid color-mix(in srgb, var(--brand-orange) 30%, transparent);
+  border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--brand-orange);
+  flex-shrink: 0;
+}
+.cell-name { font-size: var(--text-sm); color: var(--p-text-color); }
+.cell-mono { font-family: var(--font-mono); font-size: var(--text-sm); }
+.cell-muted { color: var(--p-text-muted-color); }
+.cell-empty { font-size: var(--text-sm); color: var(--p-text-muted-color); }
+
+/* DataTable overrides — consistent with rest of app */
+:deep(.p-datatable-thead th) { padding: 6px 10px; background: transparent; }
+:deep(.p-datatable-column-header-content) {
+  font-family: var(--font-mono);
+  font-size: var(--text-2xs);
+  letter-spacing: 1.5px;
+  color: var(--p-text-muted-color);
+  text-transform: uppercase;
   font-weight: 600;
-  color: var(--p-text-color);
 }
+:deep(.p-datatable-tbody td) { padding: 5px 10px; font-family: var(--font-ui); font-size: var(--text-sm); }
 
-.toolbar {
-  display: flex;
-  gap: 8px;
-  margin-bottom: 20px;
+/* Row actions */
+.row-actions { display: flex; gap: 2px; }
+
+/* Dialog form */
+.dialog-form { display: flex; flex-direction: column; gap: 16px; padding: 4px 0 8px; }
+.form-field { display: flex; flex-direction: column; gap: 6px; }
+.form-field label { font-family: var(--font-mono); font-size: var(--text-xs); color: var(--p-text-muted-color); letter-spacing: 0.5px; }
+.optional { font-weight: 400; opacity: 0.6; }
+.toggle-row { display: flex; align-items: center; gap: 10px; padding: 8px 0; }
+.toggle-label { font-size: var(--text-sm); color: var(--p-text-color); }
+
+/* ── Toolbar ── */
+:deep(.users-toolbar) {
+  background: transparent;
+  border: none;
+  padding: 0 0 12px 0;
 }
-
-.space-y-4 > * + * {
-  margin-top: 16px;
-}
-
-.w-full {
-  width: 100%;
-}
-
-.p-3 {
-  padding: 12px;
-}
-
-.bg-surface-100 {
-  background: var(--p-surface-100);
-}
-
-.rounded {
-  border-radius: 6px;
-}
-
-.text-sm {
-  font-size: 14px;
-}
-
-.font-medium {
-  font-weight: 500;
-}
-
-.mb-1 {
-  margin-bottom: 4px;
-}
-
-.block {
-  display: block;
-}
-
-.flex {
-  display: flex;
-}
-
-.items-center {
-  align-items: center;
-}
-
-.gap-2 {
+:deep(.users-toolbar .p-toolbar-start),
+:deep(.users-toolbar .p-toolbar-end) {
   gap: 8px;
 }
 </style>

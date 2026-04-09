@@ -32,6 +32,12 @@ def main() -> None:
 
     cmd_parts = sys.argv[1:]
 
+    # Normalize python executable: "python" / "python3" literals fail on systems
+    # that only have one or the other. Replace with the interpreter running this
+    # wrapper — it's always the correct one (venv or system).
+    if cmd_parts and cmd_parts[0] in ('python', 'python3'):
+        cmd_parts[0] = sys.executable
+
     # Detect the primary script path (first absolute path in cmd)
     script_path: str = " ".join(cmd_parts)
     for part in cmd_parts:

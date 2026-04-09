@@ -8,7 +8,10 @@ from backend.database import get_db
 from backend.dependencies import get_current_user
 from backend.models.network_snapshot import NetworkSnapshot
 from backend.schemas.network import InterfaceInfo, ConnectionInfo, ConnectionSummary, BandwidthPoint
-from backend.services.network_service import get_interfaces, get_active_connections, get_connection_summary
+from backend.services.network_service import (
+    get_interfaces, get_active_connections, get_connection_summary,
+    get_arp_devices, get_network_config,
+)
 from backend.services.cache import TTLCache
 
 router = APIRouter(prefix="/api/network", tags=["network"])
@@ -98,3 +101,15 @@ def interface_names(
     """Return list of distinct interface names seen in snapshots (for filter dropdowns)."""
     rows = db.query(NetworkSnapshot.interface).distinct().all()
     return [r[0] for r in rows]
+
+
+@router.get("/devices")
+def arp_devices(user=Depends(get_current_user)):
+    """Return LAN devices found in the ARP table (/proc/net/arp)."""
+    return get_arp_devices()
+
+
+@router.get("/config")
+def network_config(user=Depends(get_current_user)):
+    """Return network configuration: DNS servers and default gateways."""
+    return get_network_config()

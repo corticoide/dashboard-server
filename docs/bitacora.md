@@ -596,6 +596,81 @@ Implementación completa del sistema de pipelines programables.
 
 ---
 
+## 2026-04-09 — Mejora UX/UI completa de /pipelines
+
+### Refactor: PipelinesView + StepConfigEditor
+
+Rediseño completo del frontend de pipelines orientado a usabilidad y claridad.
+
+**Archivos modificados:**
+- `frontend/src/views/PipelinesView.vue` — rediseño completo
+- `frontend/src/components/pipelines/StepConfigEditor.vue` — rediseño completo
+
+**Mejoras implementadas:**
+
+**PipelinesView:**
+- Estado vacío explicativo: describe qué es un pipeline y para qué sirve (en lugar de "No hay pipelines.")
+- Skeletons de carga en el panel de lista
+- Dot de estado animado por pipeline (success/failed/running/none) con animación pulse
+- Paso de accordion inline: la config se expande dentro de cada step-card (elimina el drawer fijo de 280px)
+- Botones de reordenamiento ↑/↓ en cada paso (el drag-handle era solo visual sin funcionalidad)
+- Indicador de cambios sin guardar (●) en la toolbar del editor
+- `toggleStep()`: clic en header del paso abre/cierra la config; clic en el mismo cierra
+- `moveStep()`: intercambia steps en el array, mantiene foco en el índice destino
+- `openRunDetail` y `selectPipeline` ahora tienen manejo de errores (try/catch con toast)
+- Polling automático al ejecutar un pipeline: cada 2.5s refresca runs y lista hasta que no haya ninguno en curso; se detiene en `onUnmounted`
+- Normalización UTC en `timeAgo()` y `duration()`: agrega 'Z' a datetimes sin timezone para que el browser los interprete correctamente
+- Run detail mejorado: muestra nombre del paso (por orden), badge de estado por paso, explicación para pasos omitidos
+- Panel de flujo: nodos clickables (abre config del paso), conectores con línea + etiqueta de condición coloreada
+- Historial: badge "live" animado para runs en curso, chevron de navegación, hint cuando no hay ejecuciones
+
+**StepConfigEditor:**
+- `typeHints`: descripción corta debajo del SelectButton de tipo explicando qué hace cada tipo
+- `moduleHints`: descripción debajo del Select de módulo explicando para qué sirve cada uno
+- Placeholders descriptivos en todos los campos (ej. "systemctl restart nginx", "admin@miservidor.com")
+- Sección de condiciones separada con borde superior, íconos de éxito/fallo en labels
+- Hint explicativo bajo condiciones: "controlan qué pasa con el paso siguiente, no con este"
+- Texto "opcional" visible en campo adjunto de email
+
+**Bugs corregidos:**
+- `timeAgo()`: fechas UTC sin 'Z' se interpretaban como hora local del browser
+- `removeStep()`: el índice activo no se actualizaba correctamente al eliminar un paso no-activo
+- `deletePipeline()`: no tenía manejo de errores
+
+---
+
+### Fix: pipeline crontab — corrección definitiva del ejecutable Python
+
+**Problema:** Al ejecutar un pipeline vía crontab fallaba con `[Errno 2] No such file or directory: 'python'`. La sesión anterior solo corregía la generación de nuevas entradas (frontend), pero las entradas existentes seguían usando el literal `python`.
+
+**Causa raíz:** `cron_log.py` ejecuta el comando recibido via `subprocess.run(cmd_parts)`. Si `cmd_parts[0]` es `python` (que no existe en el sistema), falla con FileNotFoundError.
+
+**Solución definitiva:**
+- `backend/scripts/cron_log.py`: normaliza `python`/`python3` → `sys.executable` al inicio de `main()`, antes de lanzar el subprocess. Esto sana tanto entradas existentes como futuras sin requerir recrearlas.
+
+### Feature: Exportar e importar pipelines como JSON
+
+**Descripción:** Permite hacer backup de un pipeline y restaurarlo (en el mismo servidor o en otro).
+
+**Backend:**
+- `GET /api/pipelines/{id}/export` — devuelve `{name, description, steps[]}` como JSON descargable
+- `POST /api/pipelines/import` — crea un pipeline desde JSON; si el nombre ya existe lo renombra automáticamente añadiendo `(1)`, `(2)`, etc.
+
+**Frontend (`PipelinesView.vue`):**
+- Botón "Exportar" (icono `pi-download`) en la toolbar del editor, descarga `<nombre>.json`
+- Botón "Importar" (icono `pi-upload`) en el header de la lista; abre file picker `.json`; tras importar selecciona automáticamente el nuevo pipeline
+
+**Archivos modificados:**
+- `backend/scripts/cron_log.py`
+- `backend/routers/pipelines.py`
+- `frontend/src/views/PipelinesView.vue`
+
+**Archivos modificados:**
+- `backend/routers/pipelines.py` — nuevo endpoint `cron-command`
+- `frontend/src/views/CrontabView.vue` — elimina `pipelineCommand` computed, usa fetch al backend
+
+---
+
 ### Roadmap actualizado (2026-04-06)
 
 **Sistema de Pipelines Programables** — IMPLEMENTADO ✓

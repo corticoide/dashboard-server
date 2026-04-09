@@ -6,19 +6,27 @@ export default defineConfig({
   build: {
     outDir: '../backend/static',
     emptyOutDir: true,
+    chunkSizeWarningLimit: 1000,
     rollupOptions: {
       output: {
         manualChunks: {
-          'monaco-core': ['monaco-editor'],
+          'primevue': ['primevue', '@primeuix/themes'],
+          'chartjs': ['chart.js'],
         },
       },
+      // Exclude monaco-editor from bundling — loaded at runtime from public/
+      external: ['monaco-editor'],
     },
+  },
+  optimizeDeps: {
+    exclude: ['monaco-editor'],
   },
   server: {
     proxy: {
       '/api': {
         target: 'https://localhost:8443',
         secure: false,
+        ws: true,
       }
     }
   }

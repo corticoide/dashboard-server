@@ -451,14 +451,13 @@ const availablePipelines = ref([])
 const formTab = ref('command')  // 'command' | 'pipeline'
 const selectedPipelineId = ref(null)
 
-const pipelineCommand = computed(() => {
-  if (!selectedPipelineId.value) return ''
-  return `python -m backend.scripts.pipeline_runner --pipeline-id ${selectedPipelineId.value}`
-})
-
-watch(pipelineCommand, (cmd) => {
-  if (formTab.value === 'pipeline' && cmd) {
-    form.value.command = cmd
+watch(selectedPipelineId, async (id) => {
+  if (!id || formTab.value !== 'pipeline') return
+  try {
+    const { data } = await api.get(`/api/pipelines/${id}/cron-command`)
+    form.value.command = data.command
+  } catch {
+    // fallback silencioso
   }
 })
 

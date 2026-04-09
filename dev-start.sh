@@ -20,6 +20,9 @@ info() {
   echo -e "${YELLOW}→ $1${NC}"
 }
 
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+cd "$SCRIPT_DIR"
+
 # Check prerequisites
 info "Checking prerequisites..."
 
@@ -32,11 +35,30 @@ success "certs/cert.pem exists"
 [ -f certs/key.pem ] || die "certs/key.pem not found — run: python -m backend.scripts.generate_cert"
 success "certs/key.pem exists"
 
-[ -d venv ] || die "venv not found — run: python -m venv venv && source venv/bin/activate && pip install -r backend/requirements.txt"
-success "venv exists"
+# Accept either venv or .venv
+VENV=""
+if [ -d ".venv" ]; then
+  VENV=".venv"
+elif [ -d "venv" ]; then
+  VENV="venv"
+else
+  die "Python venv not found — run: python3 -m venv .venv && source .venv/bin/activate && pip install -r backend/requirements.txt"
+fi
+success "$VENV exists"
 
-[ -d frontend/node_modules ] || die "frontend/node_modules not found — cd frontend && npm install"
+# Frontend deps
+if [ ! -d "frontend/node_modules" ]; then
+  info "Installing frontend dependencies..."
+  (cd frontend && npm install)
+fi
 success "frontend/node_modules exists"
+
+# Ensure Monaco runtime files are copied to public/
+if [ ! -f "frontend/public/monaco-editor/vs/loader.js" ]; then
+  info "Copying Monaco Editor runtime files..."
+  node frontend/scripts/copy-monaco.js
+fi
+success "Monaco runtime files ready"
 
 # Cleanup function for SIGINT/SIGTERM
 cleanup() {
@@ -51,7 +73,7 @@ trap cleanup SIGINT SIGTERM
 
 # Start backend
 info "Starting backend on https://localhost:8443..."
-source venv/bin/activate && python -m backend.main &
+source "$VENV/bin/activate" && python -m backend.main &
 BACKEND_PID=$!
 success "Backend started (PID: $BACKEND_PID)"
 
@@ -59,7 +81,7 @@ success "Backend started (PID: $BACKEND_PID)"
 info "Starting frontend dev server..."
 cd frontend && npm run dev &
 FRONTEND_PID=$!
-cd ..
+cd "$SCRIPT_DIR"
 success "Frontend started (PID: $FRONTEND_PID)"
 
 echo ""

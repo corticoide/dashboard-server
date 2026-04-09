@@ -97,12 +97,12 @@ def _execute_module(config: dict, context: dict) -> Tuple[int, str]:
         return 1, f"Error executing module {module_name}: {e}"
 
 
-def run_pipeline(pipeline_id: int, triggered_by: str, db: Session) -> PipelineRun:
+def run_pipeline(pipeline_id: int, triggered_by: str, db: Session, existing_run_id: int = None) -> PipelineRun:
     """Ejecuta un pipeline completo. Bloquea hasta completar. Retorna el PipelineRun.
 
     Pasos:
     1. Obtener el pipeline y sus steps del DB.
-    2. Crear un registro PipelineRun.
+    2. Reutilizar el PipelineRun ya creado (existing_run_id) o crear uno nuevo.
     3. Iterar sobre cada step en orden:
        - Evaluar si debe correr (on_success/on_failure logic).
        - Ejecutar (shell, module, o script).
@@ -120,10 +120,15 @@ def run_pipeline(pipeline_id: int, triggered_by: str, db: Session) -> PipelineRu
         .all()
     )
 
-    run = PipelineRun(pipeline_id=pipeline_id, triggered_by=triggered_by, status="running")
-    db.add(run)
-    db.commit()
-    db.refresh(run)
+    if existing_run_id:
+        run = db.query(PipelineRun).filter(PipelineRun.id == existing_run_id).first()
+        if not run:
+            raise ValueError(f"PipelineRun {existing_run_id} not found")
+    else:
+        run = PipelineRun(pipeline_id=pipeline_id, triggered_by=triggered_by, status="running")
+        db.add(run)
+        db.commit()
+        db.refresh(run)
 
     context: dict = {}
     prev_exit_code = None

@@ -17,6 +17,8 @@ class InterfaceInfo(BaseModel):
     errout: int
     dropin: int
     dropout: int
+    is_internet_gateway: bool = False
+    subnet: str = ""
 
 
 class ConnectionInfo(BaseModel):
