@@ -57,3 +57,13 @@ def test_tree_returns_structure(test_app, tmp_path):
     names = {entry["name"] for entry in r.json()}
     assert "syslog" in names
     assert "nginx" in names
+
+
+def test_ws_log_tail_rejects_bad_token(test_app):
+    from starlette.websockets import WebSocketDisconnect
+    try:
+        with test_app.websocket_connect("/api/ws/log-tail?path=/var/log/syslog&token=bad") as ws:
+            ws.receive_text()
+            assert False, "Expected disconnect"
+    except WebSocketDisconnect:
+        pass  # Expected — server closes connection on bad token

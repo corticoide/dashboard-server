@@ -5,6 +5,7 @@ Connections are authenticated via ?token= query param (JWT).
 import asyncio
 import json
 import logging
+from pathlib import Path
 
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect, Query
 from backend.services.auth_service import decode_token
@@ -115,3 +116,53 @@ async def ws_network(websocket: WebSocket, token: str = Query("")):
         logger.info("WS /network client disconnected")
     except Exception as e:
         logger.exception("WS /network error: %s", e)
+
+
+@router.websocket("/log-tail")
+async def ws_log_tail(
+    websocket: WebSocket,
+    path: str = Query(""),
+    token: str = Query(""),
+):
+    """
+    Stream new lines from a /var/log file as they are appended.
+    Client: wss://host/api/ws/log-tail?path=/var/log/syslog&token=<jwt>
+    """
+    if not _auth_token(token):
+        await websocket.close(code=4001)
+        return
+
+    log_root = Path("/var/log")
+    try:
+        p = Path(path).resolve()
+    except Exception:
+        await websocket.close(code=4003)
+        return
+    if not p.is_relative_to(log_root) or not p.is_file():
+        await websocket.close(code=4003)
+        return
+
+    try:
+        f = open(p, "r", errors="replace")
+    except PermissionError:
+        await websocket.close(code=4003)
+        return
+
+    await websocket.accept()
+    logger.info("WS /log-tail connected: %s", path)
+
+    # Seek to end — send only new content
+    f.seek(0, 2)
+
+    try:
+        while True:
+            chunk = f.read()
+            if chunk:
+                await websocket.send_text(chunk)
+            await asyncio.sleep(0.5)
+    except WebSocketDisconnect:
+        logger.info("WS /log-tail disconnected: %s", path)
+    except Exception as e:
+        logger.exception("WS /log-tail error: %s", e)
+    finally:
+        f.close()
