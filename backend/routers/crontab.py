@@ -2,8 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from typing import List
 
 from backend.core.logging import get_audit_logger
-from backend.dependencies import get_current_user, require_role
-from backend.models.user import UserRole
+from backend.dependencies import require_permission
 from backend.schemas.crontab import CrontabEntry, CrontabEntryCreate
 from backend.services.crontab_service import (
     list_entries, add_entry, update_entry, delete_entry, validate_field, toggle_entry,
@@ -28,7 +27,7 @@ def _validate_create(data: CrontabEntryCreate) -> None:
 
 
 @router.get("/", response_model=List[CrontabEntry])
-def get_crontab(user=Depends(get_current_user)):
+def get_crontab(user=Depends(require_permission("crontab", "read"))):
     try:
         return list_entries()
     except RuntimeError as e:
@@ -36,7 +35,7 @@ def get_crontab(user=Depends(get_current_user)):
 
 
 @router.post("/", response_model=List[CrontabEntry])
-def create_entry(body: CrontabEntryCreate, user=Depends(require_role(UserRole.admin))):
+def create_entry(body: CrontabEntryCreate, user=Depends(require_permission("crontab", "write"))):
     _validate_create(body)
     try:
         result = add_entry(body)
@@ -50,7 +49,7 @@ def create_entry(body: CrontabEntryCreate, user=Depends(require_role(UserRole.ad
 def edit_entry(
     entry_id: int,
     body: CrontabEntryCreate,
-    user=Depends(require_role(UserRole.admin)),
+    user=Depends(require_permission("crontab", "write")),
 ):
     _validate_create(body)
     try:
@@ -64,7 +63,7 @@ def edit_entry(
 
 
 @router.delete("/{entry_id}", response_model=List[CrontabEntry])
-def remove_entry(entry_id: int, user=Depends(require_role(UserRole.admin))):
+def remove_entry(entry_id: int, user=Depends(require_permission("crontab", "delete"))):
     try:
         result = delete_entry(entry_id)
         get_audit_logger().info("crontab_delete user=%s entry_id=%s", user.username, entry_id)
@@ -76,7 +75,7 @@ def remove_entry(entry_id: int, user=Depends(require_role(UserRole.admin))):
 
 
 @router.patch("/{entry_id}/toggle", response_model=List[CrontabEntry])
-def toggle_entry_endpoint(entry_id: int, user=Depends(require_role(UserRole.admin))):
+def toggle_entry_endpoint(entry_id: int, user=Depends(require_permission("crontab", "write"))):
     try:
         result = toggle_entry(entry_id)
         enabled = next((e.enabled for e in result if e.id == entry_id), None)

@@ -9,7 +9,7 @@ from sqlalchemy.orm import Session
 
 from backend.core.logging import get_audit_logger
 from backend.database import get_db, SessionLocal
-from backend.dependencies import get_current_user, require_role
+from backend.dependencies import require_permission
 from backend.models.pipeline import Pipeline, PipelineStep, PipelineRun, PipelineStepRun
 from backend.models.user import UserRole
 from backend.schemas.pipeline import (
@@ -54,13 +54,13 @@ def _save_steps(pipeline_id: int, steps_in, db: Session):
 
 
 @router.get("", response_model=List[PipelineOut])
-def list_pipelines(db: Session = Depends(get_db), user=Depends(get_current_user)):
+def list_pipelines(db: Session = Depends(get_db), user=Depends(require_permission("pipelines", "read"))):
     pipelines = db.query(Pipeline).order_by(Pipeline.created_at.desc()).all()
     return [_build_pipeline_out(p, db) for p in pipelines]
 
 
 @router.post("", response_model=PipelineOut)
-def create_pipeline(body: PipelineIn, db: Session = Depends(get_db), user=Depends(require_role(UserRole.admin))):
+def create_pipeline(body: PipelineIn, db: Session = Depends(get_db), user=Depends(require_permission("pipelines", "write"))):
     existing = db.query(Pipeline).filter(Pipeline.name == body.name).first()
     if existing:
         raise HTTPException(400, detail=f"Pipeline name '{body.name}' already exists")
@@ -75,7 +75,7 @@ def create_pipeline(body: PipelineIn, db: Session = Depends(get_db), user=Depend
 
 
 @router.post("/import", response_model=PipelineOut)
-def import_pipeline(body: PipelineIn, db: Session = Depends(get_db), user=Depends(require_role(UserRole.admin))):
+def import_pipeline(body: PipelineIn, db: Session = Depends(get_db), user=Depends(require_permission("pipelines", "write"))):
     name = body.name.strip() or "Pipeline importado"
     if db.query(Pipeline).filter(Pipeline.name == name).first():
         counter = 1
@@ -93,7 +93,7 @@ def import_pipeline(body: PipelineIn, db: Session = Depends(get_db), user=Depend
 
 
 @router.get("/runs/{run_id}", response_model=PipelineRunDetailOut)
-def get_run_detail(run_id: int, db: Session = Depends(get_db), user=Depends(get_current_user)):
+def get_run_detail(run_id: int, db: Session = Depends(get_db), user=Depends(require_permission("pipelines", "read"))):
     run = db.query(PipelineRun).filter(PipelineRun.id == run_id).first()
     if not run:
         raise HTTPException(404, detail="Run not found")
@@ -111,7 +111,7 @@ def get_run_detail(run_id: int, db: Session = Depends(get_db), user=Depends(get_
 
 
 @router.get("/{pipeline_id}", response_model=PipelineDetailOut)
-def get_pipeline(pipeline_id: int, db: Session = Depends(get_db), user=Depends(get_current_user)):
+def get_pipeline(pipeline_id: int, db: Session = Depends(get_db), user=Depends(require_permission("pipelines", "read"))):
     p = db.query(Pipeline).filter(Pipeline.id == pipeline_id).first()
     if not p:
         raise HTTPException(404, detail="Pipeline not found")
@@ -124,7 +124,7 @@ def get_pipeline(pipeline_id: int, db: Session = Depends(get_db), user=Depends(g
 
 
 @router.get("/{pipeline_id}/export")
-def export_pipeline(pipeline_id: int, db: Session = Depends(get_db), user=Depends(get_current_user)):
+def export_pipeline(pipeline_id: int, db: Session = Depends(get_db), user=Depends(require_permission("pipelines", "read"))):
     p = db.query(Pipeline).filter(Pipeline.id == pipeline_id).first()
     if not p:
         raise HTTPException(404, detail="Pipeline not found")
@@ -152,7 +152,7 @@ def export_pipeline(pipeline_id: int, db: Session = Depends(get_db), user=Depend
 
 
 @router.put("/{pipeline_id}", response_model=PipelineOut)
-def update_pipeline(pipeline_id: int, body: PipelineIn, db: Session = Depends(get_db), user=Depends(require_role(UserRole.admin))):
+def update_pipeline(pipeline_id: int, body: PipelineIn, db: Session = Depends(get_db), user=Depends(require_permission("pipelines", "write"))):
     p = db.query(Pipeline).filter(Pipeline.id == pipeline_id).first()
     if not p:
         raise HTTPException(404, detail="Pipeline not found")
@@ -170,7 +170,7 @@ def update_pipeline(pipeline_id: int, body: PipelineIn, db: Session = Depends(ge
 
 
 @router.delete("/{pipeline_id}")
-def delete_pipeline(pipeline_id: int, db: Session = Depends(get_db), user=Depends(require_role(UserRole.admin))):
+def delete_pipeline(pipeline_id: int, db: Session = Depends(get_db), user=Depends(require_permission("pipelines", "delete"))):
     p = db.query(Pipeline).filter(Pipeline.id == pipeline_id).first()
     if not p:
         raise HTTPException(404, detail="Pipeline not found")
@@ -188,7 +188,7 @@ def delete_pipeline(pipeline_id: int, db: Session = Depends(get_db), user=Depend
 
 
 @router.get("/{pipeline_id}/cron-command")
-def get_cron_command(pipeline_id: int, db: Session = Depends(get_db), user=Depends(get_current_user)):
+def get_cron_command(pipeline_id: int, db: Session = Depends(get_db), user=Depends(require_permission("pipelines", "read"))):
     p = db.query(Pipeline).filter(Pipeline.id == pipeline_id).first()
     if not p:
         raise HTTPException(404, detail="Pipeline not found")
@@ -199,9 +199,7 @@ def get_cron_command(pipeline_id: int, db: Session = Depends(get_db), user=Depen
 
 
 @router.post("/{pipeline_id}/run")
-def run_pipeline_endpoint(pipeline_id: int, db: Session = Depends(get_db), user=Depends(get_current_user)):
-    if user.role == UserRole.readonly:
-        raise HTTPException(403, detail="Read-only users cannot execute pipelines")
+def run_pipeline_endpoint(pipeline_id: int, db: Session = Depends(get_db), user=Depends(require_permission("pipelines", "execute"))):
     p = db.query(Pipeline).filter(Pipeline.id == pipeline_id).first()
     if not p:
         raise HTTPException(404, detail="Pipeline not found")
@@ -231,7 +229,7 @@ def run_pipeline_endpoint(pipeline_id: int, db: Session = Depends(get_db), user=
 
 
 @router.get("/{pipeline_id}/runs", response_model=List[PipelineRunOut])
-def list_runs(pipeline_id: int, db: Session = Depends(get_db), user=Depends(get_current_user)):
+def list_runs(pipeline_id: int, db: Session = Depends(get_db), user=Depends(require_permission("pipelines", "read"))):
     p = db.query(Pipeline).filter(Pipeline.id == pipeline_id).first()
     if not p:
         raise HTTPException(404, detail="Pipeline not found")

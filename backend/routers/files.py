@@ -3,8 +3,7 @@ from fastapi.responses import StreamingResponse
 from pathlib import Path
 from typing import List, Optional
 from backend.core.logging import get_audit_logger
-from backend.dependencies import get_current_user, require_role
-from backend.models.user import UserRole
+from backend.dependencies import require_permission
 from backend.schemas.files import DirListing, FileContent, MkdirRequest, RenameRequest, FileWriteRequest
 from backend.services.files_service import (
     list_dir, read_file, stream_file, make_dir, rename_path, delete_path, write_file, _safe_path
@@ -14,7 +13,7 @@ router = APIRouter(prefix="/api/files", tags=["files"])
 
 
 @router.get("/list", response_model=DirListing)
-def api_list(path: str = Query("/"), user=Depends(get_current_user)):
+def api_list(path: str = Query("/"), user=Depends(require_permission("files", "read"))):
     try:
         return list_dir(path)
     except (FileNotFoundError, NotADirectoryError) as e:
@@ -26,7 +25,7 @@ def api_list(path: str = Query("/"), user=Depends(get_current_user)):
 @router.get("/content", response_model=FileContent)
 def api_content(
     path: str = Query(...),
-    user=Depends(get_current_user),
+    user=Depends(require_permission("files", "read")),
     x_sudo_password: Optional[str] = Header(None),
 ):
     try:
@@ -44,7 +43,7 @@ def api_content(
 @router.get("/download")
 def api_download(
     path: str = Query(...),
-    user=Depends(get_current_user),
+    user=Depends(require_permission("files", "read")),
     x_sudo_password: Optional[str] = Header(None),
 ):
     try:
@@ -63,7 +62,7 @@ def api_download(
 
 
 @router.post("/mkdir")
-def api_mkdir(body: MkdirRequest, user=Depends(require_role(UserRole.admin))):
+def api_mkdir(body: MkdirRequest, user=Depends(require_permission("files", "write"))):
     try:
         make_dir(body.path)
         return {"ok": True, "path": body.path}
@@ -74,7 +73,7 @@ def api_mkdir(body: MkdirRequest, user=Depends(require_role(UserRole.admin))):
 
 
 @router.post("/rename")
-def api_rename(body: RenameRequest, user=Depends(require_role(UserRole.admin))):
+def api_rename(body: RenameRequest, user=Depends(require_permission("files", "write"))):
     try:
         rename_path(body.source, body.destination)
         return {"ok": True}
@@ -85,7 +84,7 @@ def api_rename(body: RenameRequest, user=Depends(require_role(UserRole.admin))):
 
 
 @router.delete("/delete")
-def api_delete(path: str = Query(...), user=Depends(require_role(UserRole.admin))):
+def api_delete(path: str = Query(...), user=Depends(require_permission("files", "delete"))):
     try:
         delete_path(path)
         get_audit_logger().info("file_delete user=%s path=%s", user.username, path)
@@ -100,7 +99,7 @@ def api_delete(path: str = Query(...), user=Depends(require_role(UserRole.admin)
 def api_upload(
     path: str = Query(...),
     file: UploadFile = File(...),
-    user=Depends(require_role(UserRole.operator)),
+    user=Depends(require_permission("files", "write")),
 ):
     try:
         safe_name = Path(file.filename).name if file.filename else ""
@@ -121,7 +120,7 @@ def api_upload(
 def api_write(
     body: FileWriteRequest,
     path: str = Query(...),
-    user=Depends(require_role(UserRole.admin)),
+    user=Depends(require_permission("files", "write")),
     x_sudo_password: Optional[str] = Header(None),
 ):
     try:

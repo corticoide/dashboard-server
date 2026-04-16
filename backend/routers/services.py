@@ -1,8 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException
 from typing import List
 from backend.core.logging import get_audit_logger
-from backend.dependencies import get_current_user, require_role
-from backend.models.user import UserRole
+from backend.dependencies import require_permission
 from backend.schemas.services import ServiceInfo, ServiceLog, ServiceActionRequest
 from backend.services.services_service import list_services, get_service_logs, control_service
 
@@ -10,7 +9,7 @@ router = APIRouter(prefix="/api/services", tags=["services"])
 
 
 @router.get("/", response_model=List[ServiceInfo])
-def get_services(user=Depends(get_current_user)):
+def get_services(user=Depends(require_permission("services", "read"))):
     try:
         return list_services()
     except RuntimeError as e:
@@ -18,7 +17,7 @@ def get_services(user=Depends(get_current_user)):
 
 
 @router.get("/{name}/logs", response_model=ServiceLog)
-def get_logs(name: str, lines: int = 100, user=Depends(get_current_user)):
+def get_logs(name: str, lines: int = 100, user=Depends(require_permission("services", "read"))):
     try:
         return get_service_logs(name, lines)
     except ValueError as e:
@@ -32,7 +31,7 @@ def service_action(
     name: str,
     action: str,
     body: ServiceActionRequest = None,
-    user=Depends(require_role(UserRole.operator)),
+    user=Depends(require_permission("services", "execute")),
 ):
     password = body.sudo_password if body else None
     try:

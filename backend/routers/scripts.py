@@ -5,7 +5,7 @@ from typing import List
 from datetime import datetime, timezone
 from backend.core.logging import get_audit_logger
 
-from backend.dependencies import get_current_user, require_role
+from backend.dependencies import require_permission, check_permission
 from backend.models.user import User, UserRole
 from backend.models.script import ScriptFavorite, ScriptExecution
 from backend.schemas.scripts import (
@@ -27,13 +27,13 @@ router = APIRouter(prefix="/api/scripts", tags=["scripts"])
 # ── Favorites CRUD ────────────────────────────────────────────────────────────
 
 @router.get("/favorites", response_model=List[FavoriteOut])
-def list_favorites(db: Session = Depends(get_db), user=Depends(get_current_user)):
+def list_favorites(db: Session = Depends(get_db), user=Depends(require_permission("scripts", "read"))):
     favs = db.query(ScriptFavorite).order_by(ScriptFavorite.created_at.desc()).all()
     return [build_favorite_out(f) for f in favs]
 
 
 @router.post("/favorites", response_model=FavoriteOut)
-def add_favorite(body: FavoriteCreate, db: Session = Depends(get_db), user=Depends(get_current_user)):
+def add_favorite(body: FavoriteCreate, db: Session = Depends(get_db), user=Depends(require_permission("scripts", "write"))):
     try:
         safe = _safe_path(body.path)
     except (ValueError, PermissionError) as e:
@@ -50,7 +50,7 @@ def add_favorite(body: FavoriteCreate, db: Session = Depends(get_db), user=Depen
 
 
 @router.delete("/favorites/{fav_id}")
-def remove_favorite(fav_id: int, db: Session = Depends(get_db), user=Depends(get_current_user)):
+def remove_favorite(fav_id: int, db: Session = Depends(get_db), user=Depends(require_permission("scripts", "delete"))):
     fav = db.query(ScriptFavorite).filter(ScriptFavorite.id == fav_id).first()
     if not fav:
         raise HTTPException(404, detail="Favorite not found")
@@ -64,7 +64,7 @@ def update_favorite(
     fav_id: int,
     body: FavoriteUpdate,
     db: Session = Depends(get_db),
-    user=Depends(require_role(UserRole.admin)),
+    user=Depends(require_permission("scripts", "write")),
 ):
     fav = db.query(ScriptFavorite).filter(ScriptFavorite.id == fav_id).first()
     if not fav:
@@ -85,19 +85,15 @@ def run_favorite(
     fav_id: int,
     body: RunRequest = RunRequest(),
     db: Session = Depends(get_db),
-    user=Depends(get_current_user),
+    user=Depends(require_permission("scripts", "execute")),
 ):
     fav = db.query(ScriptFavorite).filter(ScriptFavorite.id == fav_id).first()
     if not fav:
         raise HTTPException(404, detail="Favorite not found")
 
-    # Permission checks
     if fav.admin_only and user.role != UserRole.admin:
         raise HTTPException(403, detail="This script is restricted to admins")
-    if user.role == UserRole.readonly:
-        raise HTTPException(403, detail="Read-only users cannot execute scripts")
 
-    # File existence check
     p = Path(fav.path)
     if not p.exists() or not p.is_file():
         raise HTTPException(404, detail=f"Script not found: {fav.path}")
@@ -107,7 +103,6 @@ def run_favorite(
     except ValueError as e:
         raise HTTPException(400, detail=str(e))
 
-    # Create execution record
     exe = ScriptExecution(
         script_path=fav.path,
         run_as_root=fav.run_as_root,
@@ -118,7 +113,6 @@ def run_favorite(
     db.commit()
     db.refresh(exe)
 
-    # Launch in background thread
     launch_execution(
         exec_id=exe.id,
         script_path=fav.path,
@@ -168,31 +162,33 @@ async def run_ws(
         await websocket.close(code=4001)
         return
 
-    # 2. Load favorite
+    # 2. Permission check via check_permission (WebSocket can't use Depends)
+    if not check_permission(db, user, "scripts", "execute"):
+        await websocket.close(code=4003)
+        return
+
+    # 3. Load favorite
     fav = db.query(ScriptFavorite).filter(ScriptFavorite.id == fav_id).first()
     if not fav:
         await websocket.close(code=4004)
         return
 
-    # 3. Permission checks
+    # 4. admin_only check
     if fav.admin_only and user.role != UserRole.admin:
         await websocket.close(code=4003)
         return
-    if user.role == UserRole.readonly:
-        await websocket.close(code=4003)
-        return
 
-    # 4. Accept connection
+    # 5. Accept connection
     await websocket.accept()
 
-    # 5. File existence
+    # 6. File existence
     p = Path(fav.path)
     if not p.exists() or not p.is_file():
         await websocket.send_json({"type": "error", "detail": f"Script not found: {fav.path}"})
         await websocket.close()
         return
 
-    # 6. Detect runner
+    # 7. Detect runner
     try:
         runner = detect_runner(p)
     except ValueError as e:
@@ -200,7 +196,7 @@ async def run_ws(
         await websocket.close()
         return
 
-    # 7. Receive run params sent by client after connection opens
+    # 8. Receive run params sent by client after connection opens
     try:
         raw = await asyncio.wait_for(websocket.receive_text(), timeout=10.0)
         params = json.loads(raw)
@@ -210,7 +206,7 @@ async def run_ws(
     sudo_password = params.get("sudo_password")
     args = params.get("args") or []
 
-    # 8. Create execution record
+    # 9. Create execution record
     exe = ScriptExecution(
         script_path=fav.path,
         run_as_root=fav.run_as_root,
@@ -221,7 +217,7 @@ async def run_ws(
     db.commit()
     db.refresh(exe)
 
-    # 9. Launch in background thread
+    # 10. Launch in background thread
     launch_execution(
         exec_id=exe.id,
         script_path=fav.path,
@@ -237,13 +233,12 @@ async def run_ws(
         user.username, fav.path, runner, fav.run_as_root, exe.id,
     )
 
-    # 10. Stream output: poll shared state every 200 ms, forward new lines
+    # 11. Stream output: poll shared state every 200 ms, forward new lines
     sent = 0
     try:
         while True:
             state = get_poll_state(exe.id)
             if state is None:
-                # State evicted (execution long finished) — just send done
                 await websocket.send_json({"type": "done", "exit_code": None})
                 break
 
@@ -259,7 +254,6 @@ async def run_ws(
             await asyncio.sleep(0.2)
 
     except (WebSocketDisconnect, Exception):
-        # Client disconnected or any other error — stop streaming silently
         pass
     finally:
         try:
@@ -269,8 +263,7 @@ async def run_ws(
 
 
 @router.get("/executions/{exec_id}", response_model=ExecutionPoll)
-def poll_execution(exec_id: int, user=Depends(get_current_user), db: Session = Depends(get_db)):
-    # Same-worker fast path: in-memory state is freshest
+def poll_execution(exec_id: int, user=Depends(require_permission("scripts", "read")), db: Session = Depends(get_db)):
     state = get_poll_state(exec_id)
     if state is not None:
         return ExecutionPoll(
@@ -280,7 +273,6 @@ def poll_execution(exec_id: int, user=Depends(get_current_user), db: Session = D
             lines=list(state["lines"]),
         )
 
-    # Cross-worker or completed: always readable from DB
     exe = db.query(ScriptExecution).filter(ScriptExecution.id == exec_id).first()
     if not exe:
         raise HTTPException(404, detail="Execution not found")
@@ -294,7 +286,7 @@ def poll_execution(exec_id: int, user=Depends(get_current_user), db: Session = D
 
 
 @router.get("/favorites/{fav_id}/history", response_model=List[ExecutionOut])
-def execution_history(fav_id: int, db: Session = Depends(get_db), user=Depends(get_current_user)):
+def execution_history(fav_id: int, db: Session = Depends(get_db), user=Depends(require_permission("scripts", "read"))):
     fav = db.query(ScriptFavorite).filter(ScriptFavorite.id == fav_id).first()
     if not fav:
         raise HTTPException(404, detail="Favorite not found")
