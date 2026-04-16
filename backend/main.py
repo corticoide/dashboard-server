@@ -23,6 +23,7 @@ from backend.routers.network import router as network_router
 from backend.routers.ws import router as ws_router
 from backend.routers.pipelines import router as pipelines_router
 from backend.routers.alerts import router as alerts_router
+from backend.routers.system_logs import router as system_logs_router
 from backend.config import settings
 from backend.database import engine, Base
 from backend.core.logging import init_logging
@@ -112,6 +113,7 @@ app.include_router(network_router)
 app.include_router(ws_router)
 app.include_router(pipelines_router)
 app.include_router(alerts_router)
+app.include_router(system_logs_router)
 
 # Serve Vue SPA (built files)
 static_dir = os.path.join(os.path.dirname(__file__), "static")
