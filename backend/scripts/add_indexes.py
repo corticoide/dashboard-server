@@ -23,6 +23,11 @@ def main() -> None:
         "CREATE INDEX IF NOT EXISTS ix_pipeline_runs_pipeline_id  ON pipeline_runs  (pipeline_id)",
         "CREATE INDEX IF NOT EXISTS ix_pipeline_runs_started_at   ON pipeline_runs  (started_at)",
         "CREATE INDEX IF NOT EXISTS ix_pipeline_step_runs_run_id  ON pipeline_step_runs (run_id)",
+        "CREATE INDEX IF NOT EXISTS ix_alert_rules_enabled ON alert_rules (enabled)",
+        "CREATE INDEX IF NOT EXISTS ix_alert_rules_condition_type ON alert_rules (condition_type)",
+        "CREATE INDEX IF NOT EXISTS ix_alert_fires_rule_id ON alert_fires (rule_id)",
+        "CREATE INDEX IF NOT EXISTS ix_alert_fires_status ON alert_fires (status)",
+        "CREATE INDEX IF NOT EXISTS ix_alert_fires_fired_at ON alert_fires (fired_at)",
     ]
     with engine.connect() as conn:
         for stmt in statements:
