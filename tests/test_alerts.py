@@ -41,3 +41,92 @@ def test_alert_fire_model(db_session):
     assert fire.id is not None
     assert fire.rule_id == rule.id
     assert fire.status == "active"
+
+
+def _login(test_app):
+    r = test_app.post("/api/auth/login", json={"username": "admin", "password": "adminpass"})
+    return r.json()["access_token"]
+
+
+def test_list_rules_requires_auth(test_app):
+    r = test_app.get("/api/alerts/rules")
+    assert r.status_code == 403
+
+
+def test_create_and_list_rule(test_app):
+    token = _login(test_app)
+    headers = {"Authorization": f"Bearer {token}"}
+
+    r = test_app.post("/api/alerts/rules", headers=headers, json={
+        "name": "CPU High",
+        "condition_type": "cpu",
+        "threshold": 85.0,
+        "cooldown_minutes": 60,
+        "notify_on_recovery": True,
+        "email_to": "admin@test.com",
+    })
+    assert r.status_code == 201
+    data = r.json()
+    assert data["name"] == "CPU High"
+    assert data["id"] is not None
+
+    r2 = test_app.get("/api/alerts/rules", headers=headers)
+    assert r2.status_code == 200
+    assert len(r2.json()) == 1
+
+
+def test_update_rule(test_app):
+    token = _login(test_app)
+    headers = {"Authorization": f"Bearer {token}"}
+    r = test_app.post("/api/alerts/rules", headers=headers, json={
+        "name": "Old Name", "condition_type": "ram", "threshold": 80.0,
+        "cooldown_minutes": 60, "notify_on_recovery": True, "email_to": "x@x.com",
+    })
+    rule_id = r.json()["id"]
+
+    r2 = test_app.put(f"/api/alerts/rules/{rule_id}", headers=headers, json={
+        "name": "New Name", "condition_type": "ram", "threshold": 90.0,
+        "cooldown_minutes": 30, "notify_on_recovery": False, "email_to": "y@y.com",
+    })
+    assert r2.status_code == 200
+    assert r2.json()["name"] == "New Name"
+    assert r2.json()["threshold"] == 90.0
+
+
+def test_toggle_rule(test_app):
+    token = _login(test_app)
+    headers = {"Authorization": f"Bearer {token}"}
+    r = test_app.post("/api/alerts/rules", headers=headers, json={
+        "name": "Toggle Test", "condition_type": "cpu", "threshold": 80.0,
+        "cooldown_minutes": 60, "notify_on_recovery": True, "email_to": "x@x.com",
+    })
+    rule_id = r.json()["id"]
+    assert r.json()["enabled"] is True
+
+    r2 = test_app.patch(f"/api/alerts/rules/{rule_id}/toggle", headers=headers)
+    assert r2.status_code == 200
+    assert r2.json()["enabled"] is False
+
+
+def test_delete_rule(test_app):
+    token = _login(test_app)
+    headers = {"Authorization": f"Bearer {token}"}
+    r = test_app.post("/api/alerts/rules", headers=headers, json={
+        "name": "Delete Me", "condition_type": "disk", "threshold": 90.0,
+        "cooldown_minutes": 60, "notify_on_recovery": True, "email_to": "x@x.com",
+    })
+    rule_id = r.json()["id"]
+
+    r2 = test_app.delete(f"/api/alerts/rules/{rule_id}", headers=headers)
+    assert r2.status_code == 204
+
+    r3 = test_app.get("/api/alerts/rules", headers=headers)
+    assert r3.json() == []
+
+
+def test_list_fires(test_app):
+    token = _login(test_app)
+    headers = {"Authorization": f"Bearer {token}"}
+    r = test_app.get("/api/alerts/fires", headers=headers)
+    assert r.status_code == 200
+    assert isinstance(r.json(), list)
