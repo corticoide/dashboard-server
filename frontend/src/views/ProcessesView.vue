@@ -4,7 +4,8 @@
       <div class="page-title">
         <i class="pi pi-server page-icon" />
         <span>PROCESSES</span>
-        <Tag :value="`${processes.length} shown`" severity="secondary" />
+        <span class="live-dot" :class="{ tick: liveTick }" title="Live" />
+        <Tag :value="countLabel" severity="secondary" />
         <Tag v-if="truncated" value="CAPPED AT 500" severity="warning" />
       </div>
       <div class="header-actions">
@@ -21,7 +22,7 @@
       :value="filteredProcesses"
       size="small"
       class="proc-table"
-      :loading="loading"
+      :loading="initialLoading"
       scrollable
       scroll-height="flex"
     >
@@ -33,18 +34,31 @@
           <Tag v-if="data.watched" value="WATCHED" severity="info" class="ml-2" />
         </template>
       </Column>
-      <Column field="pid" header="PID" sortable style="width: 80px">
+      <Column field="pid" header="PID" sortable style="width: 76px">
         <template #body="{ data }"><span class="cell-mono">{{ data.pid }}</span></template>
       </Column>
-      <Column field="cpu_percent" header="CPU %" sortable style="width: 90px">
+      <Column field="cpu_percent" header="CPU %" sortable style="width: 110px">
         <template #body="{ data }">
-          <span :class="['cell-mono', { 'val-high': data.cpu_percent > 50 }]">
-            {{ data.cpu_percent.toFixed(1) }}
-          </span>
+          <div class="bar-cell">
+            <div class="bar-track">
+              <div
+                class="bar-fill"
+                :class="{ 'bar-hot': data.cpu_percent > 50 }"
+                :style="{ width: Math.min(data.cpu_percent, 100) + '%' }"
+              />
+            </div>
+            <span class="cell-mono" :class="{ 'val-hot': data.cpu_percent > 50 }">
+              {{ data.cpu_percent.toFixed(1) }}
+            </span>
+          </div>
         </template>
       </Column>
       <Column field="memory_mb" header="RAM MB" sortable style="width: 90px">
-        <template #body="{ data }"><span class="cell-mono">{{ data.memory_mb.toFixed(0) }}</span></template>
+        <template #body="{ data }">
+          <span class="cell-mono" :class="{ 'val-hot': data.memory_mb > 500 }">
+            {{ data.memory_mb.toFixed(0) }}
+          </span>
+        </template>
       </Column>
       <Column field="username" header="User" style="width: 110px">
         <template #body="{ data }"><span class="cell-mono">{{ data.username }}</span></template>
@@ -54,7 +68,7 @@
           <Tag :value="data.status" :severity="statusSeverity(data.status)" />
         </template>
       </Column>
-      <Column header="Actions" style="width: 130px" v-if="canExecute">
+      <Column header="Actions" style="width: 110px" v-if="canExecute">
         <template #body="{ data }">
           <div class="row-actions">
             <Button
@@ -136,10 +150,13 @@ const auth = useAuthStore()
 const confirm = useConfirm()
 
 const processes = ref([])
-const loading = ref(false)
+const initialLoading = ref(false)  // only true on first fetch (empty table)
 const truncated = ref(false)
 const error = ref(null)
 const filterTerm = ref('')
+const liveTick = ref(false)
+
+let fetching = false
 
 const watchDialog = ref(false)
 const watchTarget = ref(null)
@@ -148,6 +165,12 @@ const watchForm = ref({ email_to: '', cooldown_minutes: 60 })
 
 const canExecute = computed(() => auth.hasPermission('processes', 'execute'))
 
+const countLabel = computed(() => {
+  const total = processes.value.length
+  const shown = filteredProcesses.value.length
+  return filterTerm.value ? `${shown} / ${total}` : `${total}`
+})
+
 const filteredProcesses = computed(() => {
   if (!filterTerm.value) return processes.value
   const term = filterTerm.value.toLowerCase()
@@ -155,27 +178,33 @@ const filteredProcesses = computed(() => {
 })
 
 async function loadProcesses() {
-  if (loading.value) return
-  loading.value = true
+  if (fetching) return
+  fetching = true
+  // Show DataTable skeleton only when the list is empty (first load)
+  if (processes.value.length === 0) initialLoading.value = true
   try {
     const r = await api.get('/processes/')
     processes.value = r.data.slice(0, MAX_DISPLAY)
     truncated.value = r.data.length >= MAX_DISPLAY
     error.value = null
+    // Brief pulse on the live dot
+    liveTick.value = true
+    setTimeout(() => { liveTick.value = false }, 400)
   } catch (e) {
     error.value = e.response?.data?.detail || 'Failed to load processes'
   } finally {
-    loading.value = false
+    initialLoading.value = false
+    fetching = false
   }
 }
 
 function statusSeverity(status) {
   return {
-    running:  'success',
-    sleeping: 'secondary',
+    running:   'success',
+    sleeping:  'secondary',
     disk_sleep: 'warn',
-    stopped:  'warn',
-    zombie:   'danger',
+    stopped:   'warn',
+    zombie:    'danger',
   }[status] ?? 'secondary'
 }
 
@@ -228,7 +257,7 @@ function killProcess(proc) {
   })
 }
 
-const { start, stop } = usePolling(loadProcesses, 5000)
+const { start, stop } = usePolling(loadProcesses, 2000)
 
 onMounted(() => {
   loadProcesses()
@@ -245,10 +274,41 @@ onUnmounted(stop)
 .page-icon { color: var(--p-green-400); font-size: var(--text-lg); }
 .header-actions { display: flex; align-items: center; gap: 8px; }
 .proc-table { flex: 1; }
+
+/* Live dot */
+.live-dot {
+  width: 7px; height: 7px;
+  border-radius: 50%;
+  background: var(--p-green-500);
+  flex-shrink: 0;
+  transition: background 0.15s, box-shadow 0.15s;
+}
+.live-dot.tick {
+  background: var(--p-green-400);
+  box-shadow: 0 0 6px var(--p-green-400);
+}
+
+/* CPU bar */
+.bar-cell { display: flex; align-items: center; gap: 6px; }
+.bar-track {
+  width: 40px; height: 4px;
+  background: var(--p-surface-border);
+  border-radius: 2px;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+.bar-fill {
+  height: 100%;
+  background: var(--p-green-500);
+  border-radius: 2px;
+  transition: width 0.4s ease;
+}
+.bar-fill.bar-hot { background: var(--p-red-400); }
+
 .proc-name { font-family: var(--font-mono); font-size: var(--text-sm); }
 .cell-mono { font-family: var(--font-mono); font-size: var(--text-sm); color: var(--p-text-muted-color); }
-.val-high { color: var(--p-red-400); }
-.row-actions { display: flex; gap: 4px; }
+.val-hot { color: var(--p-red-400); }
+.row-actions { display: flex; gap: 2px; }
 .ml-2 { margin-left: 6px; }
 .dialog-form { display: flex; flex-direction: column; gap: 12px; padding: 8px 0; }
 .form-field { display: flex; flex-direction: column; gap: 4px; }
