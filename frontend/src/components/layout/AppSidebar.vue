@@ -81,10 +81,13 @@ const monitorItems = computed(() => {
 
 const manageItems = computed(() => {
   const items = [
-    { to: '/scripts',   icon: 'pi-code',    label: 'Scripts',   resource: 'scripts' },
-    { to: '/pipelines', icon: 'pi-sitemap', label: 'Pipelines', resource: 'pipelines' },
-    { to: '/crontab',   icon: 'pi-clock',   label: 'Crontab',   resource: 'crontab' },
-    { to: '/logs', icon: 'pi-list', label: 'Logs', resource: 'logs' },
+    { to: '/scripts',        icon: 'pi-code',      label: 'Scripts',    resource: 'scripts' },
+    { to: '/pipelines',      icon: 'pi-sitemap',   label: 'Pipelines',  resource: 'pipelines' },
+    { to: '/crontab',        icon: 'pi-clock',     label: 'Crontab',    resource: 'crontab' },
+    { to: '/execution-logs', icon: 'pi-list',      label: 'Exec Logs',  resource: 'logs' },
+    { to: '/alerts',         icon: 'pi-bell',      label: 'Alerts',     resource: 'alerts' },
+    { to: '/logs',           icon: 'pi-file-edit', label: 'Logs',       resource: 'system_logs' },
+    { to: '/processes',      icon: 'pi-server',    label: 'Processes',  resource: 'processes' },
   ]
   return items.filter(i => auth.hasPermission(i.resource, 'read'))
 })
