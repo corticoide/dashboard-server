@@ -19,10 +19,12 @@ const routes = [
 
 const router = createRouter({ history: createWebHistory(), routes })
 
-router.beforeEach((to) => {
+router.beforeEach(async (to) => {
   const auth = useAuthStore()
   if (to.meta.requiresAuth && !auth.isAuthenticated) return '/login'
   if (to.path === '/login' && auth.isAuthenticated) return '/'
+  // Refresh permissions on every navigation so sidebar and guards reflect latest state
+  if (auth.isAuthenticated && !to.meta.public) await auth.fetchMe()
   if (to.meta.adminOnly && !auth.isAdmin) return '/'
   if (to.meta.resource && !auth.hasPermission(to.meta.resource, 'read')) return '/'
 })

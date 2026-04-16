@@ -82,7 +82,7 @@ const monitorItems = computed(() => {
 const manageItems = computed(() => {
   const items = [
     { to: '/scripts',   icon: 'pi-code',    label: 'Scripts',   resource: 'scripts' },
-    { to: '/pipelines', icon: 'pi-sitemap', label: 'Pipelines', resource: 'scripts' },
+    { to: '/pipelines', icon: 'pi-sitemap', label: 'Pipelines', resource: 'pipelines' },
     { to: '/crontab',   icon: 'pi-clock',   label: 'Crontab',   resource: 'crontab' },
     { to: '/logs', icon: 'pi-list', label: 'Logs', resource: 'logs' },
   ]
