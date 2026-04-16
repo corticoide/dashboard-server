@@ -171,6 +171,127 @@ def _network_cleanup_job() -> None:
         db.close()
 
 
+def _evaluate_condition(rule, db) -> tuple[bool, str]:
+    """Evaluate one alert rule. Returns (condition_met, detail_string)."""
+    if rule.condition_type in ("cpu", "ram", "disk"):
+        from backend.models.metrics_snapshot import MetricsSnapshot
+        snap = (
+            db.query(MetricsSnapshot)
+            .order_by(MetricsSnapshot.timestamp.desc())
+            .first()
+        )
+        if snap is None:
+            return False, ""
+        val = getattr(snap, f"{rule.condition_type}_percent")
+        met = val >= rule.threshold
+        detail = f"{rule.condition_type.upper()} at {val:.1f}%"
+        return met, detail
+    elif rule.condition_type == "service_down":
+        from backend.services.services_service import list_services
+        services = list_services()
+        svc = next(
+            (s for s in services
+             if s.name == rule.target or s.name == f"{rule.target}.service"),
+            None,
+        )
+        if svc is None:
+            return True, f"Service '{rule.target}' not found"
+        met = svc.active_state != "active"
+        detail = f"Service '{rule.target}' is {svc.active_state}"
+        return met, detail
+    elif rule.condition_type == "process_missing":
+        import psutil
+        names = {p.info["name"] for p in psutil.process_iter(["name"])}
+        met = rule.target not in names
+        detail = (
+            f"Process '{rule.target}' not running"
+            if met
+            else f"Process '{rule.target}' running"
+        )
+        return met, detail
+    return False, ""
+
+
+def _do_check_alerts(db: Session) -> int:
+    """Check all enabled alert rules; fire/recover as needed. Returns count of actions taken."""
+    from backend.models.alert import AlertRule, AlertFire
+    from backend.services.notification_service import send_alert_email, send_recovery_email
+
+    rules = db.query(AlertRule).filter(AlertRule.enabled == True).all()  # noqa: E712
+    actions = 0
+
+    for rule in rules:
+        try:
+            condition_met, detail = _evaluate_condition(rule, db)
+        except Exception:
+            logger.exception("Alert evaluation failed for rule id=%s name='%s'", rule.id, rule.name)
+            continue
+
+        active_fire = (
+            db.query(AlertFire)
+            .filter(AlertFire.rule_id == rule.id, AlertFire.status == "active")
+            .order_by(AlertFire.fired_at.desc())
+            .first()
+        )
+
+        if condition_met:
+            if active_fire is None:
+                fire = AlertFire(
+                    rule_id=rule.id,
+                    fired_at=datetime.utcnow(),
+                    status="active",
+                    detail=detail,
+                    email_sent=False,
+                )
+                db.add(fire)
+                db.flush()
+                try:
+                    send_alert_email(rule, fire)
+                    fire.email_sent = True
+                except Exception:
+                    logger.exception("Failed to send alert email for rule id=%s", rule.id)
+                db.commit()
+                actions += 1
+            else:
+                cooldown_secs = rule.cooldown_minutes * 60
+                elapsed = (datetime.utcnow() - active_fire.fired_at).total_seconds()
+                if elapsed >= cooldown_secs:
+                    active_fire.fired_at = datetime.utcnow()
+                    active_fire.detail = detail
+                    try:
+                        send_alert_email(rule, active_fire)
+                    except Exception:
+                        logger.exception("Failed to send cooldown email for rule id=%s", rule.id)
+                    db.commit()
+                    actions += 1
+        else:
+            if active_fire is not None:
+                active_fire.status = "recovered"
+                active_fire.recovered_at = datetime.utcnow()
+                if rule.notify_on_recovery and not active_fire.recovery_email_sent:
+                    try:
+                        send_recovery_email(rule, active_fire)
+                        active_fire.recovery_email_sent = True
+                    except Exception:
+                        logger.exception("Failed to send recovery email for rule id=%s", rule.id)
+                db.commit()
+                actions += 1
+
+    return actions
+
+
+def _check_alerts_job() -> None:
+    """APScheduler job: evaluate alert rules every 60 seconds."""
+    from backend.database import SessionLocal
+    db = SessionLocal()
+    try:
+        _do_check_alerts(db)
+    except Exception:
+        logger.exception("Alert check job failed")
+    finally:
+        db.close()
+
+
 _scheduler = None
 
 
@@ -188,6 +309,7 @@ def init_scheduler():
     _scheduler.add_job(_metrics_cleanup_job, CronTrigger(hour=2, minute=15), id="metrics_cleanup")
     _scheduler.add_job(_network_sample_job, IntervalTrigger(seconds=60), id="network_sample")
     _scheduler.add_job(_network_cleanup_job, CronTrigger(hour=2, minute=30), id="network_cleanup")
+    _scheduler.add_job(_check_alerts_job, IntervalTrigger(seconds=60), id="check_alerts")
     _scheduler.start()
     logger.info("Background scheduler started")
 

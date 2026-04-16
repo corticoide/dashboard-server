@@ -190,3 +190,124 @@ def test_send_recovery_email_calls_smtp(db_session):
         send_recovery_email(rule, fire)
 
     mock_smtp.sendmail.assert_called_once()
+
+
+def test_do_check_alerts_fires_on_cpu_threshold(db_session):
+    from unittest.mock import patch
+    from backend.models.alert import AlertRule, AlertFire
+    from backend.models.metrics_snapshot import MetricsSnapshot
+    from backend.scheduler import _do_check_alerts
+
+    db_session.add(MetricsSnapshot(
+        timestamp=datetime.utcnow(),
+        cpu_percent=90.0, ram_percent=50.0, ram_used_gb=4.0,
+        disk_percent=40.0, disk_used_gb=20.0,
+    ))
+    rule = AlertRule(
+        name="CPU High", enabled=True, condition_type="cpu",
+        threshold=85.0, cooldown_minutes=60,
+        notify_on_recovery=True, email_to="ops@test.com",
+    )
+    db_session.add(rule)
+    db_session.commit()
+
+    with patch("backend.services.notification_service.send_alert_email") as mock_send:
+        count = _do_check_alerts(db_session)
+
+    assert count == 1
+    mock_send.assert_called_once()
+    fire = db_session.query(AlertFire).first()
+    assert fire is not None
+    assert fire.status == "active"
+    assert fire.email_sent is True
+    assert "90.0%" in fire.detail
+
+
+def test_do_check_alerts_no_fire_below_threshold(db_session):
+    from unittest.mock import patch
+    from backend.models.alert import AlertRule, AlertFire
+    from backend.models.metrics_snapshot import MetricsSnapshot
+    from backend.scheduler import _do_check_alerts
+
+    db_session.add(MetricsSnapshot(
+        timestamp=datetime.utcnow(),
+        cpu_percent=70.0, ram_percent=50.0, ram_used_gb=4.0,
+        disk_percent=40.0, disk_used_gb=20.0,
+    ))
+    rule = AlertRule(
+        name="CPU High", enabled=True, condition_type="cpu",
+        threshold=85.0, cooldown_minutes=60,
+        notify_on_recovery=True, email_to="ops@test.com",
+    )
+    db_session.add(rule)
+    db_session.commit()
+
+    with patch("backend.services.notification_service.send_alert_email") as mock_send:
+        count = _do_check_alerts(db_session)
+
+    assert count == 0
+    mock_send.assert_not_called()
+    assert db_session.query(AlertFire).count() == 0
+
+
+def test_do_check_alerts_recovery(db_session):
+    from unittest.mock import patch
+    from backend.models.alert import AlertRule, AlertFire
+    from backend.models.metrics_snapshot import MetricsSnapshot
+    from backend.scheduler import _do_check_alerts
+
+    db_session.add(MetricsSnapshot(
+        timestamp=datetime.utcnow(),
+        cpu_percent=60.0, ram_percent=50.0, ram_used_gb=4.0,
+        disk_percent=40.0, disk_used_gb=20.0,
+    ))
+    rule = AlertRule(
+        name="CPU High", enabled=True, condition_type="cpu",
+        threshold=85.0, cooldown_minutes=60,
+        notify_on_recovery=True, email_to="ops@test.com",
+    )
+    db_session.add(rule)
+    db_session.flush()
+
+    fire = AlertFire(
+        rule_id=rule.id, fired_at=datetime.utcnow(), status="active",
+        detail="CPU at 90%", email_sent=True, recovery_email_sent=False,
+    )
+    db_session.add(fire)
+    db_session.commit()
+
+    with patch("backend.services.notification_service.send_recovery_email") as mock_recover:
+        count = _do_check_alerts(db_session)
+
+    assert count == 1
+    mock_recover.assert_called_once()
+    db_session.refresh(fire)
+    assert fire.status == "recovered"
+    assert fire.recovered_at is not None
+    assert fire.recovery_email_sent is True
+
+
+def test_do_check_alerts_disabled_rule_skipped(db_session):
+    from unittest.mock import patch
+    from backend.models.alert import AlertRule
+    from backend.models.metrics_snapshot import MetricsSnapshot
+    from backend.scheduler import _do_check_alerts
+
+    db_session.add(MetricsSnapshot(
+        timestamp=datetime.utcnow(),
+        cpu_percent=95.0, ram_percent=50.0, ram_used_gb=4.0,
+        disk_percent=40.0, disk_used_gb=20.0,
+    ))
+    rule = AlertRule(
+        name="CPU High", enabled=False, condition_type="cpu",
+        threshold=85.0, cooldown_minutes=60,
+        notify_on_recovery=True, email_to="ops@test.com",
+    )
+    db_session.add(rule)
+    db_session.commit()
+
+    with patch("backend.services.notification_service.send_alert_email") as mock_send:
+        count = _do_check_alerts(db_session)
+
+    assert count == 0
+    mock_send.assert_not_called()
