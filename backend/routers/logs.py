@@ -5,7 +5,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy import func, case
 
 from backend.database import get_db
-from backend.dependencies import get_current_user
+from backend.dependencies import require_permission, require_role
 from backend.models.execution_log import ExecutionLog
 from backend.schemas.logs import ExecutionLogOut, ExecutionStatsOut
 from backend.services.cache import TTLCache
@@ -13,16 +13,10 @@ from backend.services.cache import TTLCache
 router = APIRouter(prefix="/api/logs", tags=["logs"])
 
 _count_cache: TTLCache = TTLCache()
-_COUNT_TTL = 300  # seconds
+_COUNT_TTL = 300
 
 
-def _count_key(
-    script: Optional[str],
-    username: Optional[str],
-    exit_code: Optional[int],
-    from_date: Optional[datetime],
-    to_date: Optional[datetime],
-) -> str:
+def _count_key(script, username, exit_code, from_date, to_date) -> str:
     fd = from_date.isoformat() if from_date else None
     td = to_date.isoformat() if to_date else None
     return f"{script}|{username}|{exit_code}|{fd}|{td}"
@@ -38,7 +32,7 @@ def list_executions(
     limit: int = Query(50, ge=1, le=500),
     offset: int = Query(0, ge=0),
     db: Session = Depends(get_db),
-    user=Depends(get_current_user),
+    user=Depends(require_permission("logs", "read")),
     response: Response = None,
 ):
     q = db.query(ExecutionLog).order_by(ExecutionLog.started_at.desc())
@@ -67,7 +61,7 @@ def list_executions(
 @router.get("/executions/stats", response_model=ExecutionStatsOut)
 def execution_stats(
     db: Session = Depends(get_db),
-    user=Depends(get_current_user),
+    user=Depends(require_permission("logs", "read")),
 ):
     cutoff = datetime.now(timezone.utc) - timedelta(hours=24)
     row = db.query(
@@ -90,9 +84,9 @@ def execution_stats(
 @router.post("/maintenance/cleanup")
 def run_cleanup(
     db: Session = Depends(get_db),
-    user=Depends(get_current_user),
+    user=Depends(require_role("admin")),
 ):
-    """Manually trigger log retention cleanup."""
+    """Manually trigger log retention cleanup. Admin only — destructive operation."""
     from backend.scheduler import _do_cleanup
     from backend.config import settings
     deleted = _do_cleanup(db, settings.log_retention_days)

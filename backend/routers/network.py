@@ -5,7 +5,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy import func
 
 from backend.database import get_db
-from backend.dependencies import get_current_user
+from backend.dependencies import require_permission
 from backend.models.network_snapshot import NetworkSnapshot
 from backend.schemas.network import InterfaceInfo, ConnectionInfo, ConnectionSummary, BandwidthPoint
 from backend.services.network_service import (
@@ -18,13 +18,12 @@ router = APIRouter(prefix="/api/network", tags=["network"])
 
 _iface_cache: TTLCache = TTLCache()
 _conn_summary_cache: TTLCache = TTLCache()
-_IFACE_TTL = 3.0        # 3s — interfaces change rarely
-_SUMMARY_TTL = 5.0      # 5s — connection summary
+_IFACE_TTL = 3.0
+_SUMMARY_TTL = 5.0
 
 
 @router.get("/interfaces", response_model=List[InterfaceInfo])
-def list_interfaces(user=Depends(get_current_user)):
-    """Live interface stats. Cached 3s to avoid hammering psutil."""
+def list_interfaces(user=Depends(require_permission("network", "read"))):
     cached = _iface_cache.get("ifaces")
     if cached is not None:
         return cached
@@ -37,9 +36,8 @@ def list_interfaces(user=Depends(get_current_user)):
 def list_connections(
     status_filter: Optional[str] = Query(None, description="Filter by connection status e.g. ESTABLISHED"),
     proto_filter: Optional[str] = Query(None, description="TCP or UDP"),
-    user=Depends(get_current_user),
+    user=Depends(require_permission("network", "read")),
 ):
-    """Active connections. Optionally filter by status or protocol."""
     conns = get_active_connections()
     if status_filter:
         conns = [c for c in conns if c["status"] == status_filter.upper()]
@@ -49,8 +47,7 @@ def list_connections(
 
 
 @router.get("/connections/summary", response_model=ConnectionSummary)
-def connections_summary(user=Depends(get_current_user)):
-    """Aggregate connection counts by state. Useful for enterprise status boards."""
+def connections_summary(user=Depends(require_permission("network", "read"))):
     cached = _conn_summary_cache.get("summary")
     if cached is not None:
         return ConnectionSummary(counts=cached)
@@ -64,12 +61,8 @@ def bandwidth_history(
     interface: Optional[str] = Query(None, description="Filter by interface name"),
     hours: int = Query(24, ge=1, le=720, description="Hours of history (1–720)"),
     db: Session = Depends(get_db),
-    user=Depends(get_current_user),
+    user=Depends(require_permission("network", "read")),
 ):
-    """
-    Historical bandwidth data from network_snapshots.
-    Auto-downsamples to ≤1440 points for long ranges.
-    """
     cutoff = datetime.utcnow() - timedelta(hours=hours)
     q = db.query(NetworkSnapshot).filter(NetworkSnapshot.timestamp >= cutoff)
     if interface:
@@ -77,7 +70,6 @@ def bandwidth_history(
     q = q.order_by(NetworkSnapshot.timestamp.asc())
     rows = q.all()
 
-    # Downsample: keep max 1440 points (1 per min for 24h)
     if len(rows) > 1440:
         step = len(rows) // 1440
         rows = rows[::step]
@@ -96,7 +88,7 @@ def bandwidth_history(
 @router.get("/interfaces/names")
 def interface_names(
     db: Session = Depends(get_db),
-    user=Depends(get_current_user),
+    user=Depends(require_permission("network", "read")),
 ):
     """Return list of distinct interface names seen in snapshots (for filter dropdowns)."""
     rows = db.query(NetworkSnapshot.interface).distinct().all()
@@ -104,12 +96,12 @@ def interface_names(
 
 
 @router.get("/devices")
-def arp_devices(user=Depends(get_current_user)):
+def arp_devices(user=Depends(require_permission("network", "read"))):
     """Return LAN devices found in the ARP table (/proc/net/arp)."""
     return get_arp_devices()
 
 
 @router.get("/config")
-def network_config(user=Depends(get_current_user)):
+def network_config(user=Depends(require_permission("network", "read"))):
     """Return network configuration: DNS servers and default gateways."""
     return get_network_config()
