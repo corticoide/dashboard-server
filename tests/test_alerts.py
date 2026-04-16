@@ -130,3 +130,63 @@ def test_list_fires(test_app):
     r = test_app.get("/api/alerts/fires", headers=headers)
     assert r.status_code == 200
     assert isinstance(r.json(), list)
+
+
+def test_send_alert_email_calls_smtp(db_session):
+    from unittest.mock import patch, MagicMock
+    from backend.models.alert import AlertRule, AlertFire
+    from backend.services.notification_service import send_alert_email
+
+    rule = AlertRule(
+        name="CPU High", enabled=True, condition_type="cpu",
+        threshold=85.0, cooldown_minutes=60,
+        notify_on_recovery=True, email_to="ops@test.com",
+    )
+    db_session.add(rule)
+    db_session.flush()
+    fire = AlertFire(
+        rule_id=rule.id, fired_at=datetime.utcnow(),
+        status="active", detail="CPU at 87.3%",
+        email_sent=False, recovery_email_sent=False,
+    )
+    db_session.add(fire)
+    db_session.commit()
+
+    with patch("backend.services.notification_service.smtplib.SMTP") as mock_smtp_cls:
+        mock_smtp = MagicMock()
+        mock_smtp_cls.return_value.__enter__ = MagicMock(return_value=mock_smtp)
+        mock_smtp_cls.return_value.__exit__ = MagicMock(return_value=False)
+        send_alert_email(rule, fire)
+
+    mock_smtp.sendmail.assert_called_once()
+    args = mock_smtp.sendmail.call_args[0]
+    assert args[1] == "ops@test.com"
+
+
+def test_send_recovery_email_calls_smtp(db_session):
+    from unittest.mock import patch, MagicMock
+    from backend.models.alert import AlertRule, AlertFire
+    from backend.services.notification_service import send_recovery_email
+
+    rule = AlertRule(
+        name="RAM High", enabled=True, condition_type="ram",
+        threshold=90.0, cooldown_minutes=30,
+        notify_on_recovery=True, email_to="ops@test.com",
+    )
+    db_session.add(rule)
+    db_session.flush()
+    fire = AlertFire(
+        rule_id=rule.id, fired_at=datetime.utcnow(),
+        recovered_at=datetime.utcnow(), status="recovered",
+        detail="RAM at 91%", email_sent=True, recovery_email_sent=False,
+    )
+    db_session.add(fire)
+    db_session.commit()
+
+    with patch("backend.services.notification_service.smtplib.SMTP") as mock_smtp_cls:
+        mock_smtp = MagicMock()
+        mock_smtp_cls.return_value.__enter__ = MagicMock(return_value=mock_smtp)
+        mock_smtp_cls.return_value.__exit__ = MagicMock(return_value=False)
+        send_recovery_email(rule, fire)
+
+    mock_smtp.sendmail.assert_called_once()
