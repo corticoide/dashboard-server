@@ -44,11 +44,17 @@ def require_role(minimum_role: str):
     return checker
 
 def check_permission(db: Session, user: User, resource: str, action: str) -> bool:
+    if user.role == UserRole.admin:
+        return True
     cache_key = f"{user.role.value}|{resource}|{action}"
     cached = _perm_cache.get(cache_key)
     if cached is not None:
         return cached
-    perm = db.query(Permission).filter(Permission.role == user.role, Permission.resource == resource, Permission.action == action).first()
+    perm = db.query(Permission).filter(
+        Permission.role == user.role,
+        Permission.resource == resource,
+        Permission.action == action,
+    ).first()
     result = perm is not None
     _perm_cache.set(cache_key, result, _PERM_TTL)
     return result
