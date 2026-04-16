@@ -2,6 +2,45 @@
 
 ---
 
+## 2026-04-16 — Alerts, System Logs & Process Manager
+
+**Description:** Three new features implemented via TDD plan (13 tasks).
+
+**Alerts & Notifications** — configurable alert rules (CPU/RAM/disk/service_down/process_missing), fire tracking with cooldown, email notifications via SMTP, scheduler check every 60s. Frontend: two-panel splitter with rule list (status dots), editor form, fire history DataTable.
+
+**System Logs Viewer** — `/var/log` tree (recursive, no symlinks), last-N lines read, WebSocket real-time tail (`/api/ws/log-tail`). Frontend: file tree with expand/collapse, log output panel with search, auto-scroll, pause/resume, line colouring (error=red, warn=orange), MAX_LINES=2000.
+
+**Process Manager** — psutil list (capped at 500, sorted by CPU desc), kill endpoint, watch/unwatch (creates AlertRule condition_type='process_missing'). Frontend: DataTable with 5s polling, filter by name, kill via ConfirmDialog, watch via Dialog (email + cooldown).
+
+**Files modified:**
+- `backend/models/alert.py` (new) — AlertRule, AlertFire models with indexes
+- `backend/schemas/alert.py` (new) — Pydantic schemas
+- `backend/routers/alerts.py` (new) — CRUD + toggle + fire history endpoints
+- `backend/routers/system_logs.py` (new) — tree + read endpoints
+- `backend/routers/ws.py` — added /log-tail WebSocket endpoint
+- `backend/routers/processes.py` (new) — list/kill/watch/unwatch endpoints
+- `backend/services/notification_service.py` (new) — SMTP email alerts
+- `backend/scheduler.py` — added _evaluate_condition, _do_check_alerts, _check_alerts_job
+- `backend/config.py` — alerts_retention_days setting
+- `backend/models/__init__.py` — full model registry for correct table creation
+- `backend/main.py` — wired new routers
+- `backend/scripts/init_db.py` — operator/readonly defaults for alerts/system_logs/processes
+- `backend/scripts/add_indexes.py` — 5 new alert indexes
+- `frontend/src/views/AlertsView.vue` (new)
+- `frontend/src/views/SystemLogsView.vue` (new)
+- `frontend/src/views/ProcessesView.vue` (new)
+- `frontend/src/router/index.js` — 3 new routes
+- `frontend/src/components/layout/AppSidebar.vue` — 3 new nav items
+- `frontend/src/views/AdminPermissionsView.vue` — alerts/system_logs/processes rows added
+
+**Bugs fixed during implementation:**
+- `db_session` fixture missing tables: fixed by making `backend/models/__init__.py` a full model registry
+- Mock path for lazy imports: must patch at source module (`backend.services.notification_service`) not consuming module
+- `Path.is_dir(follow_symlinks=False)` requires Python 3.13+: replaced with `is_dir() and not is_symlink()`
+- WS disconnect on bad token raises at connect time: wrapped in try/except in test
+
+---
+
 ## 2026-04-16 — Sistema de Roles y Permisos (implementación completa)
 
 **Descripción:** Se completó el sistema de permisos de extremo a extremo. Anteriormente la tabla `Permission` existía pero nunca se usaba — toda la protección era via `require_role`. Ahora todos los endpoints del backend usan `require_permission(resource, action)`, la matriz de defaults se siembra con 4 acciones (read/write/delete/execute), admin bypassa la tabla completamente, y una nueva UI `/admin/permissions` permite al admin editar permisos por rol en tiempo real.
