@@ -275,7 +275,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, onUnmounted, nextTick } from 'vue'
+import { ref, computed, onMounted, onUnmounted, nextTick } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useToast } from 'primevue/usetoast'
 import { useConfirm } from 'primevue/useconfirm'
@@ -311,7 +311,7 @@ const route = useRoute()
 const toast = useToast()
 const confirm = useConfirm()
 
-const isAdmin = auth.role === 'admin'
+const isAdmin = computed(() => auth.isAdmin)
 
 // Listbox binding (actual store object) vs. working copy (for mutation)
 const listboxItem = ref(null)

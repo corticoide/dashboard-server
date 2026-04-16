@@ -347,7 +347,7 @@ import StepConfigEditor from '../components/pipelines/StepConfigEditor.vue'
 const toast = useToast()
 const confirm = useConfirm()
 const auth = useAuthStore()
-const isAdmin = auth.role === 'admin'
+const isAdmin = computed(() => auth.isAdmin)
 
 const pipelines = ref([])
 const loading = ref(false)

@@ -12,7 +12,8 @@ const routes = [
   { path: '/network',  component: () => import('../views/NetworkView.vue'),  meta: { requiresAuth: true, title: 'Network', resource: 'network' } },
   { path: '/history', component: () => import('../views/HistoryView.vue'),  meta: { requiresAuth: true, title: 'History', resource: 'system'  } },
   { path: '/admin/users', component: () => import('../views/AdminUsersView.vue'), meta: { requiresAuth: true, title: 'Users', adminOnly: true } },
-  { path: '/pipelines', component: () => import('../views/PipelinesView.vue'), meta: { requiresAuth: true, title: 'Pipelines', resource: 'scripts' } },
+  { path: '/pipelines', component: () => import('../views/PipelinesView.vue'), meta: { requiresAuth: true, title: 'Pipelines', resource: 'pipelines' } },
+  { path: '/admin/permissions', component: () => import('../views/AdminPermissionsView.vue'), meta: { requiresAuth: true, title: 'Permissions', adminOnly: true } },
   { path: '/:pathMatch(.*)*', redirect: '/' },
 ]
 

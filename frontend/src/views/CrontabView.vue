@@ -33,24 +33,22 @@
                   <span class="empty-text">No cron jobs configured.</span>
                 </div>
               </template>
-              <Column header="EXPRESSION">
+              <Column header="SCHEDULE">
                 <template #body="{ data }">
-                  <div class="expr-cell">
-                    <code class="cron-expr">{{ entryExpr(data) }}</code>
-                    <button
-                      v-if="matchedFavorite(data)"
-                      class="star-link-btn"
-                      v-tooltip.top="'View in Scripts'"
-                      @click.stop="navigateToLinkedScript(data)"
-                    >
-                      <i class="pi pi-star star-icon" />
-                    </button>
+                  <div class="schedule-cell">
+                    <div class="expr-row">
+                      <code class="cron-expr">{{ entryExpr(data) }}</code>
+                      <button
+                        v-if="matchedFavorite(data)"
+                        class="star-link-btn"
+                        v-tooltip.top="'View in Scripts'"
+                        @click.stop="navigateToLinkedScript(data)"
+                      >
+                        <i class="pi pi-star star-icon" />
+                      </button>
+                    </div>
+                    <span class="desc-cell">{{ describeEntry(data) }}</span>
                   </div>
-                </template>
-              </Column>
-              <Column header="DESCRIPTION">
-                <template #body="{ data }">
-                  <span class="desc-cell">{{ describeEntry(data) }}</span>
                 </template>
               </Column>
               <Column header="COMMAND" style="max-width: 140px">
@@ -425,7 +423,7 @@ const toast = useToast()
 const confirm = useConfirm()
 const auth = useAuthStore()
 const scriptsStore = useScriptsStore()
-const isAdmin = auth.role === 'admin'
+const isAdmin = computed(() => auth.isAdmin)
 
 // ── Wizard state ──────────────────────────────────────────────────────────────
 const step = ref(1)
@@ -787,6 +785,7 @@ async function doDelete(entry) {
     const { data } = await api.delete(`/crontab/${entry.id}`)
     entries.value = data
     if (editing.value?.id === entry.id) cancelEdit()
+    toast.add({ severity: 'success', summary: 'Deleted', detail: `Entry "${entryExpr(entry)}" deleted.`, life: 3000 })
   } catch (e) {
     toast.add({ severity: 'error', summary: 'Delete failed', detail: e.response?.data?.detail || 'Delete failed', life: 5000 })
   }
@@ -869,6 +868,8 @@ onMounted(() => {
 }
 :deep(.entries-table .p-datatable-tbody td) { padding: 5px 10px; }
 
+.schedule-cell { display: flex; flex-direction: column; gap: 2px; }
+.expr-row { display: flex; align-items: center; gap: 5px; }
 .expr-cell { display: flex; align-items: center; gap: 5px; }
 .cron-expr { font-family: var(--font-mono); font-size: var(--text-sm); color: var(--brand-orange); font-weight: 600; }
 .star-icon { color: var(--p-yellow-500); font-size: var(--text-xs); }

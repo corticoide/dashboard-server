@@ -46,6 +46,10 @@
           <i class="pi pi-users nav-icon" />
           <span class="nav-label">Users</span>
         </RouterLink>
+        <RouterLink class="nav-item" to="/admin/permissions" :class="{ active: route.path === '/admin/permissions' }">
+          <i class="pi pi-shield nav-icon" />
+          <span class="nav-label">Permissions</span>
+        </RouterLink>
       </div>
     </nav>
 
