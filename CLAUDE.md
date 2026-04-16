@@ -171,6 +171,20 @@ All config via `.env` file (see `.env.example`). Key variables:
 - **Background scheduler**: `backend/scheduler.py` runs via FastAPI lifespan. All periodic tasks go here. See `serverdash-performance` skill for the required pattern.
 - **LOG_RETENTION_DAYS**: execution logs older than this (default 30) are deleted nightly at 2 AM. Configurable via `.env`.
 
+## Permissions for New Features
+
+Every new feature added to ServerDash MUST follow this checklist:
+
+1. **Identify or create a resource name** (e.g., `backups`, `alerts`)
+2. **Define which actions apply** from: `read`, `write`, `delete`, `execute`
+3. **Add default permissions** to `DEFAULT_PERMISSIONS` in `backend/scripts/init_db.py` for `operator` and `readonly` roles (admin always has everything — do NOT add admin entries)
+4. **Use `require_permission(resource, action)`** in every new backend endpoint — never use bare `get_current_user` for protected resources
+5. **Use `auth.hasPermission(resource, action)`** in the frontend to conditionally render action buttons and filter nav items
+6. **Add the resource to `MATRIX_ROWS`** in `frontend/src/views/AdminPermissionsView.vue` so the admin can edit it from the UI
+7. **Update the default matrix** in `docs/superpowers/specs/2026-04-16-roles-permissions-design.md`
+
+**Never use `get_current_user` directly** in a router that controls access to a resource — always use `require_permission`.
+
 ## Development Notes
 
 ### Documentation & Logging

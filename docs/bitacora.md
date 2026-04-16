@@ -2,6 +2,29 @@
 
 ---
 
+## 2026-04-16 — Sistema de Roles y Permisos (implementación completa)
+
+**Descripción:** Se completó el sistema de permisos de extremo a extremo. Anteriormente la tabla `Permission` existía pero nunca se usaba — toda la protección era via `require_role`. Ahora todos los endpoints del backend usan `require_permission(resource, action)`, la matriz de defaults se siembra con 4 acciones (read/write/delete/execute), admin bypassa la tabla completamente, y una nueva UI `/admin/permissions` permite al admin editar permisos por rol en tiempo real.
+
+**Archivos modificados:**
+- `backend/scripts/init_db.py` — DEFAULT_PERMISSIONS actualizado (4 acciones, sin admin en tabla, agregado pipelines)
+- `backend/dependencies.py` — admin bypass en check_permission
+- `backend/routers/admin.py` — endpoints GET/PUT /api/admin/permissions
+- `backend/routers/services.py`, `files.py`, `scripts.py`, `crontab.py`, `pipelines.py`, `system.py`, `logs.py`, `network.py`, `metrics_history.py` — migrados a require_permission
+- `frontend/src/views/AdminPermissionsView.vue` — nuevo editor de matriz de permisos
+- `frontend/src/views/CrontabView.vue`, `PipelinesView.vue`, `ScriptsView.vue` — isAdmin ahora es computed reactivo
+- `frontend/src/router/index.js` — resource de pipelines corregido, ruta /admin/permissions agregada
+- `frontend/src/components/layout/AppSidebar.vue` — link a Permissions agregado
+- `CLAUDE.md` — regla "Permissions for New Features" agregada
+
+**Bugs corregidos:**
+- El sidebar aparecía vacío para usuarios no-admin porque la tabla Permission nunca se sembraba para operator/readonly
+- `const isAdmin = auth.role === 'admin'` en 3 vistas era no-reactivo
+- La ruta `/pipelines` tenía `resource: 'scripts'` en lugar de `'pipelines'`
+- Operadores podían ser bloqueados por el permission check del sidebar aun teniendo permisos válidos
+
+---
+
 ## Roadmap de Features
 
 ### Features en desarrollo
