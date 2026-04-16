@@ -6,18 +6,28 @@ from backend.services.auth_service import hash_password
 from backend.config import settings
 import backend.models  # ensure models are registered
 
-RESOURCE_LIST = ["system", "services", "files", "scripts", "crontab", "logs", "network"]
-
+# Admin is NOT in this dict — admin always bypasses the Permission table.
 DEFAULT_PERMISSIONS = {
-    UserRole.admin: [(r, a) for r in RESOURCE_LIST for a in ("read", "write", "execute")],
-    UserRole.operator: (
-        [(r, "read") for r in RESOURCE_LIST]
-        + [("services", "write"), ("services", "execute"),
-           ("scripts", "write"), ("scripts", "execute"),
-           ("crontab", "write"), ("crontab", "execute"),
-           ("files", "write")]
-    ),
-    UserRole.readonly: [(r, "read") for r in RESOURCE_LIST],
+    UserRole.operator: [
+        ("system",    "read"),
+        ("services",  "read"),  ("services",  "write"), ("services",  "execute"),
+        ("files",     "read"),  ("files",     "write"),
+        ("network",   "read"),
+        ("scripts",   "read"),  ("scripts",   "write"), ("scripts",   "execute"),
+        ("crontab",   "read"),
+        ("logs",      "read"),
+        ("pipelines", "read"),  ("pipelines", "execute"),
+    ],
+    UserRole.readonly: [
+        ("system",    "read"),
+        ("services",  "read"),
+        ("files",     "read"),
+        ("network",   "read"),
+        ("scripts",   "read"),
+        ("crontab",   "read"),
+        ("logs",      "read"),
+        ("pipelines", "read"),
+    ],
 }
 
 def seed_permissions(db):
