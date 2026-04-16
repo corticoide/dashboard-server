@@ -1,14 +1,17 @@
 from fastapi import APIRouter, Depends, HTTPException, status
-from typing import List
+from typing import List, Dict
 from sqlalchemy.orm import Session
 from backend.database import get_db
-from backend.dependencies import require_role
+from backend.dependencies import require_role, _perm_cache
 from backend.models.user import User, UserRole
-from backend.schemas.users import UserOut, UserCreate, UserUpdate
+from backend.models.permission import Permission
+from backend.schemas.users import UserOut, UserCreate, UserUpdate, PermissionOut
 from backend.services.auth_service import hash_password
 
 router = APIRouter(prefix="/api/admin", tags=["admin"])
 
+
+# ── Users ─────────────────────────────────────────────────────────────────────
 
 @router.get("/users", response_model=List[UserOut])
 def list_users(db: Session = Depends(get_db), user=Depends(require_role("admin"))):
@@ -59,4 +62,36 @@ def delete_user(user_id: int, db: Session = Depends(get_db), current_user=Depend
         raise HTTPException(status_code=404, detail="User not found")
     db.delete(target)
     db.commit()
+    return {"ok": True}
+
+
+# ── Permissions ───────────────────────────────────────────────────────────────
+
+@router.get("/permissions", response_model=Dict[str, List[PermissionOut]])
+def list_permissions(db: Session = Depends(get_db), user=Depends(require_role("admin"))):
+    result: Dict[str, List[PermissionOut]] = {}
+    for role in [UserRole.operator, UserRole.readonly]:
+        perms = db.query(Permission).filter(Permission.role == role).all()
+        result[role.value] = [PermissionOut(resource=p.resource, action=p.action) for p in perms]
+    return result
+
+
+@router.put("/permissions/{role}")
+def update_permissions(
+    role: str,
+    body: List[PermissionOut],
+    db: Session = Depends(get_db),
+    user=Depends(require_role("admin")),
+):
+    try:
+        target_role = UserRole(role)
+    except ValueError:
+        raise HTTPException(status_code=400, detail=f"Invalid role: {role}")
+    if target_role == UserRole.admin:
+        raise HTTPException(status_code=400, detail="Cannot edit admin permissions")
+    db.query(Permission).filter(Permission.role == target_role).delete()
+    for p in body:
+        db.add(Permission(role=target_role, resource=p.resource, action=p.action))
+    db.commit()
+    _perm_cache.clear()
     return {"ok": True}

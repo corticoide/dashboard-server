@@ -74,3 +74,63 @@ def test_inactive_user_cannot_login(test_app):
     test_app.patch(f"/api/admin/users/{user_id}", json={"is_active": False}, headers={"Authorization": f"Bearer {token}"})
     r = test_app.post("/api/auth/login", json={"username": "inactive", "password": "pass"})
     assert r.status_code == 403
+
+
+def test_list_permissions(test_app):
+    token = get_token(test_app)
+    r = test_app.get("/api/admin/permissions", headers={"Authorization": f"Bearer {token}"})
+    assert r.status_code == 200
+    data = r.json()
+    assert "operator" in data
+    assert "readonly" in data
+    ro = data["readonly"]
+    assert all(p["action"] == "read" for p in ro)
+    op = data["operator"]
+    assert any(p["resource"] == "scripts" and p["action"] == "execute" for p in op)
+
+
+def test_update_permissions_operator(test_app):
+    token = get_token(test_app)
+    new_perms = [
+        {"resource": "system", "action": "read"},
+        {"resource": "logs",   "action": "read"},
+    ]
+    r = test_app.put(
+        "/api/admin/permissions/operator",
+        json=new_perms,
+        headers={"Authorization": f"Bearer {token}"},
+    )
+    assert r.status_code == 200
+    r2 = test_app.get("/api/admin/permissions", headers={"Authorization": f"Bearer {token}"})
+    op = r2.json()["operator"]
+    assert len(op) == 2
+    assert any(p["resource"] == "system" and p["action"] == "read" for p in op)
+
+
+def test_update_permissions_admin_forbidden(test_app):
+    token = get_token(test_app)
+    r = test_app.put(
+        "/api/admin/permissions/admin",
+        json=[{"resource": "system", "action": "read"}],
+        headers={"Authorization": f"Bearer {token}"},
+    )
+    assert r.status_code == 400
+
+
+def test_update_permissions_invalid_role(test_app):
+    token = get_token(test_app)
+    r = test_app.put(
+        "/api/admin/permissions/superuser",
+        json=[{"resource": "system", "action": "read"}],
+        headers={"Authorization": f"Bearer {token}"},
+    )
+    assert r.status_code == 400
+
+
+def test_non_admin_cannot_list_permissions(test_app):
+    admin_token = get_token(test_app)
+    test_app.post("/api/admin/users", json={"username": "op1", "password": "pass", "role": "operator"},
+                  headers={"Authorization": f"Bearer {admin_token}"})
+    op_token = get_token(test_app, "op1", "pass")
+    r = test_app.get("/api/admin/permissions", headers={"Authorization": f"Bearer {op_token}"})
+    assert r.status_code == 403
