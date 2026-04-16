@@ -69,6 +69,13 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import api from '../api/client.js'
+import Card from 'primevue/card'
+import Divider from 'primevue/divider'
+import DataTable from 'primevue/datatable'
+import Column from 'primevue/column'
+import Tag from 'primevue/tag'
+import Checkbox from 'primevue/checkbox'
+import ProgressSpinner from 'primevue/progressspinner'
 
 // All resource×action combinations managed by the permission system
 const MATRIX_ROWS = [
