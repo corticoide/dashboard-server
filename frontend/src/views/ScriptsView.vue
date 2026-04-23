@@ -20,6 +20,11 @@
             />
           </div>
 
+          <!-- Shell prompt bar -->
+          <div class="prompt-bar">
+            <span class="prompt-user">root@srv-01</span><span class="prompt-sep">:</span><span class="prompt-path">/opt/scripts</span><span class="prompt-dollar"> $ ls -la</span>
+          </div>
+
           <!-- Running indicator strip -->
           <div v-if="polling" class="running-strip">
             <span class="running-dot" />
@@ -41,6 +46,7 @@
             >
               <template #option="{ option }">
                 <div class="list-option" :class="{ 'option--running': polling && selected?.id === option.id }">
+                  <span class="perms-str">{{ option.run_as_root ? '-rwsr-xr-x' : '-rwxr-xr-x' }}</span>
                   <Tag :value="shortRunner(option.runner)" :severity="runnerSeverity(option.runner)" class="runner-tag" />
                   <div class="option-info">
                     <span class="option-name">{{ fileName(option.path) }}</span>
@@ -542,9 +548,23 @@ async function loadHistory() {
   flex-direction: column;
   height: 100%;
   border-right: 1px solid var(--p-surface-border);
-  background: var(--p-surface-card);
+  background: var(--p-surface-900);
   overflow: hidden;
 }
+
+/* Shell prompt bar */
+.prompt-bar {
+  padding: 5px 10px;
+  border-bottom: 1px solid var(--p-surface-border);
+  flex-shrink: 0;
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  line-height: 1.4;
+}
+.prompt-user   { color: var(--p-green-500); font-weight: 600; }
+.prompt-sep    { color: var(--p-text-muted-color); }
+.prompt-path   { color: var(--p-blue-500); }
+.prompt-dollar { color: var(--p-text-muted-color); }
 
 .list-panel-header {
   display: flex;
@@ -625,6 +645,15 @@ async function loadHistory() {
 }
 :deep(.scripts-listbox .p-listbox-list-wrapper) {
   height: calc(100% - 42px);
+}
+
+/* ── Permissions string ──────────────────────── */
+.perms-str {
+  font-family: var(--font-mono);
+  font-size: var(--text-2xs);
+  color: var(--p-surface-600);
+  letter-spacing: 0;
+  flex-shrink: 0;
 }
 
 /* ── List item ───────────────────────────────── */

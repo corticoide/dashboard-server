@@ -818,7 +818,7 @@ onMounted(() => {
   flex-direction: column;
   height: 100%;
   border-right: 1px solid var(--p-surface-border);
-  background: var(--p-surface-card);
+  background: var(--p-surface-900);
   overflow: hidden;
 }
 .list-panel-header {

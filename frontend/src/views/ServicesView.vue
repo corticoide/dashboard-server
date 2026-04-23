@@ -1,218 +1,169 @@
 <template>
   <div class="services-view">
-
-    <!-- Summary bar -->
-    <div class="summary-bar">
-      <button class="summary-pill pill-active" :class="{ active: stateFilter === 'active' }" @click="stateFilter = stateFilter === 'active' ? 'all' : 'active'">
-        <span class="pill-dot dot-active"></span>
-        <span class="pill-count">{{ counts.active }}</span>
-        <span class="pill-label">ACTIVE</span>
-      </button>
-      <button class="summary-pill pill-failed" :class="{ active: stateFilter === 'failed' }" @click="stateFilter = stateFilter === 'failed' ? 'all' : 'failed'">
-        <span class="pill-dot dot-failed"></span>
-        <span class="pill-count">{{ counts.failed }}</span>
-        <span class="pill-label">FAILED</span>
-      </button>
-      <button class="summary-pill pill-inactive" :class="{ active: stateFilter === 'inactive' }" @click="stateFilter = stateFilter === 'inactive' ? 'all' : 'inactive'">
-        <span class="pill-dot dot-inactive"></span>
-        <span class="pill-count">{{ counts.inactive }}</span>
-        <span class="pill-label">INACTIVE</span>
-      </button>
-      <span class="summary-total">{{ services.length }} total</span>
-    </div>
-
-    <!-- Toolbar -->
-    <Toolbar class="services-toolbar">
-      <template #start>
-        <div class="toolbar-start">
-          <IconField>
-            <InputIcon class="pi pi-search" />
-            <InputText v-model="filter" placeholder="Filter services…" size="small" />
-          </IconField>
-        </div>
-      </template>
-      <template #end>
-        <div class="toolbar-end">
-          <div class="sudo-field" v-tooltip.bottom="'Required for start/stop/restart'">
-            <i class="pi pi-lock sudo-icon" />
-            <Password
-              v-model="sudoPassword"
-              placeholder="sudo password"
-              :feedback="false"
-              toggle-mask
-              size="small"
-              fluid
-            />
-          </div>
-          <Button
-            icon="pi pi-refresh"
-            rounded
-            text
-            size="small"
-            :loading="loading"
-            v-tooltip.bottom="'Refresh'"
-            @click="loadServices"
-          />
-        </div>
-      </template>
-    </Toolbar>
-
     <Message v-if="error" severity="error" :closable="true" @close="error = ''">{{ error }}</Message>
 
-    <DataTable
-      :value="filtered"
-      :loading="loading"
-      v-model:expanded-rows="expandedRows"
-      data-key="name"
-      :row-class="rowClass"
-      size="small"
-      removableSort
-      @row-expand="onRowExpand"
-      class="services-table"
-    >
-      <template #empty>
-        <div class="empty-state">
-          <i class="pi pi-inbox empty-icon" />
-          <span class="empty-text">No services match "{{ filter }}"</span>
-        </div>
-      </template>
+    <Splitter class="services-splitter">
 
-      <Column expander style="width: 2.5rem" />
+      <!-- ── Left: unit list ──────────────────────────────────────── -->
+      <SplitterPanel :size="32" :minSize="22">
+        <div class="list-panel">
 
-      <Column field="name" header="SERVICE" sortable style="min-width: 180px">
-        <template #body="{ data }">
-          <span class="svc-name">{{ data.name }}</span>
-        </template>
-      </Column>
-
-      <Column field="active_state" header="STATE" sortable style="width: 120px">
-        <template #body="{ data }">
-          <div class="state-cell">
-            <span class="state-dot" :class="`state-dot--${data.active_state}`"></span>
-            <Tag :value="data.active_state" :severity="stateSeverity(data.active_state)" class="state-tag" />
+          <div class="panel-header">
+            <i class="pi pi-cog header-icon" />
+            <span class="header-label">systemctl list-units</span>
+            <span class="header-count">{{ filtered.length }}</span>
+            <Button icon="pi pi-refresh" text rounded size="small" :loading="loading" @click="loadServices" />
           </div>
-        </template>
-      </Column>
 
-      <Column field="sub_state" header="SUB" style="width: 100px">
-        <template #body="{ data }">
-          <span class="cell-sub">{{ data.sub_state }}</span>
-        </template>
-      </Column>
-
-      <Column field="enabled" header="BOOT" style="width: 90px">
-        <template #body="{ data }">
-          <Badge
-            :value="data.enabled"
-            :severity="data.enabled === 'enabled' ? 'success' : 'secondary'"
-          />
-        </template>
-      </Column>
-
-      <Column field="description" header="DESCRIPTION" style="max-width: 240px">
-        <template #body="{ data }">
-          <span class="cell-desc">{{ data.description }}</span>
-        </template>
-      </Column>
-
-      <Column header="ACTIONS" style="width: 200px">
-        <template #body="{ data }">
-          <div class="action-group">
-            <Button
-              label="Start"
-              size="small"
-              severity="success"
-              outlined
-              :loading="actionLoading[data.name] === 'start'"
-              :disabled="!!actionLoading[data.name] || isRunning(data)"
-              @click="runAction(data.name, 'start')"
-              class="action-btn"
-            />
-            <Button
-              label="Stop"
-              size="small"
-              severity="warning"
-              outlined
-              :loading="actionLoading[data.name] === 'stop'"
-              :disabled="!!actionLoading[data.name] || !isRunning(data)"
-              @click="runAction(data.name, 'stop')"
-              class="action-btn"
-            />
-            <Button
-              label="Restart"
-              size="small"
-              severity="secondary"
-              outlined
-              :loading="actionLoading[data.name] === 'restart'"
-              :disabled="!!actionLoading[data.name] || !isRunning(data)"
-              @click="runAction(data.name, 'restart')"
-              class="action-btn"
-            />
+          <div class="search-bar">
+            <IconField>
+              <InputIcon class="pi pi-search" />
+              <InputText v-model="filter" placeholder="Filter units…" size="small" fluid />
+            </IconField>
           </div>
-        </template>
-      </Column>
 
-      <template #expansion="slotProps">
-        <div class="log-panel">
-          <div class="log-panel-header">
-            <div class="log-panel-title">
-              <i class="pi pi-terminal" />
-              <span class="log-svc-name">{{ slotProps.data.name }}</span>
-              <span class="log-source">journald</span>
+          <div class="state-pills">
+            <button class="state-pill" :class="{ active: stateFilter === 'all' }" @click="stateFilter = 'all'">
+              ALL<span class="pill-n">{{ services.length }}</span>
+            </button>
+            <button class="state-pill pill-green" :class="{ active: stateFilter === 'active' }" @click="stateFilter = stateFilter === 'active' ? 'all' : 'active'">
+              ACTIVE<span class="pill-n">{{ counts.active }}</span>
+            </button>
+            <button class="state-pill pill-red" :class="{ active: stateFilter === 'failed' }" @click="stateFilter = stateFilter === 'failed' ? 'all' : 'failed'">
+              FAILED<span class="pill-n">{{ counts.failed }}</span>
+            </button>
+          </div>
+
+          <div class="col-headers">
+            <span class="ch-dot"></span>
+            <span class="ch-unit">UNIT</span>
+            <span class="ch-sub">SUB</span>
+            <span class="ch-boot">BOOT</span>
+          </div>
+
+          <div class="panel-scroll">
+            <div v-if="!filtered.length" class="empty-state">
+              <i class="pi pi-inbox empty-icon" />
+              <span class="empty-text">No units{{ filter ? ` matching "${filter}"` : '' }}</span>
             </div>
-            <Button icon="pi pi-times" text rounded size="small" @click="collapseRow(slotProps.data.name)" />
+            <div
+              v-for="svc in filtered" :key="svc.name"
+              class="unit-row"
+              :class="{
+                'unit-row--selected': selectedService?.name === svc.name,
+                'unit-row--failed':   svc.active_state === 'failed',
+                'unit-row--inactive': svc.active_state === 'inactive',
+              }"
+              @click="selectService(svc)"
+            >
+              <span class="unit-dot" :class="`unit-dot--${svc.active_state}`" />
+              <span class="unit-name">{{ svc.name }}</span>
+              <span class="unit-sub">{{ svc.sub_state }}</span>
+              <span class="unit-boot">{{ svc.enabled }}</span>
+            </div>
           </div>
-          <ScrollPanel class="log-scroll">
-            <pre class="log-content">{{ (logsByService[slotProps.data.name] || ['Loading…']).join('\n') }}</pre>
-          </ScrollPanel>
-        </div>
-      </template>
-    </DataTable>
 
+        </div>
+      </SplitterPanel>
+
+      <!-- ── Right: status + logs ─────────────────────────────────── -->
+      <SplitterPanel :size="68">
+
+        <div v-if="!selectedService" class="empty-detail">
+          <i class="pi pi-cog empty-icon" />
+          <span class="empty-text">Select a unit to inspect</span>
+        </div>
+
+        <div v-else class="detail-panel">
+
+          <!-- Action bar -->
+          <div class="action-bar">
+            <div class="sudo-wrap" v-tooltip.bottom="'Required for start / stop / restart'">
+              <i class="pi pi-lock sudo-icon" />
+              <Password v-model="sudoPassword" placeholder="sudo password" :feedback="false" toggle-mask size="small" />
+            </div>
+            <Button label="Start" size="small" severity="success" outlined
+              :loading="actionLoading[selectedService.name] === 'start'"
+              :disabled="!!actionLoading[selectedService.name] || isRunning(selectedService)"
+              @click="runAction(selectedService.name, 'start')" />
+            <Button label="Stop" size="small" severity="warn" outlined
+              :loading="actionLoading[selectedService.name] === 'stop'"
+              :disabled="!!actionLoading[selectedService.name] || !isRunning(selectedService)"
+              @click="runAction(selectedService.name, 'stop')" />
+            <Button label="Restart" size="small" severity="secondary" outlined
+              :loading="actionLoading[selectedService.name] === 'restart'"
+              :disabled="!!actionLoading[selectedService.name] || !isRunning(selectedService)"
+              @click="runAction(selectedService.name, 'restart')" />
+          </div>
+
+          <!-- systemctl status block -->
+          <div class="status-block">
+            <div class="status-title-line">
+              <span class="status-dot" :class="`status-dot--${selectedService.active_state}`" />
+              <span class="status-svc-name">{{ selectedService.name }}</span>
+              <span v-if="selectedService.description" class="status-desc">- {{ selectedService.description }}</span>
+            </div>
+            <div class="status-kv">
+              <div class="kv-row">
+                <span class="kv-key">   Loaded</span>
+                <span class="kv-val">loaded ({{ selectedService.enabled }})</span>
+              </div>
+              <div class="kv-row">
+                <span class="kv-key">   Active</span>
+                <span class="kv-val" :class="`kv-active--${selectedService.active_state}`">
+                  {{ selectedService.active_state }} ({{ selectedService.sub_state }})
+                </span>
+              </div>
+            </div>
+          </div>
+
+          <!-- log section -->
+          <div class="log-section">
+            <div class="log-header">
+              <i class="pi pi-terminal log-icon" />
+              <span class="log-label">journalctl -u {{ selectedService.name }} -n 80</span>
+              <Button icon="pi pi-refresh" text rounded size="small" :loading="logsLoading" @click="loadLogs(selectedService.name)" />
+            </div>
+            <pre class="log-output">{{ logLines }}</pre>
+          </div>
+
+        </div>
+
+      </SplitterPanel>
+
+    </Splitter>
   </div>
 </template>
 
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import { useToast } from 'primevue/usetoast'
-import Toolbar from 'primevue/toolbar'
+import Splitter from 'primevue/splitter'
+import SplitterPanel from 'primevue/splitterpanel'
 import IconField from 'primevue/iconfield'
 import InputIcon from 'primevue/inputicon'
 import InputText from 'primevue/inputtext'
 import Password from 'primevue/password'
 import Button from 'primevue/button'
 import Message from 'primevue/message'
-import DataTable from 'primevue/datatable'
-import Column from 'primevue/column'
-import Tag from 'primevue/tag'
-import Badge from 'primevue/badge'
-import ScrollPanel from 'primevue/scrollpanel'
 import api from '../api/client.js'
 
 const toast = useToast()
 
-const services    = ref([])
-const loading     = ref(false)
-const error       = ref('')
-const filter      = ref('')
-const stateFilter = ref('all')
-const expandedRows   = ref({})
-const logsByService  = ref({})
-const actionLoading  = ref({})
-const sudoPassword   = ref('')
+const services      = ref([])
+const loading       = ref(false)
+const error         = ref('')
+const filter        = ref('')
+const stateFilter   = ref('all')
+const actionLoading = ref({})
+const sudoPassword  = ref('')
+
+const selectedService = ref(null)
+const logsByService   = ref({})
+const logsLoading     = ref(false)
 
 function isRunning(svc) {
   return ['active', 'activating', 'reloading'].includes(svc.active_state)
-}
-
-function stateSeverity(state) {
-  return { active: 'success', failed: 'danger', activating: 'warn', inactive: 'secondary', deactivating: 'contrast' }[state] || 'secondary'
-}
-
-function rowClass(data) {
-  if (data.active_state === 'failed')   return 'row-failed'
-  if (data.active_state === 'inactive') return 'row-inactive'
-  return ''
 }
 
 const counts = computed(() => ({
@@ -229,12 +180,22 @@ const filtered = computed(() => services.value.filter(s => {
   return matchesText && matchesState
 }))
 
+const logLines = computed(() => {
+  if (!selectedService.value) return ''
+  const lines = logsByService.value[selectedService.value.name]
+  if (!lines) return 'Loading…'
+  return lines.join('\n')
+})
+
 async function loadServices() {
   loading.value = true
   error.value = ''
   try {
     const { data } = await api.get('/services/')
     services.value = data
+    if (selectedService.value) {
+      selectedService.value = data.find(s => s.name === selectedService.value.name) || selectedService.value
+    }
   } catch (e) {
     error.value = e.response?.data?.detail || 'Failed to load services'
   } finally {
@@ -242,22 +203,23 @@ async function loadServices() {
   }
 }
 
-async function onRowExpand(event) {
-  const name = event.data.name
-  if (!logsByService.value[name]) {
-    try {
-      const { data } = await api.get(`/services/${name}/logs?lines=80`)
-      logsByService.value[name] = data.lines
-    } catch {
-      logsByService.value[name] = ['Failed to load logs']
-    }
+async function selectService(svc) {
+  selectedService.value = svc
+  if (!logsByService.value[svc.name]) {
+    await loadLogs(svc.name)
   }
 }
 
-function collapseRow(name) {
-  const updated = { ...expandedRows.value }
-  delete updated[name]
-  expandedRows.value = updated
+async function loadLogs(name) {
+  logsLoading.value = true
+  try {
+    const { data } = await api.get(`/services/${name}/logs?lines=80`)
+    logsByService.value[name] = data.lines
+  } catch {
+    logsByService.value[name] = ['Failed to load logs']
+  } finally {
+    logsLoading.value = false
+  }
 }
 
 async function runAction(name, action) {
@@ -268,9 +230,9 @@ async function runAction(name, action) {
     const { data } = await api.get('/services/')
     services.value = data
     delete logsByService.value[name]
-    if (expandedRows.value[name]) {
-      const logResp = await api.get(`/services/${name}/logs?lines=80`)
-      logsByService.value[name] = logResp.data.lines
+    if (selectedService.value?.name === name) {
+      selectedService.value = data.find(s => s.name === name) || selectedService.value
+      await loadLogs(name)
     }
     toast.add({ severity: 'success', summary: 'Done', detail: `${action} → ${name}`, life: 3000 })
   } catch (e) {
@@ -286,152 +248,165 @@ onMounted(loadServices)
 </script>
 
 <style scoped>
-.services-view { display: flex; flex-direction: column; gap: 12px; }
-
-/* ── Summary bar ─────────────────────────────── */
-.summary-bar {
+.services-view {
+  height: calc(100vh - var(--header-height) - 48px);
   display: flex;
-  align-items: center;
+  flex-direction: column;
   gap: 8px;
-  flex-wrap: wrap;
 }
-.summary-pill {
+
+.services-splitter {
+  flex: 1;
+  min-height: 0;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+/* ── Left panel ─────────────────────────────── */
+.list-panel {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  background: var(--p-surface-900);
+  border-right: 1px solid var(--p-surface-border);
+  overflow: hidden;
+}
+
+.panel-header {
   display: flex;
   align-items: center;
-  gap: 6px;
-  padding: 5px 12px;
-  border-radius: 20px;
-  border: 1px solid var(--p-surface-border);
-  background: var(--p-surface-card);
+  gap: 7px;
+  padding: 10px 12px 9px;
+  border-bottom: 1px solid var(--p-surface-border);
+  flex-shrink: 0;
+}
+.header-icon  { font-size: 12px; color: var(--brand-orange); }
+.header-label {
+  font-family: var(--font-mono);
+  font-size: var(--text-2xs);
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: var(--p-text-muted-color);
+  flex: 1;
+}
+.header-count {
+  font-family: var(--font-mono);
+  font-size: var(--text-2xs);
+  font-weight: 600;
+  color: var(--brand-orange);
+  background: color-mix(in srgb, var(--brand-orange) 12%, transparent);
+  border-radius: 4px;
+  padding: 1px 6px;
+  line-height: 1.6;
+}
+
+.search-bar {
+  padding: 8px 10px;
+  border-bottom: 1px solid var(--p-surface-border);
+  flex-shrink: 0;
+}
+:deep(.search-bar .p-inputtext) {
+  font-family: var(--font-mono);
+  font-size: var(--text-sm);
+  width: 100%;
+}
+
+.state-pills {
+  display: flex;
+  gap: 4px;
+  padding: 6px 10px;
+  border-bottom: 1px solid var(--p-surface-border);
+  flex-shrink: 0;
+}
+.state-pill {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-family: var(--font-mono);
+  font-size: var(--text-2xs);
+  letter-spacing: 1px;
+  padding: 2px 8px;
+  border-radius: 3px;
+  border: 1px solid transparent;
+  background: none;
+  color: var(--p-text-muted-color);
   cursor: pointer;
   transition: background 0.15s, color 0.15s, border-color 0.15s;
-  font-family: var(--font-mono);
 }
-.summary-pill:hover { background: var(--p-surface-hover); }
+.state-pill:hover { background: var(--p-surface-hover); color: var(--p-text-color); }
+.state-pill.active { color: var(--p-text-color); border-color: var(--p-surface-border); background: var(--p-surface-hover); }
+.pill-green.active { color: var(--p-green-500); border-color: var(--p-green-500); background: color-mix(in srgb, var(--p-green-500) 10%, transparent); }
+.pill-red.active   { color: var(--p-red-500);   border-color: var(--p-red-500);   background: color-mix(in srgb, var(--p-red-500)   10%, transparent); }
+.pill-n { font-weight: 700; font-size: var(--text-xs); margin-left: 2px; }
 
-.pill-active.active  { border-color: var(--p-green-500);  background: color-mix(in srgb, var(--p-green-500) 10%, transparent); }
-.pill-failed.active  { border-color: var(--p-red-500);    background: color-mix(in srgb, var(--p-red-500)   10%, transparent); }
-.pill-inactive.active{ border-color: var(--p-surface-500);background: var(--p-surface-hover); }
+/* column header row */
+.col-headers {
+  display: grid;
+  grid-template-columns: 18px 1fr 70px 60px;
+  gap: 8px;
+  padding: 4px 12px;
+  border-bottom: 1px solid var(--p-surface-border);
+  flex-shrink: 0;
+}
+.ch-unit, .ch-sub, .ch-boot {
+  font-family: var(--font-mono);
+  font-size: var(--text-2xs);
+  letter-spacing: 1.5px;
+  color: var(--p-surface-600);
+  text-transform: uppercase;
+}
 
-.pill-dot {
+.panel-scroll { flex: 1; overflow-y: auto; min-height: 0; }
+
+/* ── Unit rows ──────────────────────────────── */
+.unit-row {
+  display: grid;
+  grid-template-columns: 18px 1fr 70px 60px;
+  gap: 8px;
+  align-items: center;
+  padding: 6px 12px;
+  cursor: pointer;
+  transition: background 0.12s;
+  border-left: 2px solid transparent;
+}
+.unit-row:hover { background: color-mix(in srgb, var(--brand-orange) 6%, transparent); }
+.unit-row--selected {
+  background: color-mix(in srgb, var(--brand-orange) 12%, transparent);
+  border-left-color: var(--brand-orange);
+}
+.unit-row--failed  { background: color-mix(in srgb, var(--p-red-500) 5%, transparent); }
+.unit-row--inactive { opacity: 0.55; }
+
+.unit-dot {
   width: 7px; height: 7px;
   border-radius: 50%;
   flex-shrink: 0;
+  margin: auto;
 }
-.dot-active  { background: var(--p-green-500); animation: pulse-dot 2s ease-in-out infinite; }
-.dot-failed  { background: var(--p-red-500); }
-.dot-inactive{ background: var(--p-surface-400); }
+.unit-dot--active      { background: var(--p-green-500);  animation: pulse-dot 2s ease-in-out infinite; }
+.unit-dot--failed      { background: var(--p-red-500); }
+.unit-dot--activating  { background: var(--p-yellow-500); animation: pulse-dot 1s ease-in-out infinite; }
+.unit-dot--deactivating{ background: var(--p-yellow-500); }
+.unit-dot--inactive    { background: var(--p-surface-500); }
 
 @keyframes pulse-dot {
   0%, 100% { opacity: 1; box-shadow: 0 0 0 0 color-mix(in srgb, var(--p-green-500) 50%, transparent); }
   50%       { opacity: 0.8; box-shadow: 0 0 0 4px transparent; }
 }
 
-.pill-count {
-  font-size: var(--text-base);
-  font-weight: 700;
+.unit-name {
+  font-family: var(--font-mono);
+  font-size: var(--text-sm);
+  font-weight: 500;
   color: var(--p-text-color);
-  line-height: 1;
-}
-.pill-label {
-  font-size: var(--text-2xs);
-  letter-spacing: 1.5px;
-  text-transform: uppercase;
-  color: var(--p-text-muted-color);
-}
-.summary-total {
-  font-family: var(--font-mono);
-  font-size: var(--text-xs);
-  color: var(--p-text-muted-color);
-  margin-left: 4px;
-}
-
-/* ── Toolbar ─────────────────────────────────── */
-.services-toolbar { flex-wrap: wrap; gap: 8px; }
-.toolbar-start { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
-.toolbar-end   { display: flex; align-items: center; gap: 8px; }
-
-.sudo-field {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
-.sudo-icon {
-  font-size: var(--text-sm);
-  color: var(--p-text-muted-color);
-}
-:deep(.sudo-field .p-password) {
-  display: flex;
-  width: 140px;
-}
-:deep(.sudo-field .p-password-input) {
-  flex: 1;
-  min-width: 0;
-  font-family: var(--font-mono);
-  font-size: var(--text-xs);
-}
-
-/* ── Table cells ─────────────────────────────── */
-.svc-name {
-  font-family: var(--font-mono);
-  font-size: var(--text-sm);
-  font-weight: 600;
-  color: var(--p-text-color);
-}
-
-.state-cell {
-  display: flex;
-  align-items: center;
-  gap: 7px;
-}
-.state-dot {
-  width: 7px; height: 7px;
-  border-radius: 50%;
-  flex-shrink: 0;
-}
-.state-dot--active      { background: var(--p-green-500); animation: pulse-dot 2s ease-in-out infinite; }
-.state-dot--failed      { background: var(--p-red-500); }
-.state-dot--activating  { background: var(--p-orange-400); animation: pulse-dot 1s ease-in-out infinite; }
-.state-dot--deactivating{ background: var(--p-orange-400); }
-.state-dot--inactive    { background: var(--p-surface-400); }
-.state-tag { font-size: var(--text-xs) !important; }
-
-.cell-sub {
-  font-family: var(--font-mono);
-  font-size: var(--text-xs);
-  color: var(--p-text-muted-color);
-}
-.cell-desc {
-  font-size: var(--text-sm);
-  color: var(--p-text-muted-color);
-  display: block;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  max-width: 240px;
 }
+.unit-sub  { font-family: var(--font-mono); font-size: var(--text-xs); color: var(--p-text-muted-color); }
+.unit-boot { font-family: var(--font-mono); font-size: var(--text-xs); color: var(--p-text-muted-color); }
 
-/* ── Action buttons ──────────────────────────── */
-.action-group {
-  display: flex;
-  gap: 4px;
-}
-.action-btn {
-  font-size: var(--text-xs) !important;
-  padding: 4px 8px !important;
-  font-family: var(--font-mono) !important;
-  letter-spacing: 0.5px;
-}
-
-/* ── Row states ──────────────────────────────── */
-:deep(.row-failed td) {
-  background: color-mix(in srgb, var(--p-red-500) 5%, transparent) !important;
-}
-:deep(.row-inactive td) {
-  opacity: 0.65;
-}
-
-/* ── Empty state ─────────────────────────────── */
+/* ── Empty states ───────────────────────────── */
 .empty-state {
   display: flex;
   flex-direction: column;
@@ -441,62 +416,123 @@ onMounted(loadServices)
   color: var(--p-text-muted-color);
 }
 .empty-icon { font-size: 28px; opacity: 0.4; }
-.empty-text { font-size: var(--text-sm); font-family: var(--font-mono); }
+.empty-text { font-family: var(--font-mono); font-size: var(--text-sm); text-align: center; }
 
-/* ── Log expansion panel ─────────────────────── */
-.log-panel {
-  border-top: 1px solid var(--p-surface-border);
+.empty-detail {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  color: var(--p-text-muted-color);
+}
+
+/* ── Right detail panel ─────────────────────── */
+.detail-panel {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
   background: var(--p-surface-900);
 }
-.log-panel-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 8px 12px 6px;
-  border-bottom: 1px solid color-mix(in srgb, var(--brand-orange) 25%, transparent);
-}
-.log-panel-title {
+
+/* action bar */
+.action-bar {
   display: flex;
   align-items: center;
   gap: 8px;
-  color: var(--brand-orange);
-  font-size: var(--text-sm);
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--p-surface-border);
+  background: var(--p-surface-800);
+  flex-shrink: 0;
+  flex-wrap: wrap;
 }
-.log-svc-name {
+.sudo-wrap { display: flex; align-items: center; gap: 6px; margin-right: 4px; }
+.sudo-icon { font-size: var(--text-sm); color: var(--p-text-muted-color); }
+:deep(.sudo-wrap .p-password) { display: flex; width: 140px; }
+:deep(.sudo-wrap .p-password-input) { flex: 1; min-width: 0; font-family: var(--font-mono); font-size: var(--text-xs); }
+
+/* systemctl status block */
+.status-block {
+  padding: 14px 16px 12px;
+  border-bottom: 1px solid var(--p-surface-border);
+  flex-shrink: 0;
+}
+.status-title-line {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+.status-dot {
+  width: 9px; height: 9px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.status-dot--active      { background: var(--p-green-500);  animation: pulse-dot 2s ease-in-out infinite; }
+.status-dot--failed      { background: var(--p-red-500); }
+.status-dot--activating  { background: var(--p-yellow-500); animation: pulse-dot 1s ease-in-out infinite; }
+.status-dot--inactive    { background: var(--p-surface-500); }
+
+.status-svc-name {
+  font-family: var(--font-mono);
+  font-size: var(--text-base);
+  font-weight: 700;
+  color: var(--p-text-color);
+}
+.status-desc {
   font-family: var(--font-mono);
   font-size: var(--text-sm);
-  font-weight: 600;
-  color: var(--brand-orange);
-}
-.log-source {
-  font-family: var(--font-mono);
-  font-size: var(--text-2xs);
-  letter-spacing: 1.5px;
   color: var(--p-text-muted-color);
-  text-transform: uppercase;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
-.log-scroll { height: 280px; }
-.log-content {
+
+.status-kv { display: flex; flex-direction: column; gap: 2px; }
+.kv-row    { display: flex; align-items: baseline; gap: 4px; }
+.kv-key {
+  font-family: var(--font-mono);
+  font-size: var(--text-sm);
+  color: var(--p-text-muted-color);
+  min-width: 80px;
+}
+.kv-val { font-family: var(--font-mono); font-size: var(--text-sm); color: var(--p-text-color); }
+.kv-active--active      { color: var(--p-green-500); }
+.kv-active--failed      { color: var(--p-red-500); }
+.kv-active--activating  { color: var(--p-yellow-500); }
+.kv-active--inactive    { color: var(--p-text-muted-color); }
+
+/* log section */
+.log-section {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+.log-header {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 7px 12px 6px;
+  border-bottom: 1px solid color-mix(in srgb, var(--brand-orange) 25%, transparent);
+  flex-shrink: 0;
+}
+.log-icon  { font-size: 12px; color: var(--brand-orange); }
+.log-label { font-family: var(--font-mono); font-size: var(--text-xs); color: var(--p-text-muted-color); flex: 1; }
+
+.log-output {
+  flex: 1;
+  overflow-y: auto;
+  padding: 10px 16px 12px;
   font-family: var(--font-mono);
   font-size: var(--text-xs);
   line-height: 1.7;
-  margin: 0;
-  padding: 10px 16px 12px;
+  color: var(--p-text-muted-color);
   white-space: pre-wrap;
   word-break: break-all;
-  color: var(--p-text-muted-color);
-}
-
-/* ── DataTable header normalization ──────────── */
-:deep(.services-table .p-datatable-thead th) {
-  background: transparent;
-}
-:deep(.services-table .p-datatable-column-header-content) {
-  font-family: var(--font-mono);
-  font-size: var(--text-2xs);
-  letter-spacing: 1.5px;
-  color: var(--p-text-muted-color);
-  text-transform: uppercase;
-  font-weight: 600;
+  background: var(--p-surface-900);
+  margin: 0;
 }
 </style>
