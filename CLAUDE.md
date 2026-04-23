@@ -2,6 +2,17 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+## Language Policy
+
+**All application text must be in English.** This applies to:
+- Every user-visible string: labels, placeholders, tooltips, toast messages, dialog headers, buttons, hints, empty states.
+- All code: comments, docstrings, log messages, variable names, and error messages.
+- Documentation files (`.md`), configuration examples, and commit messages.
+
+Working language between developers can be Spanish, but **every artifact that lands in the repo must be in English.**
+
+---
+
 ## ⚠️ MANDATORY: Performance & Correctness Skill
 
 **Before writing any code — feature, bugfix, or refactor — you MUST load and follow the local skill:**

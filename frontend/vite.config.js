@@ -22,6 +22,7 @@ export default defineConfig({
     exclude: ['monaco-editor'],
   },
   server: {
+    host: true,  // bind to 0.0.0.0 so LAN devices can reach the dev server
     proxy: {
       '/api': {
         target: 'https://localhost:8443',

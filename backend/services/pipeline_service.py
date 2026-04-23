@@ -1,4 +1,4 @@
-"""Motor de ejecución de pipelines."""
+"""Pipeline execution engine."""
 import json
 import subprocess
 from datetime import datetime
@@ -10,38 +10,35 @@ from backend.services.pipeline_modules import MODULE_REGISTRY
 
 
 def interpolate(config: dict, context: dict) -> dict:
-    """Reemplaza {VARIABLE} en todos los valores string del config dict (recursivo).
+    """Replace {VARIABLE} in all string values of the config dict (recursive).
 
-    Itera sobre todas las claves del config y reemplaza placeholders {VAR}
-    con valores del contexto. Recursiona en dicts anidados.
-    Las listas y valores no-string se preservan sin cambios.
+    Iterates over all config keys and replaces {VAR} placeholders with values
+    from the context. Recurses into nested dicts.
+    Lists and non-string values are preserved unchanged.
     """
     result = {}
     for k, v in config.items():
         if isinstance(v, str):
-            # Reemplazar todas las variables en strings
             for var, val in context.items():
                 v = v.replace(f"{{{var}}}", str(val))
             result[k] = v
         elif isinstance(v, dict):
-            # Recursion en dicts anidados
             result[k] = interpolate(v, context)
         else:
-            # Preservar otros tipos (int, bool, None, list, etc.)
             result[k] = v
     return result
 
 
 def _should_run(step: PipelineStep, prev_exit_code, prev_on_success, prev_on_failure) -> bool:
-    """Evalúa si el paso debe correr según on_success/on_failure del paso anterior.
+    """Evaluate whether the step should run based on on_success/on_failure of the previous step.
 
-    - Si es el primer paso (prev_exit_code es None), siempre corre.
-    - Si el paso anterior fue exitoso y prev_on_success='stop', este paso se salta.
-    - Si el paso anterior falló y prev_on_failure='stop', este paso se salta.
-    - En otros casos, el paso corre.
+    - If it is the first step (prev_exit_code is None), always runs.
+    - If the previous step succeeded and prev_on_success='stop', this step is skipped.
+    - If the previous step failed and prev_on_failure='stop', this step is skipped.
+    - Otherwise, the step runs.
     """
     if prev_exit_code is None:
-        return True  # primer paso siempre corre
+        return True  # first step always runs
 
     prev_success = (prev_exit_code == 0)
     if prev_success:
@@ -53,7 +50,7 @@ def _should_run(step: PipelineStep, prev_exit_code, prev_on_success, prev_on_fai
 
 
 def _execute_shell(command: str) -> Tuple[int, str]:
-    """Ejecuta un comando shell y retorna (exit_code, output)."""
+    """Execute a shell command and return (exit_code, output)."""
     try:
         proc = subprocess.run(
             command, shell=True, capture_output=True, text=True, timeout=300
@@ -67,12 +64,12 @@ def _execute_shell(command: str) -> Tuple[int, str]:
 
 
 def _execute_module(config: dict, context: dict) -> Tuple[int, str]:
-    """Ejecuta un módulo nativo. Retorna (exit_code, output)."""
+    """Execute a native module. Returns (exit_code, output)."""
     module_name = config.get("module")
     if not module_name:
         return 1, "No 'module' key in config"
 
-    # Caso especial: call_pipeline
+    # Special case: call_pipeline
     if module_name == "call_pipeline":
         from backend.database import SessionLocal
         sub_id = config.get("pipeline_id")
@@ -86,7 +83,7 @@ def _execute_module(config: dict, context: dict) -> Tuple[int, str]:
         finally:
             db.close()
 
-    # Búsqueda en registro
+    # Look up in registry
     fn = MODULE_REGISTRY.get(module_name)
     if not fn:
         return 1, f"Unknown module: {module_name}"
@@ -98,16 +95,16 @@ def _execute_module(config: dict, context: dict) -> Tuple[int, str]:
 
 
 def run_pipeline(pipeline_id: int, triggered_by: str, db: Session, existing_run_id: int = None) -> PipelineRun:
-    """Ejecuta un pipeline completo. Bloquea hasta completar. Retorna el PipelineRun.
+    """Execute a full pipeline. Blocks until complete. Returns the PipelineRun.
 
-    Pasos:
-    1. Obtener el pipeline y sus steps del DB.
-    2. Reutilizar el PipelineRun ya creado (existing_run_id) o crear uno nuevo.
-    3. Iterar sobre cada step en orden:
-       - Evaluar si debe correr (on_success/on_failure logic).
-       - Ejecutar (shell, module, o script).
-       - Grabar resultado (status, exit_code, output, timestamps).
-    4. Determinar status final (success si todos los que corrieron fueron exitosos).
+    Steps:
+    1. Fetch the pipeline and its steps from DB.
+    2. Reuse an existing PipelineRun (existing_run_id) or create a new one.
+    3. Iterate over each step in order:
+       - Evaluate whether it should run (on_success/on_failure logic).
+       - Execute (shell, module, or script).
+       - Record result (status, exit_code, output, timestamps).
+    4. Determine final status (success if all executed steps succeeded).
     """
     pipeline = db.query(Pipeline).filter(Pipeline.id == pipeline_id).first()
     if not pipeline:
@@ -146,7 +143,7 @@ def run_pipeline(pipeline_id: int, triggered_by: str, db: Session, existing_run_
         db.add(step_run)
         db.flush()
 
-        # Evaluar si este step debe correr basado en resultado anterior
+        # Evaluate whether this step should run based on the previous result
         if not _should_run(step, prev_exit_code, prev_on_success, prev_on_failure):
             step_run.status = "skipped"
             step_run.ended_at = datetime.utcnow()
@@ -154,10 +151,10 @@ def run_pipeline(pipeline_id: int, triggered_by: str, db: Session, existing_run_
             db.commit()
             continue
 
-        # Interpolar config con contexto actual
+        # Interpolate config with current context
         cfg = interpolate(step.config_dict, context)
 
-        # Ejecutar según tipo
+        # Execute according to type
         if step.step_type == "shell":
             exit_code, output = _execute_shell(cfg.get("command", ""))
         elif step.step_type == "module":
@@ -176,23 +173,23 @@ def run_pipeline(pipeline_id: int, triggered_by: str, db: Session, existing_run_
         else:
             exit_code, output = 1, f"Unknown step_type: {step.step_type}"
 
-        # Grabar resultado
+        # Record result
         step_run.ended_at = datetime.utcnow()
         step_run.exit_code = exit_code
         step_run.output = output
         step_run.status = "success" if exit_code == 0 else "failed"
         db.commit()
 
-        # Actualizar flags de fallo
+        # Update failure flags
         if exit_code != 0:
             overall_failed = True
 
-        # Guardar estado para el próximo paso
+        # Save state for the next step
         prev_exit_code = exit_code
         prev_on_success = step.on_success
         prev_on_failure = step.on_failure
 
-    # Finalizar run
+    # Finalize run
     run.ended_at = datetime.utcnow()
     run.status = "failed" if overall_failed else "success"
     db.commit()

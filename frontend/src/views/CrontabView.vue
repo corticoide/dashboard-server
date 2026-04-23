@@ -301,7 +301,7 @@
 
               <!-- Tab: Pipeline -->
               <div v-if="formTab === 'pipeline'" class="pipeline-tab">
-                <div class="section-label">SELECCIONÁ UN PIPELINE</div>
+                <div class="section-label">SELECT A PIPELINE</div>
                 <div class="pipeline-select-list">
                   <div
                     v-for="p in availablePipelines" :key="p.id"
@@ -310,10 +310,10 @@
                     @click="selectedPipelineId = p.id"
                   >
                     <span class="pipeline-select-name">⚡ {{ p.name }}</span>
-                    <span class="pipeline-select-steps">{{ p.step_count }} pasos</span>
+                    <span class="pipeline-select-steps">{{ p.step_count }} steps</span>
                   </div>
                   <div v-if="!availablePipelines.length" class="pipeline-select-empty">
-                    No hay pipelines. Creá uno en la sección Pipelines.
+                    No pipelines found. Create one in the Pipelines section.
                   </div>
                 </div>
                 <div v-if="pipelineCommand" class="pipeline-cmd-preview">
@@ -444,7 +444,7 @@ const editingEntry = ref(null)
 const form = ref(null)
 const formMode = ref('regular')
 
-// Pipelines para la tab de integración
+// Pipelines for the integration tab
 const availablePipelines = ref([])
 const formTab = ref('command')  // 'command' | 'pipeline'
 const selectedPipelineId = ref(null)

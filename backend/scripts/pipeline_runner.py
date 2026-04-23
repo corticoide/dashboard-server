@@ -1,9 +1,9 @@
-"""CLI entry point para ejecutar un pipeline desde crontab.
+"""CLI entry point for running a pipeline from crontab.
 
-Uso:
+Usage:
     python -m backend.scripts.pipeline_runner --pipeline-id 3
 
-Exit code: 0 si el pipeline tuvo éxito, 1 si falló.
+Exit code: 0 if the pipeline succeeded, 1 if it failed.
 """
 import argparse
 import sys
@@ -11,7 +11,7 @@ import sys
 
 def main():
     parser = argparse.ArgumentParser(description="Run a ServerDash pipeline")
-    parser.add_argument("--pipeline-id", type=int, required=True, help="ID del pipeline a ejecutar")
+    parser.add_argument("--pipeline-id", type=int, required=True, help="ID of the pipeline to run")
     args = parser.parse_args()
 
     from backend.database import SessionLocal

@@ -10,12 +10,12 @@
             <span class="list-header-label">PIPELINES</span>
             <span v-if="pipelines.length" class="list-header-count">{{ pipelines.length }}</span>
             <Button v-if="isAdmin" icon="pi pi-plus" text rounded size="small"
-              v-tooltip.right="'Nuevo pipeline'" @click="startNewPipeline" />
+              v-tooltip.right="'New pipeline'" @click="startNewPipeline" />
             <Button v-if="isAdmin" icon="pi pi-upload" text rounded size="small"
-              v-tooltip.right="'Importar pipeline desde JSON'" @click="triggerImport" />
+              v-tooltip.right="'Import pipeline from JSON'" @click="triggerImport" />
             <input ref="importInputRef" type="file" accept=".json" style="display:none" @change="onImportFile" />
             <Button icon="pi pi-refresh" text rounded size="small" :loading="loading"
-              v-tooltip.right="'Actualizar'" @click="loadPipelines" />
+              v-tooltip.right="'Refresh'" @click="loadPipelines" />
           </div>
 
           <!-- Skeletons de carga -->
@@ -27,15 +27,15 @@
           </div>
 
           <div v-else class="pipeline-list">
-            <!-- Estado vacío explicativo -->
+            <!-- Explanatory empty state -->
             <div v-if="!pipelines.length" class="empty-state">
               <i class="pi pi-sitemap empty-icon" />
-              <span class="empty-title">Sin pipelines todavía</span>
+              <span class="empty-title">No pipelines yet</span>
               <span class="empty-text">
-                Un pipeline es una cadena de pasos que se ejecutan en orden.<br/>
-                Podés combinar comandos de shell, scripts guardados y módulos de automatización (mover archivos, enviar emails, etc.).
+                A pipeline is a chain of steps that run in order.<br/>
+                You can combine shell commands, saved scripts, and automation modules (move files, send emails, etc.).
               </span>
-              <Button v-if="isAdmin" label="Crear primer pipeline" size="small"
+              <Button v-if="isAdmin" label="Create first pipeline" size="small"
                 icon="pi pi-plus" @click="startNewPipeline" />
             </div>
 
@@ -50,7 +50,7 @@
                 <span class="pipeline-card-title">{{ p.name }}</span>
               </div>
               <div class="pipeline-card-footer">
-                <span class="pipeline-card-meta">{{ p.step_count }} paso{{ p.step_count !== 1 ? 's' : '' }}</span>
+                <span class="pipeline-card-meta">{{ p.step_count }} step{{ p.step_count !== 1 ? 's' : '' }}</span>
                 <span v-if="p.last_run_at" class="pipeline-card-time">{{ timeAgo(p.last_run_at) }}</span>
               </div>
             </div>
@@ -62,11 +62,11 @@
       <SplitterPanel :size="50" :minSize="35">
         <div class="editor-panel">
 
-          <!-- Sin selección -->
+          <!-- No selection -->
           <div v-if="!selectedPipeline && !editingNew" class="empty-editor">
             <i class="pi pi-sitemap" style="font-size: 40px; opacity: 0.18; color: var(--p-text-muted-color);" />
-            <span class="empty-editor-title">Seleccioná un pipeline</span>
-            <span class="empty-editor-sub">o creá uno nuevo con el botón <i class="pi pi-plus" style="font-size:10px" /></span>
+            <span class="empty-editor-title">Select a pipeline</span>
+            <span class="empty-editor-sub">or create a new one with the <i class="pi pi-plus" style="font-size:10px" /> button</span>
           </div>
 
           <template v-else>
@@ -77,21 +77,21 @@
                 <input
                   v-model="form.name"
                   class="pipeline-name-input"
-                  placeholder="Nombre del pipeline"
+                  placeholder="Pipeline name"
                   :disabled="!isAdmin"
                 />
-                <span v-if="isDirty" class="unsaved-indicator" v-tooltip.right="'Cambios sin guardar'">●</span>
+                <span v-if="isDirty" class="unsaved-indicator" v-tooltip.right="'Unsaved changes'">●</span>
               </div>
               <div class="editor-toolbar-right">
                 <Button
                   v-if="selectedPipeline && !editingNew"
-                  icon="pi pi-play" label="Ejecutar"
+                  icon="pi pi-play" label="Run"
                   size="small" severity="success"
                   @click="runPipeline" :loading="running"
                 />
                 <Button
                   v-if="isAdmin"
-                  icon="pi pi-check" :label="editingNew ? 'Crear' : 'Guardar'"
+                  icon="pi pi-check" :label="editingNew ? 'Create' : 'Save'"
                   size="small"
                   @click="savePipeline" :loading="saving"
                   :disabled="!form.name.trim()"
@@ -99,57 +99,57 @@
                 <Button
                   v-if="selectedPipeline && !editingNew"
                   icon="pi pi-download" text rounded size="small"
-                  v-tooltip.left="'Exportar como JSON'"
+                  v-tooltip.left="'Export as JSON'"
                   @click="exportPipeline"
                 />
                 <Button
                   v-if="isAdmin && selectedPipeline"
                   icon="pi pi-trash" text rounded size="small"
-                  severity="danger" v-tooltip.left="'Eliminar pipeline'"
+                  severity="danger" v-tooltip.left="'Delete pipeline'"
                   @click="confirmDelete"
                 />
               </div>
             </div>
 
-            <!-- Descripción -->
+            <!-- Description -->
             <div class="editor-description">
               <InputText
                 v-model="form.description"
-                placeholder="Descripción del pipeline (opcional)"
+                placeholder="Pipeline description (optional)"
                 size="small" fluid :disabled="!isAdmin"
               />
             </div>
 
-            <!-- Cabecera de pasos -->
+            <!-- Steps header -->
             <div class="steps-header">
-              <span class="steps-label">PASOS</span>
+              <span class="steps-label">STEPS</span>
               <span v-if="form.steps.length" class="steps-count-badge">{{ form.steps.length }}</span>
               <div style="flex: 1" />
               <Button v-if="isAdmin" icon="pi pi-plus" text rounded size="small"
-                label="Agregar paso" @click="addStep" />
+                label="Add step" @click="addStep" />
             </div>
 
-            <!-- Lista de pasos (scrollable) -->
+            <!-- Steps list (scrollable) -->
             <div class="steps-list">
-              <!-- Estado vacío de pasos -->
+              <!-- Empty steps state -->
               <div v-if="!form.steps.length" class="empty-steps">
                 <i class="pi pi-list-check" style="font-size: 28px; opacity: 0.25;" />
-                <span>Este pipeline no tiene pasos todavía.</span>
+                <span>This pipeline has no steps yet.</span>
                 <span class="empty-steps-hint">
-                  Cada paso puede ser un <strong>comando shell</strong> (ej. <code>systemctl restart nginx</code>),
-                  un <strong>script guardado</strong>, o un <strong>módulo</strong> como mover archivos, comprimir, enviar emails, etc.
+                  Each step can be a <strong>shell command</strong> (e.g. <code>systemctl restart nginx</code>),
+                  a <strong>saved script</strong>, or a <strong>module</strong> such as move files, compress, send emails, etc.
                 </span>
-                <Button v-if="isAdmin" label="Agregar primer paso" size="small"
+                <Button v-if="isAdmin" label="Add first step" size="small"
                   icon="pi pi-plus" @click="addStep" />
               </div>
 
-              <!-- Acordeón de pasos -->
+              <!-- Steps accordion -->
               <div
                 v-for="(step, idx) in form.steps" :key="step._key"
                 class="step-card"
                 :class="{ 'step-card--open': activeStepIdx === idx }"
               >
-                <!-- Cabecera (siempre visible, clic abre/cierra) -->
+                <!-- Header (always visible, click to open/close) -->
                 <div class="step-card-header" @click="toggleStep(idx)">
                   <span class="step-order">{{ idx + 1 }}</span>
 
@@ -158,7 +158,7 @@
                       <span class="step-type-badge" :class="`step-type-badge--${step.step_type}`">
                         {{ stepIcon(step) }} {{ stepTypeShort(step) }}
                       </span>
-                      <span class="step-name">{{ step.name || '(sin nombre)' }}</span>
+                      <span class="step-name">{{ step.name || '(unnamed)' }}</span>
                     </div>
                     <div v-if="activeStepIdx !== idx" class="step-card-subtitle">
                       <span :class="conditionClass(step)" class="step-condition-text">{{ conditionLabel(step) }}</span>
@@ -170,11 +170,11 @@
                   <div class="step-card-actions" @click.stop>
                     <template v-if="isAdmin">
                       <Button icon="pi pi-chevron-up" text rounded size="small"
-                        v-tooltip.top="'Subir'" :disabled="idx === 0" @click="moveStep(idx, -1)" />
+                        v-tooltip.top="'Move up'" :disabled="idx === 0" @click="moveStep(idx, -1)" />
                       <Button icon="pi pi-chevron-down" text rounded size="small"
-                        v-tooltip.top="'Bajar'" :disabled="idx === form.steps.length - 1" @click="moveStep(idx, 1)" />
+                        v-tooltip.top="'Move down'" :disabled="idx === form.steps.length - 1" @click="moveStep(idx, 1)" />
                       <Button icon="pi pi-trash" text rounded size="small"
-                        severity="danger" v-tooltip.top="'Eliminar paso'" @click="removeStep(idx)" />
+                        severity="danger" v-tooltip.top="'Delete step'" @click="removeStep(idx)" />
                     </template>
                   </div>
 
@@ -206,7 +206,7 @@
 
           <!-- Diagrama de flujo -->
           <div class="flow-section">
-            <div class="section-label">FLUJO</div>
+            <div class="section-label">FLOW</div>
             <div v-if="form.steps.length" class="flow-diagram">
               <template v-for="(step, idx) in form.steps" :key="step._key">
                 <div
@@ -226,23 +226,23 @@
               </template>
             </div>
             <div v-else class="flow-empty">
-              <span>El flujo aparece aquí cuando hay pasos.</span>
+              <span>The flow appears here when there are steps.</span>
             </div>
           </div>
 
           <!-- Historial de ejecuciones -->
           <div class="runs-section">
             <div class="section-label">
-              EJECUCIONES
+              RUNS
               <span v-if="hasRunningRun" class="running-indicator">
-                <i class="pi pi-spin pi-spinner" style="font-size: 9px;" /> en curso
+                <i class="pi pi-spin pi-spinner" style="font-size: 9px;" /> running
               </span>
             </div>
 
             <div v-if="!recentRuns.length" class="runs-empty">
-              <span>Sin ejecuciones registradas.</span>
+              <span>No runs recorded.</span>
               <span v-if="selectedPipeline && !editingNew" class="runs-empty-hint">
-                Presioná "Ejecutar" para correr este pipeline manualmente.
+                Press "Run" to execute this pipeline manually.
               </span>
             </div>
 
@@ -274,10 +274,10 @@
 
     </Splitter>
 
-    <!-- Diálogo de detalle de ejecución -->
+    <!-- Run detail dialog -->
     <Dialog
       v-model:visible="showRunDetail" modal
-      header="Detalle de ejecución"
+      header="Run Detail"
       :style="{ width: '720px', maxWidth: '95vw' }"
       :draggable="false"
     >
@@ -289,10 +289,10 @@
             {{ runStatusLabel(runDetail.status) }}
           </span>
           <span class="run-detail-meta">
-            Disparado por <strong>{{ runDetail.triggered_by }}</strong>
+            Triggered by <strong>{{ runDetail.triggered_by }}</strong>
           </span>
           <span v-if="runDetail.ended_at" class="run-detail-meta">
-            Duración total: <strong>{{ duration(runDetail.started_at, runDetail.ended_at) }}</strong>
+            Total duration: <strong>{{ duration(runDetail.started_at, runDetail.ended_at) }}</strong>
           </span>
         </div>
 
@@ -306,7 +306,7 @@
               <span class="step-run-number">#{{ sr.step_order + 1 }}</span>
               <i class="pi step-run-icon" :class="runStatusIcon(sr.status)" />
               <span class="step-run-name">
-                {{ getStepNameByOrder(sr.step_order) || `Paso ${sr.step_order + 1}` }}
+                {{ getStepNameByOrder(sr.step_order) || `Step ${sr.step_order + 1}` }}
               </span>
               <span class="step-run-status-badge" :class="`step-run-status--${sr.status}`">
                 {{ runStatusLabel(sr.status) }}
@@ -317,7 +317,7 @@
             </div>
             <div v-if="sr.status === 'skipped'" class="step-run-skipped">
               <i class="pi pi-info-circle" />
-              Este paso fue omitido por las condiciones del paso anterior.
+              This step was skipped due to the conditions of the previous step.
             </div>
             <pre v-if="sr.output" class="step-run-output">{{ sr.output }}</pre>
           </div>
@@ -409,7 +409,7 @@ function runStatusIcon(status) {
 }
 
 function runStatusLabel(status) {
-  const m = { success: 'Éxito', failed: 'Falló', running: 'En curso', skipped: 'Omitido' }
+  const m = { success: 'Success', failed: 'Failed', running: 'Running', skipped: 'Skipped' }
   return m[status] || status
 }
 
@@ -425,7 +425,7 @@ async function loadPipelines() {
     const { data } = await api.get('/pipelines')
     pipelines.value = data
   } catch {
-    toast.add({ severity: 'error', summary: 'Error', detail: 'No se pudieron cargar los pipelines', life: 4000 })
+    toast.add({ severity: 'error', summary: 'Error', detail: 'Could not load pipelines', life: 4000 })
   } finally {
     loading.value = false
   }
@@ -451,7 +451,7 @@ async function selectPipeline(p) {
     recentRuns.value = runsRes.data.slice(0, 8)
     if (hasRunningRun.value) startPolling()
   } catch {
-    toast.add({ severity: 'error', summary: 'Error', detail: 'No se pudo cargar el pipeline', life: 4000 })
+    toast.add({ severity: 'error', summary: 'Error', detail: 'Could not load pipeline', life: 4000 })
   }
 }
 
@@ -465,7 +465,7 @@ function startNewPipeline() {
   savedForm.value = null
 }
 
-// ── Edición de pasos ───────────────────────────────────────────────────────
+// ── Step editing ──────────────────────────────────────────────────────────
 
 function toggleStep(idx) {
   activeStepIdx.value = activeStepIdx.value === idx ? null : idx
@@ -475,7 +475,7 @@ function onAccordionEnter(el, done) {
   el.style.height = '0px'
   el.style.overflow = 'hidden'
   el.style.opacity = '0'
-  el.offsetHeight // fuerza reflow para que la transición arranque desde 0
+  el.offsetHeight // force reflow so the transition starts from 0
   el.style.transition = 'height 0.22s ease, opacity 0.18s ease'
   el.style.height = el.scrollHeight + 'px'
   el.style.opacity = '1'
@@ -521,11 +521,11 @@ function moveStep(idx, dir) {
   activeStepIdx.value = target
 }
 
-// ── Guardar / crear ────────────────────────────────────────────────────────
+// ── Save / create ─────────────────────────────────────────────────────────
 
 async function savePipeline() {
   if (!form.value.name.trim()) {
-    toast.add({ severity: 'warn', summary: 'Nombre requerido', detail: 'El pipeline debe tener un nombre', life: 3000 })
+    toast.add({ severity: 'warn', summary: 'Name required', detail: 'The pipeline must have a name', life: 3000 })
     return
   }
   saving.value = true
@@ -548,22 +548,22 @@ async function savePipeline() {
       await loadPipelines()
       await selectPipeline(selectedPipeline.value)
     }
-    toast.add({ severity: 'success', summary: 'Guardado', life: 3000 })
+    toast.add({ severity: 'success', summary: 'Saved', life: 3000 })
   } catch (e) {
-    toast.add({ severity: 'error', summary: 'Error al guardar', detail: e.response?.data?.detail, life: 5000 })
+    toast.add({ severity: 'error', summary: 'Save error', detail: e.response?.data?.detail, life: 5000 })
   } finally {
     saving.value = false
   }
 }
 
-// ── Ejecutar pipeline ──────────────────────────────────────────────────────
+// ── Run pipeline ──────────────────────────────────────────────────────────
 
 async function runPipeline() {
   if (!selectedPipeline.value) return
   running.value = true
   try {
     await api.post(`/pipelines/${selectedPipeline.value.id}/run`)
-    toast.add({ severity: 'info', summary: 'Pipeline iniciado', detail: 'Ejecutando...', life: 3000 })
+    toast.add({ severity: 'info', summary: 'Pipeline started', detail: 'Running...', life: 3000 })
     const runsRes = await api.get(`/pipelines/${selectedPipeline.value.id}/runs`)
     recentRuns.value = runsRes.data.slice(0, 8)
     await loadPipelines()
@@ -602,18 +602,18 @@ async function openRunDetail(runId) {
     runDetail.value = data
     showRunDetail.value = true
   } catch {
-    toast.add({ severity: 'error', summary: 'Error', detail: 'No se pudo cargar el detalle del run', life: 3000 })
+    toast.add({ severity: 'error', summary: 'Error', detail: 'Could not load run detail', life: 3000 })
   }
 }
 
-// ── Eliminar pipeline ──────────────────────────────────────────────────────
+// ── Delete pipeline ───────────────────────────────────────────────────────
 
 function confirmDelete() {
   confirm.require({
-    message: `¿Eliminar el pipeline "${selectedPipeline.value.name}"? Esta acción no se puede deshacer.`,
-    header: 'Confirmar eliminación',
+    message: `Delete pipeline "${selectedPipeline.value.name}"? This action cannot be undone.`,
+    header: 'Confirm deletion',
     icon: 'pi pi-exclamation-triangle',
-    acceptLabel: 'Eliminar', rejectLabel: 'Cancelar',
+    acceptLabel: 'Delete', rejectLabel: 'Cancel',
     acceptClass: 'p-button-danger',
     accept: async () => {
       try {
@@ -625,15 +625,15 @@ function confirmDelete() {
         recentRuns.value = []
         stopPolling()
         await loadPipelines()
-        toast.add({ severity: 'success', summary: 'Pipeline eliminado', life: 3000 })
+        toast.add({ severity: 'success', summary: 'Pipeline deleted', life: 3000 })
       } catch (e) {
-        toast.add({ severity: 'error', summary: 'Error al eliminar', detail: e.response?.data?.detail, life: 5000 })
+        toast.add({ severity: 'error', summary: 'Delete error', detail: e.response?.data?.detail, life: 5000 })
       }
     },
   })
 }
 
-// ── Exportar / Importar ────────────────────────────────────────────────────
+// ── Export / Import ───────────────────────────────────────────────────────
 
 async function exportPipeline() {
   try {
@@ -646,7 +646,7 @@ async function exportPipeline() {
     a.click()
     URL.revokeObjectURL(url)
   } catch (e) {
-    toast.add({ severity: 'error', summary: 'Error al exportar', detail: e.response?.data?.detail, life: 4000 })
+    toast.add({ severity: 'error', summary: 'Export error', detail: e.response?.data?.detail, life: 4000 })
   }
 }
 
@@ -665,27 +665,27 @@ async function onImportFile(e) {
     await loadPipelines()
     const found = pipelines.value.find(p => p.id === created.id)
     if (found) await selectPipeline(found)
-    toast.add({ severity: 'success', summary: 'Pipeline importado', detail: `"${created.name}" creado correctamente`, life: 3000 })
+    toast.add({ severity: 'success', summary: 'Pipeline imported', detail: `"${created.name}" created successfully`, life: 3000 })
   } catch (e) {
-    toast.add({ severity: 'error', summary: 'Error al importar', detail: e.response?.data?.detail || 'JSON inválido o estructura incorrecta', life: 5000 })
+    toast.add({ severity: 'error', summary: 'Import error', detail: e.response?.data?.detail || 'Invalid JSON or incorrect structure', life: 5000 })
   }
 }
 
-// ── Helpers de pasos ───────────────────────────────────────────────────────
+// ── Step helpers ──────────────────────────────────────────────────────────
 
 function conditionLabel(step) {
   const s = step.on_success, f = step.on_failure
-  if (s === 'continue' && f === 'continue') return 'siempre continúa →'
-  if (s === 'continue' && f === 'stop') return 'continúa si éxito →'
-  if (s === 'stop' && f === 'continue') return 'continúa si falla →'
+  if (s === 'continue' && f === 'continue') return 'always continues →'
+  if (s === 'continue' && f === 'stop') return 'continues on success →'
+  if (s === 'stop' && f === 'continue') return 'continues on failure →'
   return '→'
 }
 
 function conditionArrow(step) {
   const s = step.on_success, f = step.on_failure
-  if (s === 'continue' && f === 'continue') return 'siempre'
-  if (s === 'continue' && f === 'stop') return 'si éxito'
-  if (s === 'stop' && f === 'continue') return 'si falla'
+  if (s === 'continue' && f === 'continue') return 'always'
+  if (s === 'continue' && f === 'stop') return 'on success'
+  if (s === 'stop' && f === 'continue') return 'on failure'
   return '↓'
 }
 
@@ -714,12 +714,12 @@ function stepTypeShort(step) {
   if (step.step_type === 'script') return 'Script'
   if (step.step_type === 'module') {
     const labels = {
-      load_env: '.env', email: 'Email', compress: 'Comprimir', move_file: 'Mover',
-      copy_file: 'Copiar', delete_file: 'Borrar', mkdir: 'Mkdir', write_file: 'Escribir',
-      rename_file: 'Renombrar', decompress: 'Descompr.', check_exists: 'Verificar',
-      delay: 'Esperar', log: 'Log', call_pipeline: 'Pipeline',
+      load_env: '.env', email: 'Email', compress: 'Compress', move_file: 'Move',
+      copy_file: 'Copy', delete_file: 'Delete', mkdir: 'Mkdir', write_file: 'Write',
+      rename_file: 'Rename', decompress: 'Decompr.', check_exists: 'Check',
+      delay: 'Wait', log: 'Log', call_pipeline: 'Pipeline',
     }
-    return labels[step.config?.module] || 'Módulo'
+    return labels[step.config?.module] || 'Module'
   }
   return step.step_type
 }
@@ -744,7 +744,7 @@ function stepPreview(step) {
 
 function utcDate(dt) {
   if (!dt) return null
-  // Normaliza datetimes sin 'Z' (SQLite UTC naive) para que el navegador los trate como UTC
+  // Normalize datetimes without 'Z' (SQLite UTC naive) so the browser treats them as UTC
   return new Date(dt.endsWith('Z') ? dt : dt + 'Z')
 }
 
@@ -753,11 +753,11 @@ function timeAgo(dt) {
   if (!d) return ''
   const diff = Date.now() - d.getTime()
   const mins = Math.floor(diff / 60000)
-  if (mins < 1) return 'ahora'
-  if (mins < 60) return `hace ${mins}m`
+  if (mins < 1) return 'just now'
+  if (mins < 60) return `${mins}m ago`
   const hrs = Math.floor(mins / 60)
-  if (hrs < 24) return `hace ${hrs}h`
-  return `hace ${Math.floor(hrs / 24)}d`
+  if (hrs < 24) return `${hrs}h ago`
+  return `${Math.floor(hrs / 24)}d ago`
 }
 
 function duration(start, end) {
@@ -776,7 +776,7 @@ onMounted(async () => {
   try {
     const { data } = await api.get('/scripts/favorites')
     favorites.value = data
-  } catch { /* scripts favoritos opcionales */ }
+  } catch { /* favorite scripts are optional */ }
 })
 
 onUnmounted(() => stopPolling())
@@ -1046,7 +1046,7 @@ onUnmounted(() => stopPolling())
   font-family: var(--font-mono);
 }
 
-/* ── Step cards (acordeón) ─────────────────────────────────────────── */
+/* ── Step cards (accordion) ────────────────────────────────────────── */
 .step-card {
   border: 1px solid var(--p-surface-border);
   border-radius: 7px;
@@ -1063,7 +1063,7 @@ onUnmounted(() => stopPolling())
   box-shadow: 0 0 0 1px color-mix(in srgb, var(--brand-orange) 18%, transparent);
 }
 
-/* Header — área clicable */
+/* Header — clickable area */
 .step-card-header {
   display: flex;
   align-items: center;
@@ -1092,7 +1092,7 @@ onUnmounted(() => stopPolling())
   flex-shrink: 0;
 }
 
-/* Info (tipo + nombre + subtítulo) */
+/* Info (type + name + subtitle) */
 .step-card-info {
   flex: 1;
   min-width: 0;
@@ -1192,7 +1192,7 @@ onUnmounted(() => stopPolling())
   color: var(--brand-orange);
 }
 
-/* Cuerpo del paso (área animada) */
+/* Step body (animated area) */
 .step-body {
   padding: 14px;
   background: color-mix(in srgb, var(--p-surface-card) 55%, var(--p-surface-ground));
@@ -1373,7 +1373,7 @@ onUnmounted(() => stopPolling())
 }
 .run-chevron { font-size: 9px; color: var(--p-text-muted-color); opacity: 0.5; }
 
-/* ─── Diálogo de detalle ──────────────────────────────────────────────── */
+/* ─── Run detail dialog ───────────────────────────────────────────────── */
 .run-detail { display: flex; flex-direction: column; gap: 14px; }
 .run-detail-summary {
   display: flex;

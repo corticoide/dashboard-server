@@ -23,6 +23,11 @@ info() {
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cd "$SCRIPT_DIR"
 
+# Detect LAN IPv4
+LAN_IP=$(ip route get 8.8.8.8 2>/dev/null | awk '/src/ {for(i=1;i<=NF;i++) if ($i=="src") {print $(i+1); exit}}')
+[ -z "$LAN_IP" ] && LAN_IP=$(hostname -I 2>/dev/null | awk '{print $1}')
+[ -z "$LAN_IP" ] && LAN_IP="localhost"
+
 # Check prerequisites
 info "Checking prerequisites..."
 
@@ -72,7 +77,7 @@ cleanup() {
 trap cleanup SIGINT SIGTERM
 
 # Start backend
-info "Starting backend on https://localhost:8443..."
+info "Starting backend on https://$LAN_IP:8443..."
 source "$VENV/bin/activate" && python -m backend.main &
 BACKEND_PID=$!
 success "Backend started (PID: $BACKEND_PID)"
@@ -89,8 +94,10 @@ echo -e "${GREEN}========================================${NC}"
 echo -e "${GREEN}ServerDash Dev Environment Ready${NC}"
 echo -e "${GREEN}========================================${NC}"
 echo ""
-echo "Backend:  https://localhost:8443"
-echo "Frontend: http://localhost:5173 (proxies to backend)"
+echo "Backend:  https://$LAN_IP:8443"
+echo "Frontend: http://$LAN_IP:5173  (proxies to backend)"
+echo ""
+echo "Local:    https://localhost:8443  /  http://localhost:5173"
 echo ""
 echo "Press Ctrl+C to shutdown"
 echo ""

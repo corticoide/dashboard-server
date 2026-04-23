@@ -369,8 +369,8 @@ async function doDelete(entry) {
 .list-breadcrumb { background: transparent; border: none; padding: 0; }
 .toolbar-end { display: flex; align-items: center; gap: 8px; }
 
-:deep(.file-table) { flex: 1; cursor: default; }
-:deep(.p-datatable-wrapper) { flex: 1; }
+:deep(.file-table) { flex: 1; min-height: 0; cursor: default; }
+:deep(.p-datatable-wrapper) { flex: 1; min-height: 0; }
 :deep(.file-table .p-datatable-tbody tr) { cursor: pointer; }
 
 /* DataTable header normalization */

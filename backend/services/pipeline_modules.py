@@ -1,4 +1,4 @@
-"""Módulos nativos para pipelines. Cada función retorna (exit_code: int, output: str)."""
+"""Native pipeline modules. Each function returns (exit_code: int, output: str)."""
 import shutil
 import tarfile
 import zipfile
