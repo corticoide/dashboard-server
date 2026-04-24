@@ -1,7 +1,7 @@
 <template>
   <div class="network-view">
 
-    <Message v-if="error" severity="error" :closable="false">{{ error }}</Message>
+    <div v-if="error" class="banner banner-error"><i class="pi pi-times-circle" />{{ error }}</div>
 
     <!-- ── Live Interface Cards ── -->
     <div class="iface-grid">
@@ -12,7 +12,7 @@
               <i :class="['pi', ifaceIcon(iface.name), 'iface-icon']" />
               <span class="iface-name">{{ iface.name }}</span>
             </div>
-            <Tag :value="iface.is_up ? 'UP' : 'DOWN'" :severity="iface.is_up ? 'success' : 'danger'" class="iface-tag" />
+            <span :class="iface.is_up ? 'badge-green' : 'badge-red'">{{ iface.is_up ? 'UP' : 'DOWN' }}</span>
           </div>
 
           <div class="iface-meta">
@@ -21,7 +21,7 @@
           </div>
 
           <div class="iface-badges">
-            <Tag v-if="iface.is_internet_gateway" value="INTERNET" severity="success" class="iface-badge-internet" />
+            <span v-if="iface.is_internet_gateway" class="badge-green">INTERNET</span>
             <span v-if="iface.subnet" class="iface-subnet">{{ iface.subnet }}</span>
           </div>
 
@@ -111,7 +111,7 @@
           <Divider class="section-divider" />
           <div class="conn-summary">
             <div v-for="(count, state) in connSummary" :key="state" class="conn-state-item">
-              <Tag :value="state" :severity="stateColor(state)" class="state-tag" />
+              <span :class="stateBadgeClass(state)">{{ state }}</span>
               <span class="state-count">{{ count }}</span>
             </div>
             <span v-if="Object.keys(connSummary).length === 0" class="cell-empty">No connections</span>
@@ -136,7 +136,7 @@
                 <span class="device-ip">{{ d.ip }}</span>
                 <span class="device-mac">{{ d.mac }}</span>
               </div>
-              <Tag :value="d.interface" severity="secondary" class="device-iface-tag" />
+              <span class="badge-neutral">{{ d.interface }}</span>
             </div>
           </div>
         </template>
@@ -150,10 +150,10 @@
           <i class="pi pi-arrows-h section-icon" />
           <span class="section-title">ACTIVE CONNECTIONS</span>
           <div class="header-controls">
-            <IconField>
-              <InputIcon class="pi pi-search" />
-              <InputText v-model="connSearch" placeholder="Filter address..." class="conn-search" size="small" />
-            </IconField>
+            <div class="search-field">
+              <i class="pi pi-search search-icon" />
+              <input v-model="connSearch" class="search-input" placeholder="Filter address…" />
+            </div>
             <Select v-model="connStatusFilter" :options="statusOptions" placeholder="All states"
               :show-clear="true" class="status-select" />
             <Select v-model="connProtoFilter" :options="['TCP','UDP']" placeholder="All proto"
@@ -172,7 +172,7 @@
           <template #empty><span class="cell-empty">No connections match filters</span></template>
           <Column field="proto" header="Proto" style="width: 70px">
             <template #body="{ data }">
-              <Tag :value="data.proto" :severity="data.proto === 'TCP' ? 'info' : 'secondary'" />
+              <span :class="data.proto === 'TCP' ? 'badge-blue' : 'badge-neutral'">{{ data.proto }}</span>
             </template>
           </Column>
           <Column field="local_addr" header="Local Address" />
@@ -185,7 +185,7 @@
           </Column>
           <Column field="status" header="State" style="width: 130px">
             <template #body="{ data }">
-              <Tag :value="data.status" :severity="stateColor(data.status)" />
+              <span :class="stateBadgeClass(data.status)">{{ data.status }}</span>
             </template>
           </Column>
           <Column field="pid" header="PID" style="width: 70px">
@@ -245,16 +245,11 @@
 <script setup>
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { RouterLink } from 'vue-router'
-import Message from 'primevue/message'
 import Card from 'primevue/card'
 import Divider from 'primevue/divider'
-import Tag from 'primevue/tag'
 import DataTable from 'primevue/datatable'
 import Column from 'primevue/column'
 import Select from 'primevue/select'
-import InputText from 'primevue/inputtext'
-import IconField from 'primevue/iconfield'
-import InputIcon from 'primevue/inputicon'
 import ToggleButton from 'primevue/togglebutton'
 import Chart from 'primevue/chart'
 import { usePolling } from '../composables/usePolling.js'
@@ -534,13 +529,13 @@ function ifaceIcon(name) {
   return 'pi-globe'
 }
 
-function stateColor(state) {
+function stateBadgeClass(state) {
   const map = {
-    ESTABLISHED: 'success', LISTEN: 'info', TIME_WAIT: 'warn',
-    CLOSE_WAIT: 'warn', SYN_SENT: 'secondary', FIN_WAIT1: 'secondary',
-    FIN_WAIT2: 'secondary', CLOSED: 'secondary', NONE: 'secondary',
+    ESTABLISHED: 'badge-green', LISTEN: 'badge-blue', TIME_WAIT: 'badge-yellow',
+    CLOSE_WAIT: 'badge-yellow', SYN_SENT: 'badge-neutral', FIN_WAIT1: 'badge-neutral',
+    FIN_WAIT2: 'badge-neutral', CLOSED: 'badge-neutral', NONE: 'badge-neutral',
   }
-  return map[state] ?? 'secondary'
+  return map[state] ?? 'badge-neutral'
 }
 
 // ── Polling ──
@@ -631,6 +626,15 @@ onUnmounted(() => {
 .section-title { font-family: var(--font-mono); font-size: var(--text-2xs); letter-spacing: 2px; text-transform: uppercase; color: var(--p-text-muted-color); flex: 1; }
 .section-extra { font-family: var(--font-mono); font-size: var(--text-xs); color: var(--p-text-muted-color); }
 .header-controls { display: flex; gap: 8px; align-items: center; }
+.search-field { position: relative; display: flex; align-items: center; }
+.search-icon { position: absolute; left: 8px; font-size: 11px; color: var(--p-text-muted-color); pointer-events: none; }
+.search-input {
+  padding: 5px 10px 5px 28px; width: 180px;
+  background: var(--p-surface-900); border: 1px solid var(--p-surface-border);
+  border-radius: var(--radius-base); font-family: var(--font-mono); font-size: var(--text-sm);
+  color: var(--p-text-color); outline: none; transition: var(--transition-fast);
+}
+.search-input:focus { border-color: var(--brand-orange); }
 .section-divider { margin: 10px 0 !important; }
 
 /* ── Traffic Analysis (ECG) ── */

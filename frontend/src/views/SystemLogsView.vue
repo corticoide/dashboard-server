@@ -18,10 +18,10 @@
           severity="secondary"
           @click="toggleTail"
         />
-        <IconField>
-          <InputIcon class="pi pi-search" />
-          <InputText v-model="searchTerm" placeholder="Search…" size="small" />
-        </IconField>
+        <div class="search-field">
+          <i class="pi pi-search search-icon" />
+          <input v-model="searchTerm" class="search-input" placeholder="Search…" />
+        </div>
       </div>
     </div>
 
@@ -82,9 +82,6 @@ import api from '../api/client.js'
 import Button from 'primevue/button'
 import Splitter from 'primevue/splitter'
 import SplitterPanel from 'primevue/splitterpanel'
-import InputText from 'primevue/inputtext'
-import IconField from 'primevue/iconfield'
-import InputIcon from 'primevue/inputicon'
 
 // ── Recursive TreeNode ────────────────────────────────────────────────────────
 const TreeNode = defineComponent({
@@ -287,6 +284,15 @@ onUnmounted(stopTail)
 }
 
 .header-actions { display: flex; align-items: center; gap: 8px; }
+.search-field { position: relative; display: flex; align-items: center; }
+.search-icon { position: absolute; left: 8px; font-size: 11px; color: var(--p-text-muted-color); pointer-events: none; }
+.search-input {
+  padding: 5px 10px 5px 28px; width: 180px;
+  background: var(--p-surface-900); border: 1px solid var(--p-surface-border);
+  border-radius: var(--radius-base); font-family: var(--font-mono); font-size: var(--text-sm);
+  color: var(--p-text-color); outline: none; transition: var(--transition-fast);
+}
+.search-input:focus { border-color: var(--brand-orange); }
 .line-count {
   font-family: var(--font-mono); font-size: var(--text-xs);
   color: var(--p-text-muted-color); letter-spacing: 0.5px;

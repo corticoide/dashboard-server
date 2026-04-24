@@ -34,57 +34,54 @@
     </div>
 
     <!-- Filters toolbar -->
-    <Toolbar class="filters-toolbar">
-      <template #start>
-        <div class="filters-start">
-          <IconField>
-            <InputIcon class="pi pi-search" />
-            <InputText v-model="filterScript" placeholder="Filter by script…" size="small" @input="debouncedLoadLogs" />
-          </IconField>
-          <div class="status-pills">
-            <button
-              v-for="opt in statusOptions"
-              :key="opt.value"
-              class="status-pill"
-              :class="{ active: filterStatus === opt.value, [`pill-${opt.value}`]: true }"
-              @click="setStatus(opt.value)"
-            >
-              <span v-if="opt.dot" class="pill-dot" :class="`dot-${opt.value}`"></span>
-              {{ opt.label }}
-            </button>
-          </div>
-        </div>
-      </template>
-      <template #end>
-        <div class="filters-end">
-          <Button
-            v-if="hasActiveFilters"
-            label="Clear"
-            icon="pi pi-times"
-            text size="small"
-            severity="secondary"
-            @click="clearFilters"
-          />
-          <DatePicker
-            v-model="dateRange"
-            selectionMode="range"
-            :manualInput="false"
-            placeholder="Date range"
-            size="small"
-            show-icon
-            show-clear
-            @update:model-value="loadLogs"
-          />
-          <Button
-            icon="pi pi-refresh"
-            text rounded size="small"
-            :loading="loading"
-            v-tooltip.bottom="'Refresh'"
-            @click="loadLogs"
+    <div class="filters-toolbar">
+      <div class="filters-start">
+        <div class="search-field">
+          <i class="pi pi-search search-icon" />
+          <input
+            v-model="filterScript"
+            class="search-input"
+            placeholder="Filter by script…"
+            @input="debouncedLoadLogs"
           />
         </div>
-      </template>
-    </Toolbar>
+        <div class="status-pills">
+          <button
+            v-for="opt in statusOptions"
+            :key="opt.value"
+            class="status-pill"
+            :class="{ active: filterStatus === opt.value, [`pill-${opt.value}`]: true }"
+            @click="setStatus(opt.value)"
+          >
+            <span v-if="opt.dot" class="pill-dot" :class="`dot-${opt.value}`"></span>
+            {{ opt.label }}
+          </button>
+        </div>
+      </div>
+      <div class="filters-end">
+        <Button
+          v-if="hasActiveFilters"
+          label="Clear"
+          icon="pi pi-times"
+          text size="small"
+          severity="secondary"
+          @click="clearFilters"
+        />
+        <DatePicker
+          v-model="dateRange"
+          selectionMode="range"
+          :manualInput="false"
+          placeholder="Date range"
+          size="small"
+          show-icon
+          show-clear
+          @update:model-value="loadLogs"
+        />
+        <button class="refresh-btn" :disabled="loading" v-tooltip.bottom="'Refresh'" @click="loadLogs">
+          <i :class="['pi', loading ? 'pi-spin pi-spinner' : 'pi-refresh']" />
+        </button>
+      </div>
+    </div>
 
     <!-- Table -->
     <DataTable
@@ -148,9 +145,9 @@
 
       <Column field="exit_code" header="STATUS" style="width: 100px">
         <template #body="{ data }">
-          <Tag v-if="data.exit_code === null"   value="running"                severity="info"    />
-          <Tag v-else-if="data.exit_code === 0" value="success"                severity="success" />
-          <Tag v-else                           :value="`exit ${data.exit_code}`" severity="danger"  />
+          <span v-if="data.exit_code === null"   class="badge-blue">running</span>
+          <span v-else-if="data.exit_code === 0" class="badge-green">success</span>
+          <span v-else                           class="badge-red">exit {{ data.exit_code }}</span>
         </template>
       </Column>
 
@@ -184,10 +181,9 @@
               <span class="log-expansion-source">output</span>
             </div>
             <div class="log-expansion-meta">
-              <Tag
-                :value="data.exit_code === 0 ? 'EXIT 0 ✓' : data.exit_code == null ? 'RUNNING' : `EXIT ${data.exit_code}`"
-                :severity="data.exit_code === 0 ? 'success' : data.exit_code == null ? 'warn' : 'danger'"
-              />
+              <span :class="data.exit_code === 0 ? 'badge-green' : data.exit_code == null ? 'badge-yellow' : 'badge-red'">
+                {{ data.exit_code === 0 ? 'EXIT 0 ✓' : data.exit_code == null ? 'RUNNING' : `EXIT ${data.exit_code}` }}
+              </span>
               <span class="log-expansion-time">{{ formatDate(data.started_at) }}</span>
               <button
                 v-if="scriptsStore.isFavorite(data.script_path)"
@@ -220,15 +216,11 @@
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useScriptsStore } from '../stores/scripts.js'
-import Toolbar from 'primevue/toolbar'
-import IconField from 'primevue/iconfield'
-import InputIcon from 'primevue/inputicon'
 import InputText from 'primevue/inputtext'
 import DatePicker from 'primevue/datepicker'
 import Button from 'primevue/button'
 import DataTable from 'primevue/datatable'
 import Column from 'primevue/column'
-import Tag from 'primevue/tag'
 import Chip from 'primevue/chip'
 import Paginator from 'primevue/paginator'
 import { usePolling } from '../composables/usePolling.js'
@@ -420,9 +412,58 @@ function formatDate(iso) {
 .stat-val-24h     { color: var(--brand-orange); }
 
 /* ── Filters toolbar ─────────────────────────── */
-.filters-toolbar { flex-shrink: 0; }
-.filters-start { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
-.filters-end   { display: flex; align-items: center; gap: 8px; }
+.filters-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px;
+  background: var(--p-surface-900);
+  border: 1px solid var(--p-surface-border);
+  border-radius: var(--radius-base);
+  flex-shrink: 0;
+}
+.filters-start { display: flex; align-items: center; gap: 8px; flex: 1; flex-wrap: wrap; }
+.filters-end   { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+
+/* Search field */
+.search-field {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--p-surface-ground);
+  border: 1px solid var(--p-surface-border);
+  border-radius: var(--radius-md);
+  padding: 0 10px;
+  height: 32px;
+}
+.search-icon { font-size: 11px; color: var(--p-text-muted-color); flex-shrink: 0; }
+.search-input {
+  background: transparent;
+  border: none;
+  outline: none;
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  color: var(--p-text-color);
+  width: 160px;
+}
+.search-input::placeholder { color: var(--p-text-muted-color); }
+
+/* Refresh button */
+.refresh-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px; height: 32px;
+  background: transparent;
+  border: none;
+  border-radius: var(--radius-sm);
+  color: var(--p-text-muted-color);
+  cursor: pointer;
+  font-size: var(--text-base);
+  transition: var(--transition-fast);
+}
+.refresh-btn:hover { background: var(--p-surface-hover); color: var(--p-text-color); }
+.refresh-btn:disabled { opacity: 0.5; cursor: not-allowed; }
 
 .status-pills { display: flex; gap: 4px; }
 .status-pill {

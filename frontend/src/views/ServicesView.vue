@@ -1,6 +1,9 @@
 <template>
   <div class="services-view">
-    <Message v-if="error" severity="error" :closable="true" @close="error = ''">{{ error }}</Message>
+    <div v-if="error" class="banner banner-error" style="margin-bottom: 8px;">
+      <i class="pi pi-times-circle" />{{ error }}
+      <button class="banner-close" @click="error = ''"><i class="pi pi-times" /></button>
+    </div>
 
     <Splitter class="services-splitter">
 
@@ -16,10 +19,10 @@
           </div>
 
           <div class="search-bar">
-            <IconField>
-              <InputIcon class="pi pi-search" />
-              <InputText v-model="filter" placeholder="Filter units…" size="small" fluid />
-            </IconField>
+            <div class="search-field">
+              <i class="pi pi-search search-icon" />
+              <input v-model="filter" class="search-input" placeholder="Filter units…" />
+            </div>
           </div>
 
           <div class="state-pills">
@@ -140,12 +143,8 @@ import { ref, computed, onMounted } from 'vue'
 import { useToast } from 'primevue/usetoast'
 import Splitter from 'primevue/splitter'
 import SplitterPanel from 'primevue/splitterpanel'
-import IconField from 'primevue/iconfield'
-import InputIcon from 'primevue/inputicon'
-import InputText from 'primevue/inputtext'
 import Password from 'primevue/password'
 import Button from 'primevue/button'
-import Message from 'primevue/message'
 import api from '../api/client.js'
 
 const toast = useToast()
@@ -305,6 +304,17 @@ onMounted(loadServices)
   border-bottom: 1px solid var(--p-surface-border);
   flex-shrink: 0;
 }
+.search-field { position: relative; display: flex; align-items: center; }
+.search-icon { position: absolute; left: 8px; font-size: 11px; color: var(--p-text-muted-color); pointer-events: none; }
+.search-input {
+  padding: 5px 10px 5px 28px; width: 100%;
+  background: var(--p-surface-900); border: 1px solid var(--p-surface-border);
+  border-radius: var(--radius-base); font-family: var(--font-mono); font-size: var(--text-sm);
+  color: var(--p-text-color); outline: none; transition: var(--transition-fast);
+}
+.search-input:focus { border-color: var(--brand-orange); }
+.banner-close { background: none; border: none; color: inherit; cursor: pointer; margin-left: auto; padding: 0 2px; opacity: 0.7; }
+.banner-close:hover { opacity: 1; }
 :deep(.search-bar .p-inputtext) {
   font-family: var(--font-mono);
   font-size: var(--text-sm);

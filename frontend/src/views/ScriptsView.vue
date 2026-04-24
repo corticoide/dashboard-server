@@ -47,7 +47,7 @@
               <template #option="{ option }">
                 <div class="list-option" :class="{ 'option--running': polling && selected?.id === option.id }">
                   <span class="perms-str">{{ option.run_as_root ? '-rwsr-xr-x' : '-rwxr-xr-x' }}</span>
-                  <Tag :value="shortRunner(option.runner)" :severity="runnerSeverity(option.runner)" class="runner-tag" />
+                  <span :class="runnerBadgeClass(option.runner)" class="runner-tag">{{ shortRunner(option.runner) }}</span>
                   <div class="option-info">
                     <span class="option-name">{{ fileName(option.path) }}</span>
                     <span class="option-dir">{{ dirName(option.path) }}</span>
@@ -90,7 +90,7 @@
           <!-- Header toolbar -->
           <Toolbar class="detail-toolbar">
             <template #start>
-              <Tag :value="selected.runner" :severity="runnerSeverity(selected.runner)" class="runner-tag" />
+              <span :class="runnerBadgeClass(selected.runner)" class="runner-tag">{{ selected.runner }}</span>
               <span class="detail-filename">{{ fileName(selected.path) }}</span>
               <Button
                 :label="selected.path"
@@ -162,9 +162,9 @@
                 @click="clearOutput"
               />
             </InputGroup>
-            <Message v-if="!selected.exists" severity="warn" :closable="false" class="mt-2">
-              Script not found on disk — it may have been moved or deleted.
-            </Message>
+            <div v-if="!selected.exists" class="banner banner-warn" style="margin-top: 8px;">
+              <i class="pi pi-exclamation-triangle" /> Script not found on disk — it may have been moved or deleted.
+            </div>
           </div>
 
           <!-- Tabs -->
@@ -191,9 +191,9 @@
                       <span class="terminal-source">output</span>
                     </div>
                     <div class="terminal-header-meta">
-                      <Tag v-if="polling"                      value="RUNNING"                   severity="warning" icon="pi pi-spin pi-spinner" />
-                      <Tag v-else-if="currentExitCode === 0"   value="EXIT 0 ✓"                  severity="success" />
-                      <Tag v-else-if="currentExitCode != null" :value="`EXIT ${currentExitCode}`" severity="danger" />
+                      <span v-if="polling"                      class="badge-yellow"><i class="pi pi-spin pi-spinner" /> RUNNING</span>
+                      <span v-else-if="currentExitCode === 0"   class="badge-green">EXIT 0 ✓</span>
+                      <span v-else-if="currentExitCode != null" class="badge-red">EXIT {{ currentExitCode }}</span>
                       <span class="exec-time">{{ execStarted }}</span>
                     </div>
                   </div>
@@ -223,10 +223,9 @@
 
                   <Column header="EXIT" style="width: 70px">
                     <template #body="{ data }">
-                      <Tag
-                        :value="String(data.exit_code ?? '…')"
-                        :severity="data.exit_code === 0 ? 'success' : data.exit_code == null ? 'warn' : 'danger'"
-                      />
+                        <span :class="data.exit_code === 0 ? 'badge-green' : data.exit_code == null ? 'badge-yellow' : 'badge-red'">
+                        {{ String(data.exit_code ?? '…') }}
+                      </span>
                     </template>
                   </Column>
 
@@ -259,10 +258,9 @@
                       <div class="history-expansion-header">
                         <i class="pi pi-terminal" />
                         <span class="history-expansion-date">{{ formatDate(data.started_at) }}</span>
-                        <Tag
-                          :value="data.exit_code === 0 ? 'EXIT 0' : data.exit_code == null ? '…' : `EXIT ${data.exit_code}`"
-                          :severity="data.exit_code === 0 ? 'success' : data.exit_code == null ? 'warn' : 'danger'"
-                        />
+                        <span :class="data.exit_code === 0 ? 'badge-green' : data.exit_code == null ? 'badge-yellow' : 'badge-red'">
+                          {{ data.exit_code === 0 ? 'EXIT 0' : data.exit_code == null ? '…' : `EXIT ${data.exit_code}` }}
+                        </span>
                       </div>
                       <pre class="history-output">{{ data.output || '(no output)' }}</pre>
                     </div>
@@ -288,7 +286,6 @@ import { useConfirm } from 'primevue/useconfirm'
 import Splitter from 'primevue/splitter'
 import SplitterPanel from 'primevue/splitterpanel'
 import Listbox from 'primevue/listbox'
-import Tag from 'primevue/tag'
 import Badge from 'primevue/badge'
 import Toolbar from 'primevue/toolbar'
 import Button from 'primevue/button'
@@ -297,7 +294,6 @@ import InputGroup from 'primevue/inputgroup'
 import InputGroupAddon from 'primevue/inputgroupaddon'
 import InputText from 'primevue/inputtext'
 import Password from 'primevue/password'
-import Message from 'primevue/message'
 import Tabs from 'primevue/tabs'
 import TabList from 'primevue/tablist'
 import Tab from 'primevue/tab'
@@ -380,13 +376,13 @@ function shortRunner(runner) {
   const name = runner.split('/').pop()
   return name.length > 8 ? name.slice(0, 7) + '…' : name
 }
-function runnerSeverity(runner) {
-  if (!runner) return 'secondary'
+function runnerBadgeClass(runner) {
+  if (!runner) return 'badge-neutral'
   const name = runner.split('/').pop().toLowerCase()
-  if (name.startsWith('python')) return 'info'
-  if (['bash', 'sh', 'zsh', 'dash'].includes(name)) return 'warn'
-  if (['node', 'nodejs', 'deno', 'bun'].includes(name)) return 'success'
-  return 'secondary'
+  if (name.startsWith('python')) return 'badge-blue'
+  if (['bash', 'sh', 'zsh', 'dash'].includes(name)) return 'badge-orange'
+  if (['node', 'nodejs', 'deno', 'bun'].includes(name)) return 'badge-green'
+  return 'badge-neutral'
 }
 function formatDate(iso) {
   if (!iso) return '—'
@@ -712,6 +708,34 @@ async function loadHistory() {
 .detail-panel { height: 100%; display: flex; flex-direction: column; overflow: hidden; background: var(--p-surface-card); }
 
 .detail-toolbar { border-radius: 0; flex-shrink: 0; }
+:deep(.detail-toolbar.p-toolbar) {
+  background: var(--p-surface-card);
+  border: none;
+  border-bottom: 1px solid var(--p-surface-border);
+  border-radius: 0;
+  padding: 9px 12px;
+}
+
+/* Listbox deep overrides — match the custom list item pattern */
+:deep(.scripts-listbox .p-listbox-list) { padding: 0; }
+:deep(.scripts-listbox .p-listbox-option) {
+  padding: 7px 12px;
+  border-left: 2px solid transparent;
+  border-radius: 0;
+  transition: background 0.12s, border-color 0.12s;
+}
+:deep(.scripts-listbox .p-listbox-option:hover) {
+  background: color-mix(in srgb, var(--brand-orange) 8%, transparent) !important;
+}
+:deep(.scripts-listbox .p-listbox-option.p-highlight),
+:deep(.scripts-listbox .p-listbox-option[aria-selected="true"]) {
+  background: color-mix(in srgb, var(--brand-orange) 12%, transparent) !important;
+  border-left-color: var(--brand-orange) !important;
+  color: var(--brand-orange) !important;
+}
+:deep(.scripts-listbox .p-listbox-option.p-highlight .option-name) {
+  color: var(--brand-orange);
+}
 .detail-filename {
   font-family: var(--font-mono);
   font-size: var(--text-sm);

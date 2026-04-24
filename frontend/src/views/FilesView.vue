@@ -91,7 +91,7 @@
         <div class="editor-header-content">
           <i class="pi pi-file-edit" style="color: var(--brand-orange);" />
           <span class="editor-filename">{{ openedFile?.name }}</span>
-          <Tag v-if="editorDirty" value="unsaved" severity="warn" rounded />
+          <span v-if="editorDirty" class="badge-yellow">unsaved</span>
         </div>
       </template>
 
@@ -135,7 +135,6 @@ import Button from 'primevue/button'
 import Splitter from 'primevue/splitter'
 import SplitterPanel from 'primevue/splitterpanel'
 import Drawer from 'primevue/drawer'
-import Tag from 'primevue/tag'
 import DirTree from '../components/files/DirTree.vue'
 import FileList from '../components/files/FileList.vue'
 import api from '../api/client.js'

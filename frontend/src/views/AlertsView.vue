@@ -36,7 +36,7 @@
       </div>
     </div>
 
-    <Message v-if="error" severity="error" :closable="false">{{ error }}</Message>
+    <div v-if="error" class="banner banner-error"><i class="pi pi-times-circle" />{{ error }}</div>
 
     <Splitter class="alerts-splitter" :gutter-size="6">
       <!-- Left: rule list -->
@@ -98,11 +98,9 @@
             <div class="editor-header">
               <div class="editor-title-group">
                 <span class="editor-title">{{ isNew ? 'NEW RULE' : 'EDIT RULE' }}</span>
-                <Tag
-                  v-if="!isNew"
-                  :value="form.enabled ? 'ENABLED' : 'DISABLED'"
-                  :severity="form.enabled ? 'success' : 'secondary'"
-                />
+                <span v-if="!isNew" :class="form.enabled ? 'badge-green' : 'badge-neutral'">
+                  {{ form.enabled ? 'ENABLED' : 'DISABLED' }}
+                </span>
               </div>
               <div class="editor-actions" v-if="auth.hasPermission('alerts', 'write')">
                 <Button
@@ -196,10 +194,9 @@
                 <template #body="{ data }">
                   <div class="fire-status-cell">
                     <span class="fire-dot" :class="data.status === 'active' ? 'fire-dot--active' : 'fire-dot--recovered'" />
-                    <Tag
-                      :value="data.status === 'active' ? 'ACTIVE' : 'RECOVERED'"
-                      :severity="data.status === 'active' ? 'danger' : 'success'"
-                    />
+                    <span :class="data.status === 'active' ? 'badge-red' : 'badge-green'">
+                      {{ data.status === 'active' ? 'ACTIVE' : 'RECOVERED' }}
+                    </span>
                   </div>
                 </template>
               </Column>
@@ -213,7 +210,7 @@
               </Column>
               <Column header="Duration" style="width: 90px">
                 <template #body="{ data }">
-                  <Tag :value="duration(data)" :severity="durationSeverity(data)" />
+                  <span :class="durationBadgeClass(data)">{{ duration(data) }}</span>
                 </template>
               </Column>
               <template #empty>
@@ -244,8 +241,6 @@ import { useConfirm } from 'primevue/useconfirm'
 import { useAuthStore } from '../stores/auth.js'
 import api from '../api/client.js'
 import Button from 'primevue/button'
-import Tag from 'primevue/tag'
-import Message from 'primevue/message'
 import Splitter from 'primevue/splitter'
 import SplitterPanel from 'primevue/splitterpanel'
 import InputText from 'primevue/inputtext'
@@ -421,13 +416,13 @@ function duration(fire) {
   return `${Math.floor(secs / 3600)}h`
 }
 
-function durationSeverity(fire) {
+function durationBadgeClass(fire) {
   const end = fire.recovered_at ? new Date(fire.recovered_at + 'Z') : new Date()
   const start = new Date(fire.fired_at + 'Z')
   const mins = (end - start) / 60000
-  if (mins < 5)   return 'success'
-  if (mins < 60)  return 'warn'
-  return 'danger'
+  if (mins < 5)   return 'badge-green'
+  if (mins < 60)  return 'badge-yellow'
+  return 'badge-red'
 }
 
 onMounted(loadRules)

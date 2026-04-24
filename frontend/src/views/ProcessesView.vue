@@ -5,13 +5,13 @@
         <i class="pi pi-server page-icon" />
         <span>PROCESSES</span>
         <span class="live-dot" :class="{ tick: liveTick }" title="Live" />
-        <Tag v-if="truncated" value="CAPPED AT 500" severity="warning" />
+        <span v-if="truncated" class="badge-yellow">CAPPED AT 500</span>
       </div>
       <div class="header-actions">
-        <IconField>
-          <InputIcon class="pi pi-search" />
-          <InputText v-model="filterTerm" placeholder="Filter by name…" size="small" />
-        </IconField>
+        <div class="search-field">
+          <i class="pi pi-search search-icon" />
+          <input v-model="filterTerm" class="search-input" placeholder="Filter by name…" />
+        </div>
       </div>
     </div>
 
@@ -48,7 +48,7 @@
       <span class="summary-total">{{ countLabel }}</span>
     </div>
 
-    <Message v-if="error" severity="error" :closable="false">{{ error }}</Message>
+    <div v-if="error" class="banner banner-error"><i class="pi pi-times-circle" />{{ error }}</div>
 
     <DataTable
       :value="filteredProcesses"
@@ -69,7 +69,7 @@
         <template #body="{ data }">
           <div class="name-cell">
             <span class="proc-name">{{ data.name }}</span>
-            <Tag v-if="data.watched" value="WATCHED" severity="info" class="watched-tag" />
+            <span v-if="data.watched" class="badge-blue">WATCHED</span>
           </div>
         </template>
       </Column>
@@ -115,7 +115,7 @@
         <template #body="{ data }">
           <div class="status-cell">
             <span class="state-dot" :class="`state-dot--${data.status}`" />
-            <Tag :value="data.status" :severity="statusSeverity(data.status)" />
+            <span :class="statusBadgeClass(data.status)">{{ data.status }}</span>
           </div>
         </template>
       </Column>
@@ -186,15 +186,11 @@ import { useAuthStore } from '../stores/auth.js'
 import { usePolling } from '../composables/usePolling.js'
 import api from '../api/client.js'
 import Button from 'primevue/button'
-import Tag from 'primevue/tag'
-import Message from 'primevue/message'
 import DataTable from 'primevue/datatable'
 import Column from 'primevue/column'
 import Dialog from 'primevue/dialog'
 import InputText from 'primevue/inputtext'
 import InputNumber from 'primevue/inputnumber'
-import IconField from 'primevue/iconfield'
-import InputIcon from 'primevue/inputicon'
 
 const MAX_DISPLAY = 500
 
@@ -257,14 +253,14 @@ async function loadProcesses() {
   }
 }
 
-function statusSeverity(status) {
+function statusBadgeClass(status) {
   return {
-    running:    'success',
-    sleeping:   'secondary',
-    disk_sleep: 'warn',
-    stopped:    'warn',
-    zombie:     'danger',
-  }[status] ?? 'secondary'
+    running:    'badge-green',
+    sleeping:   'badge-neutral',
+    disk_sleep: 'badge-yellow',
+    stopped:    'badge-yellow',
+    zombie:     'badge-red',
+  }[status] ?? 'badge-neutral'
 }
 
 function barClass(cpu) {
@@ -346,6 +342,26 @@ onUnmounted(stop)
 .page-icon { color: var(--brand-orange); font-size: var(--text-lg); }
 .header-actions { display: flex; align-items: center; gap: 8px; }
 
+/* Search */
+.search-field {
+  position: relative; display: flex; align-items: center;
+}
+.search-icon {
+  position: absolute; left: 8px; font-size: 11px;
+  color: var(--p-text-muted-color); pointer-events: none;
+}
+.search-input {
+  padding: 5px 10px 5px 28px;
+  background: var(--p-surface-900);
+  border: 1px solid var(--p-surface-border);
+  border-radius: var(--radius-base);
+  font-family: var(--font-mono); font-size: var(--text-sm);
+  color: var(--p-text-color);
+  outline: none; width: 200px;
+  transition: var(--transition-fast);
+}
+.search-input:focus { border-color: var(--brand-orange); }
+
 /* Live dot */
 .live-dot {
   width: 7px; height: 7px; border-radius: 50%;
@@ -403,6 +419,12 @@ onUnmounted(stop)
   text-transform: uppercase; font-weight: 600;
 }
 :deep(.proc-table .p-datatable-tbody td) { padding: 5px 10px; }
+:deep(.proc-table .p-datatable-tbody tr:hover td) {
+  background: color-mix(in srgb, var(--brand-orange) 6%, transparent) !important;
+}
+:deep(.proc-table .p-row-selected td) {
+  background: color-mix(in srgb, var(--brand-orange) 10%, transparent) !important;
+}
 
 /* ── Table cells ─────────────────────────────────── */
 .name-cell { display: flex; align-items: center; gap: 6px; }

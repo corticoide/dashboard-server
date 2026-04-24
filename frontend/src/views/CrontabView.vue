@@ -95,7 +95,7 @@
 
         <!-- Non-admin -->
         <div v-else-if="!isAdmin" class="empty-editor">
-          <Message severity="info" :closable="false">Admin access required to edit entries.</Message>
+          <div class="banner banner-warn"><i class="pi pi-lock" /> Admin access required to edit entries.</div>
         </div>
 
         <!-- Step wizard -->
@@ -357,7 +357,7 @@
               <div class="section-label">COMMENT (optional)</div>
               <InputText v-model="form.comment" placeholder="Description of this job" fluid class="mb-3" />
 
-              <Message v-if="saveError" severity="error" :closable="false" class="mb-2">{{ saveError }}</Message>
+              <div v-if="saveError" class="banner banner-error" style="margin-bottom: 8px;"><i class="pi pi-times-circle" />{{ saveError }}</div>
 
             </div>
           </div>
@@ -413,7 +413,6 @@ import InputText from 'primevue/inputtext'
 import InputGroup from 'primevue/inputgroup'
 import InputGroupAddon from 'primevue/inputgroupaddon'
 import Divider from 'primevue/divider'
-import Message from 'primevue/message'
 import api from '../api/client.js'
 import { useAuthStore } from '../stores/auth.js'
 import { useScriptsStore } from '../stores/scripts.js'
@@ -855,18 +854,24 @@ onMounted(() => {
   display: flex;
   flex-direction: column;
 }
-:deep(.entries-table) { height: 100%; }
-:deep(.entries-table .p-datatable-wrapper) { height: 100%; }
-:deep(.entries-table .p-datatable-thead th) { background: transparent; }
-:deep(.entries-table .p-datatable-column-header-content) {
-  font-family: var(--font-mono);
-  font-size: var(--text-2xs);
-  letter-spacing: 1.5px;
-  color: var(--p-text-muted-color);
-  text-transform: uppercase;
-  font-weight: 600;
+:deep(.entries-table) { height: 100%; background: transparent; }
+:deep(.entries-table .p-datatable-wrapper) { height: 100%; background: transparent; }
+:deep(.entries-table .p-datatable-thead) { display: none; }
+:deep(.entries-table .p-datatable-tbody tr) {
+  border-bottom: 1px solid var(--p-surface-border);
+  cursor: pointer;
+  transition: background 0.12s;
+  border-left: 2px solid transparent;
 }
-:deep(.entries-table .p-datatable-tbody td) { padding: 5px 10px; }
+:deep(.entries-table .p-datatable-tbody tr:hover) {
+  background: color-mix(in srgb, var(--brand-orange) 8%, transparent) !important;
+}
+:deep(.entries-table .p-row-selected) {
+  background: color-mix(in srgb, var(--brand-orange) 12%, transparent) !important;
+  border-left: 2px solid var(--brand-orange) !important;
+}
+:deep(.entries-table .p-row-selected td) { background: transparent !important; }
+:deep(.entries-table .p-datatable-tbody td) { padding: 7px 10px; background: transparent; }
 
 .schedule-cell { display: flex; flex-direction: column; gap: 2px; }
 .expr-row { display: flex; align-items: center; gap: 5px; }
@@ -896,6 +901,13 @@ onMounted(() => {
 /* ── Editor wrap ─────────────────────────────── */
 .editor-wrap { height: 100%; display: flex; flex-direction: column; overflow: hidden; background: var(--p-surface-card); }
 .editor-toolbar { border-radius: 0; flex-shrink: 0; }
+:deep(.editor-toolbar.p-toolbar) {
+  background: var(--p-surface-card);
+  border: none;
+  border-bottom: 1px solid var(--p-surface-border);
+  border-radius: 0;
+  padding: 10px 16px;
+}
 .editor-header-icon { font-size: 12px; color: var(--brand-orange); margin-right: 2px; }
 .editor-mode-label {
   font-family: var(--font-mono);
