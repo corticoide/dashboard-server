@@ -1,5 +1,11 @@
 <template>
   <div class="crontab-view">
+    <div class="page-header">
+      <div class="page-title">
+        <i class="pi pi-clock page-icon" />
+        <span>CRONTAB</span>
+      </div>
+    </div>
     <Splitter class="crontab-splitter">
 
       <!-- ── Left: entries list ───────────────────────────────────────────── -->
@@ -803,12 +809,28 @@ onMounted(() => {
   height: calc(100vh - var(--header-height) - 48px);
   display: flex;
   flex-direction: column;
+  gap: 12px;
 }
+
+/* ── Page header ──────────────────────────────── */
+.page-header {
+  display: flex; align-items: center; gap: 12px;
+  padding-bottom: 14px;
+  border-bottom: 2px solid var(--border-strong);
+  flex-shrink: 0;
+}
+.page-title {
+  display: flex; align-items: center; gap: 10px;
+  font-family: var(--font-mono); font-size: var(--text-sm);
+  font-weight: 700; letter-spacing: 2px; color: var(--p-text-muted-color);
+}
+.page-icon { color: var(--brand-orange); font-size: var(--text-lg); }
 .crontab-splitter {
   flex: 1;
   min-height: 0;
   border-radius: 8px;
   overflow: hidden;
+  /* account for page-header + gap so total height stays correct */
 }
 
 /* ── Left panel ──────────────────────────────── */
@@ -816,7 +838,7 @@ onMounted(() => {
   display: flex;
   flex-direction: column;
   height: 100%;
-  border-right: 1px solid var(--p-surface-border);
+  border-right: 1px solid var(--border-strong);
   background: var(--p-surface-900);
   overflow: hidden;
 }
@@ -825,7 +847,8 @@ onMounted(() => {
   align-items: center;
   gap: 7px;
   padding: 10px 10px 8px;
-  border-bottom: 1px solid var(--p-surface-border);
+  border-bottom: 2px solid var(--border-strong);
+  background: var(--surface-header);
   flex-shrink: 0;
 }
 .list-header-icon { font-size: 12px; color: var(--brand-orange); }
@@ -858,7 +881,7 @@ onMounted(() => {
 :deep(.entries-table .p-datatable-wrapper) { height: 100%; background: transparent; }
 :deep(.entries-table .p-datatable-thead) { display: none; }
 :deep(.entries-table .p-datatable-tbody tr) {
-  border-bottom: 1px solid var(--p-surface-border);
+  border-bottom: 1px solid var(--border-strong);
   cursor: pointer;
   transition: background 0.12s;
   border-left: 2px solid transparent;
@@ -902,9 +925,9 @@ onMounted(() => {
 .editor-wrap { height: 100%; display: flex; flex-direction: column; overflow: hidden; background: var(--p-surface-card); }
 .editor-toolbar { border-radius: 0; flex-shrink: 0; }
 :deep(.editor-toolbar.p-toolbar) {
-  background: var(--p-surface-card);
+  background: var(--surface-header);
   border: none;
-  border-bottom: 1px solid var(--p-surface-border);
+  border-bottom: 2px solid var(--border-strong);
   border-radius: 0;
   padding: 10px 16px;
 }
@@ -932,7 +955,7 @@ onMounted(() => {
   display: flex;
   align-items: center;
   padding: 16px 24px;
-  border-bottom: 1px solid var(--p-surface-border);
+  border-bottom: 1px solid var(--border-strong);
   background: var(--p-surface-card);
   flex-shrink: 0;
   gap: 0;
@@ -1002,7 +1025,7 @@ onMounted(() => {
   align-items: center;
   gap: 8px;
   padding: 14px 24px;
-  border-top: 1px solid var(--p-surface-border);
+  border-top: 1px solid var(--border-strong);
   background: var(--p-surface-card);
   flex-shrink: 0;
 }
@@ -1040,7 +1063,7 @@ onMounted(() => {
   gap: 6px;
   padding: 12px 14px;
   background: var(--p-surface-card);
-  border: 1px solid var(--p-surface-border);
+  border: 1px solid var(--border-strong);
   border-radius: 8px;
   cursor: pointer;
   transition: border-color 0.15s, background 0.15s;
@@ -1081,7 +1104,7 @@ onMounted(() => {
   gap: 6px;
   padding: 14px 16px;
   background: var(--p-surface-card);
-  border: 1px solid var(--p-surface-border);
+  border: 1px solid var(--border-strong);
   border-radius: 8px;
   cursor: pointer;
   text-align: left;
@@ -1112,7 +1135,7 @@ onMounted(() => {
 @media (max-width: 900px) { .fields-grid { grid-template-columns: repeat(3, 1fr); } }
 .field-card {
   background: var(--p-surface-card);
-  border: 1px solid var(--p-surface-border);
+  border: 1px solid var(--border-strong);
   border-radius: 8px;
   padding: 14px 14px 12px;
   display: flex;
@@ -1202,7 +1225,7 @@ onMounted(() => {
   min-width: 90px;
   flex-shrink: 0;
   background: var(--p-surface-card);
-  border: 1px solid var(--p-surface-border);
+  border: 1px solid var(--border-strong);
   border-radius: 8px;
   cursor: pointer;
   transition: border-color 0.15s, background 0.15s;
@@ -1247,7 +1270,7 @@ onMounted(() => {
 /* ── Review card ─────────────────────────────── */
 .review-card {
   background: var(--p-surface-card);
-  border: 1px solid var(--p-surface-border);
+  border: 1px solid var(--border-strong);
   border-radius: 8px;
   overflow: hidden;
 }
@@ -1256,7 +1279,7 @@ onMounted(() => {
   align-items: flex-start;
   gap: 16px;
   padding: 12px 16px;
-  border-bottom: 1px solid var(--p-surface-border);
+  border-bottom: 1px solid var(--border-strong);
 }
 .review-row:last-child { border-bottom: none; }
 .review-label {
@@ -1312,7 +1335,7 @@ onMounted(() => {
   display: flex;
   gap: 4px;
   padding: 6px 10px;
-  border-bottom: 1px solid var(--p-surface-border);
+  border-bottom: 1px solid var(--border-strong);
   flex-shrink: 0;
 }
 .filter-pill {
@@ -1322,7 +1345,7 @@ onMounted(() => {
   font-weight: 600;
   padding: 3px 10px;
   border-radius: 20px;
-  border: 1px solid var(--p-surface-border);
+  border: 1px solid var(--border-strong);
   background: transparent;
   color: var(--p-text-muted-color);
   cursor: pointer;
@@ -1341,7 +1364,7 @@ onMounted(() => {
 .row-actions { display: flex; align-items: center; gap: 2px; }
 
 /* ── Command/Pipeline tabs ───────────────────────── */
-.cmd-tabs { display: flex; gap: 0; margin-bottom: 12px; border-bottom: 1px solid var(--p-surface-border); }
+.cmd-tabs { display: flex; gap: 0; margin-bottom: 12px; border-bottom: 1px solid var(--border-strong); }
 .cmd-tab { padding: 6px 14px; font-family: var(--font-mono); font-size: var(--text-2xs); letter-spacing: 1px; background: none; border: none; border-bottom: 2px solid transparent; color: var(--p-text-muted-color); cursor: pointer; transition: color 0.15s, border-color 0.15s; }
 .cmd-tab:hover { color: var(--p-text-color); }
 .cmd-tab.active { color: var(--brand-orange); border-bottom-color: var(--brand-orange); }
@@ -1350,13 +1373,13 @@ onMounted(() => {
 /* ── Pipeline tab ────────────────────────────────── */
 .pipeline-tab { display: flex; flex-direction: column; gap: 10px; }
 .pipeline-select-list { display: flex; flex-direction: column; gap: 4px; max-height: 200px; overflow-y: auto; }
-.pipeline-select-card { display: flex; align-items: center; justify-content: space-between; padding: 8px 12px; background: var(--p-surface-ground); border: 1px solid var(--p-surface-border); border-radius: 6px; cursor: pointer; transition: border-color 0.15s; }
+.pipeline-select-card { display: flex; align-items: center; justify-content: space-between; padding: 8px 12px; background: var(--p-surface-ground); border: 1px solid var(--border-strong); border-radius: 6px; cursor: pointer; transition: border-color 0.15s; }
 .pipeline-select-card:hover { border-color: var(--p-text-muted-color); }
 .pipeline-select-card.active { border-color: var(--p-green-400); background: color-mix(in srgb, var(--p-green-400) 8%, transparent); }
 .pipeline-select-name { font-family: var(--font-mono); font-size: var(--text-xs); color: var(--p-text-color); }
 .pipeline-select-steps { font-family: var(--font-mono); font-size: 9px; color: var(--p-text-muted-color); }
 .pipeline-select-empty { font-family: var(--font-mono); font-size: var(--text-xs); color: var(--p-text-muted-color); padding: 12px; text-align: center; }
-.pipeline-cmd-preview { background: var(--p-surface-ground); border: 1px solid var(--p-surface-border); border-radius: 6px; padding: 8px 12px; }
+.pipeline-cmd-preview { background: var(--p-surface-ground); border: 1px solid var(--border-strong); border-radius: 6px; padding: 8px 12px; }
 .pipeline-cmd-label { font-family: var(--font-mono); font-size: var(--text-2xs); letter-spacing: 1px; color: var(--p-text-muted-color); display: block; margin-bottom: 4px; }
 .pipeline-cmd-code { font-family: var(--font-mono); font-size: var(--text-xs); color: var(--p-cyan-400); }
 </style>

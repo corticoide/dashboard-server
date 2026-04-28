@@ -543,7 +543,7 @@ async function loadHistory() {
   display: flex;
   flex-direction: column;
   height: 100%;
-  border-right: 1px solid var(--p-surface-border);
+  border-right: 1px solid var(--border-strong);
   background: var(--p-surface-900);
   overflow: hidden;
 }
@@ -551,7 +551,7 @@ async function loadHistory() {
 /* Shell prompt bar */
 .prompt-bar {
   padding: 5px 10px;
-  border-bottom: 1px solid var(--p-surface-border);
+  border-bottom: 1px solid var(--border-strong);
   flex-shrink: 0;
   font-family: var(--font-mono);
   font-size: var(--text-xs);
@@ -567,7 +567,8 @@ async function loadHistory() {
   align-items: center;
   gap: 7px;
   padding: 10px 10px 8px;
-  border-bottom: 1px solid var(--p-surface-border);
+  border-bottom: 2px solid var(--border-strong);
+  background: var(--surface-header);
   flex-shrink: 0;
 }
 .list-header-icon {
@@ -709,9 +710,9 @@ async function loadHistory() {
 
 .detail-toolbar { border-radius: 0; flex-shrink: 0; }
 :deep(.detail-toolbar.p-toolbar) {
-  background: var(--p-surface-card);
+  background: var(--surface-header);
   border: none;
-  border-bottom: 1px solid var(--p-surface-border);
+  border-bottom: 2px solid var(--border-strong);
   border-radius: 0;
   padding: 9px 12px;
 }
@@ -750,7 +751,7 @@ async function loadHistory() {
 .exec-section {
   padding: 10px 14px;
   flex-shrink: 0;
-  border-bottom: 1px solid var(--p-surface-border);
+  border-bottom: 1px solid var(--border-strong);
 }
 
 /* ── Tabs ────────────────────────────────────── */
@@ -822,7 +823,7 @@ async function loadHistory() {
 
 /* ── History expansion (matches log-panel pattern) ── */
 .history-expansion {
-  border-top: 1px solid var(--p-surface-border);
+  border-top: 1px solid var(--border-strong);
   background: var(--p-surface-900);
 }
 .history-expansion-header {

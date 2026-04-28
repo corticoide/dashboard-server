@@ -267,7 +267,7 @@ onMounted(loadServices)
   flex-direction: column;
   height: 100%;
   background: var(--p-surface-900);
-  border-right: 1px solid var(--p-surface-border);
+  border-right: 1px solid var(--border-strong);
   overflow: hidden;
 }
 
@@ -276,7 +276,8 @@ onMounted(loadServices)
   align-items: center;
   gap: 7px;
   padding: 10px 12px 9px;
-  border-bottom: 1px solid var(--p-surface-border);
+  border-bottom: 2px solid var(--border-strong);
+  background: var(--surface-header);
   flex-shrink: 0;
 }
 .header-icon  { font-size: 12px; color: var(--brand-orange); }
@@ -301,14 +302,14 @@ onMounted(loadServices)
 
 .search-bar {
   padding: 8px 10px;
-  border-bottom: 1px solid var(--p-surface-border);
+  border-bottom: 1px solid var(--border-strong);
   flex-shrink: 0;
 }
 .search-field { position: relative; display: flex; align-items: center; }
 .search-icon { position: absolute; left: 8px; font-size: 11px; color: var(--p-text-muted-color); pointer-events: none; }
 .search-input {
   padding: 5px 10px 5px 28px; width: 100%;
-  background: var(--p-surface-900); border: 1px solid var(--p-surface-border);
+  background: var(--p-surface-900); border: 1px solid var(--border-strong);
   border-radius: var(--radius-base); font-family: var(--font-mono); font-size: var(--text-sm);
   color: var(--p-text-color); outline: none; transition: var(--transition-fast);
 }
@@ -325,7 +326,7 @@ onMounted(loadServices)
   display: flex;
   gap: 4px;
   padding: 6px 10px;
-  border-bottom: 1px solid var(--p-surface-border);
+  border-bottom: 1px solid var(--border-strong);
   flex-shrink: 0;
 }
 .state-pill {
@@ -355,7 +356,7 @@ onMounted(loadServices)
   grid-template-columns: 18px 1fr 70px 60px;
   gap: 8px;
   padding: 4px 12px;
-  border-bottom: 1px solid var(--p-surface-border);
+  border-bottom: 1px solid var(--border-strong);
   flex-shrink: 0;
 }
 .ch-unit, .ch-sub, .ch-boot {
@@ -453,8 +454,8 @@ onMounted(loadServices)
   align-items: center;
   gap: 8px;
   padding: 10px 14px;
-  border-bottom: 1px solid var(--p-surface-border);
-  background: var(--p-surface-800);
+  border-bottom: 1px solid var(--border-strong);
+  background: var(--surface-header);
   flex-shrink: 0;
   flex-wrap: wrap;
 }
@@ -466,7 +467,7 @@ onMounted(loadServices)
 /* systemctl status block */
 .status-block {
   padding: 14px 16px 12px;
-  border-bottom: 1px solid var(--p-surface-border);
+  border-bottom: 1px solid var(--border-strong);
   flex-shrink: 0;
 }
 .status-title-line {

@@ -432,7 +432,12 @@ onMounted(loadRules)
 .alerts-view { display: flex; flex-direction: column; height: 100%; gap: 12px; }
 
 /* ── Page header ─────────────────────────────────── */
-.page-header { display: flex; align-items: center; justify-content: space-between; }
+.page-header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding-bottom: 14px;
+  border-bottom: 2px solid var(--border-strong);
+  flex-shrink: 0;
+}
 .page-title {
   display: flex; align-items: center; gap: 10px;
   font-family: var(--font-mono); font-size: var(--text-sm);
@@ -445,7 +450,7 @@ onMounted(loadRules)
 .summary-pill {
   display: flex; align-items: center; gap: 6px;
   padding: 4px 12px; border-radius: 20px;
-  border: 1px solid var(--p-surface-border);
+  border: 1px solid var(--border-strong);
   background: var(--p-surface-card);
   font-family: var(--font-mono);
 }
@@ -471,13 +476,14 @@ onMounted(loadRules)
 .rule-panel {
   display: flex; flex-direction: column; height: 100%;
   background: var(--p-surface-card);
-  border-right: 1px solid var(--p-surface-border);
+  border-right: 1px solid var(--border-strong);
   overflow: hidden;
 }
 
 .list-panel-header {
   display: flex; align-items: center; gap: 6px;
-  padding: 10px; border-bottom: 1px solid var(--p-surface-border);
+  padding: 10px; border-bottom: 2px solid var(--border-strong);
+  background: var(--surface-header);
   flex-shrink: 0;
 }
 .list-header-icon { font-size: 12px; color: var(--brand-orange); }
@@ -553,7 +559,7 @@ onMounted(loadRules)
 /* ── Editor card ─────────────────────────────────── */
 .editor-card {
   background: var(--p-surface-card);
-  border: 1px solid var(--p-surface-border);
+  border: 1px solid var(--border-strong);
   border-radius: 8px;
   overflow: hidden;
   flex-shrink: 0;
@@ -571,8 +577,8 @@ onMounted(loadRules)
 .editor-header {
   display: flex; align-items: center; justify-content: space-between;
   padding: 9px 14px;
-  border-bottom: 1px solid var(--p-surface-border);
-  background: color-mix(in srgb, var(--p-surface-hover) 40%, transparent);
+  border-bottom: 1px solid var(--border-strong);
+  background: var(--surface-header);
 }
 .editor-title-group { display: flex; align-items: center; gap: 8px; }
 .editor-title {
@@ -584,7 +590,7 @@ onMounted(loadRules)
 /* Form sections */
 .form-body { display: flex; flex-direction: column; }
 .form-section { padding: 11px 14px; }
-.form-section + .form-section { border-top: 1px solid var(--p-surface-border); }
+.form-section + .form-section { border-top: 1px solid var(--border-strong); }
 .form-section-label {
   display: block;
   font-family: var(--font-mono); font-size: var(--text-2xs);
@@ -604,7 +610,7 @@ onMounted(loadRules)
 /* ── Fire history card ───────────────────────────── */
 .fire-history-card {
   background: var(--p-surface-card);
-  border: 1px solid var(--p-surface-border);
+  border: 1px solid var(--border-strong);
   border-radius: 8px;
   overflow: hidden;
   flex-shrink: 0;
@@ -612,8 +618,8 @@ onMounted(loadRules)
 .card-header {
   display: flex; align-items: center; justify-content: space-between;
   padding: 9px 14px;
-  border-bottom: 1px solid var(--p-surface-border);
-  background: color-mix(in srgb, var(--p-surface-hover) 40%, transparent);
+  border-bottom: 1px solid var(--border-strong);
+  background: var(--surface-header);
 }
 .card-header-title {
   display: flex; align-items: center; gap: 6px;
@@ -663,7 +669,7 @@ onMounted(loadRules)
   width: 48px; height: 48px; border-radius: 12px;
   display: flex; align-items: center; justify-content: center;
   background: var(--p-surface-hover);
-  border: 1px solid var(--p-surface-border);
+  border: 1px solid var(--border-strong);
   font-size: 20px; color: var(--p-text-muted-color); opacity: 0.5;
   margin-bottom: 4px;
 }

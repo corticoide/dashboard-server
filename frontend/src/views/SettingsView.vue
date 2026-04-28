@@ -424,7 +424,7 @@ onMounted(async () => {
 .skeleton-card {
   height: 320px;
   background: var(--p-surface-card);
-  border: 1px solid var(--p-surface-border);
+  border: 1px solid var(--border-strong);
   border-radius: var(--radius-2xl);
   animation: shimmer 1.4s ease-in-out infinite;
 }
@@ -450,7 +450,7 @@ onMounted(async () => {
 /* ── Card shell ─────────────────────────────────────────────────── */
 .scard {
   background: var(--p-surface-card);
-  border: 1px solid var(--p-surface-border);
+  border: 1px solid var(--border-strong);
   border-left: 3px solid color-mix(in srgb, var(--brand-orange) 35%, transparent);
   border-radius: var(--radius-2xl);
   overflow: hidden;
@@ -471,8 +471,8 @@ onMounted(async () => {
   align-items: center;
   gap: 12px;
   padding: 12px 16px;
-  border-bottom: 1px solid var(--p-surface-border);
-  background: var(--p-surface-900);
+  border-bottom: 2px solid var(--border-strong);
+  background: var(--surface-header);
 }
 .scard-head-text {
   display: flex;
@@ -509,8 +509,8 @@ onMounted(async () => {
   justify-content: flex-end;
   gap: 10px;
   padding: 10px 16px;
-  border-top: 1px solid var(--p-surface-border);
-  background: var(--p-surface-900);
+  border-top: 1px solid var(--border-strong);
+  background: var(--surface-header);
 }
 .foot-ok {
   display: flex;
@@ -530,7 +530,7 @@ onMounted(async () => {
 }
 .rfield {
   background: var(--p-surface-ground);
-  border: 1px solid var(--p-surface-border);
+  border: 1px solid var(--border-strong);
   border-left: 2px solid color-mix(in srgb, var(--brand-orange) 25%, transparent);
   border-radius: var(--radius-lg);
   padding: 12px;
@@ -594,7 +594,7 @@ onMounted(async () => {
   flex-direction: column;
   gap: 10px;
   padding-top: 14px;
-  border-top: 1px solid var(--p-surface-border);
+  border-top: 1px solid var(--border-strong);
 }
 .field-group:first-child {
   padding-top: 0;
@@ -623,7 +623,7 @@ onMounted(async () => {
   background: var(--p-surface-900);
   border-radius: var(--radius-base);
   padding: 12px;
-  border: 1px solid var(--p-surface-border) !important;
+  border: 1px solid var(--border-strong) !important;
 }
 .test-row {
   display: flex;
@@ -663,7 +663,7 @@ onMounted(async () => {
 }
 .tz-divider {
   width: 1px;
-  background: var(--p-surface-border);
+  background: var(--border-strong);
   align-self: stretch;
   flex-shrink: 0;
 }

@@ -529,7 +529,7 @@ function formatLogDate(iso) {
   gap: 10px;
   padding: 12px 16px;
   border-radius: var(--radius-base);
-  border: 1px solid var(--p-surface-border);
+  border: 1px solid var(--border-strong);
   background: var(--p-surface-card);
   text-decoration: none;
   color: var(--p-text-muted-color);

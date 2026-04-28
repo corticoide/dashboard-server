@@ -258,7 +258,12 @@ onUnmounted(stopTail)
 .logs-view { display: flex; flex-direction: column; height: 100%; gap: 12px; }
 
 /* ── Header ──────────────────────────────────────── */
-.page-header { display: flex; align-items: center; justify-content: space-between; }
+.page-header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding-bottom: 14px;
+  border-bottom: 2px solid var(--border-strong);
+  flex-shrink: 0;
+}
 .page-title {
   display: flex; align-items: center; gap: 10px;
   font-family: var(--font-mono); font-size: var(--text-sm);
@@ -270,7 +275,7 @@ onUnmounted(stopTail)
 .tail-indicator {
   display: flex; align-items: center; gap: 5px;
   padding: 3px 10px; border-radius: 20px;
-  border: 1px solid var(--p-surface-border);
+  border: 1px solid var(--border-strong);
   background: var(--p-surface-card);
   font-family: var(--font-mono); font-size: var(--text-2xs); letter-spacing: 1.5px;
 }
@@ -288,7 +293,7 @@ onUnmounted(stopTail)
 .search-icon { position: absolute; left: 8px; font-size: 11px; color: var(--p-text-muted-color); pointer-events: none; }
 .search-input {
   padding: 5px 10px 5px 28px; width: 180px;
-  background: var(--p-surface-900); border: 1px solid var(--p-surface-border);
+  background: var(--p-surface-900); border: 1px solid var(--border-strong);
   border-radius: var(--radius-base); font-family: var(--font-mono); font-size: var(--text-sm);
   color: var(--p-text-color); outline: none; transition: var(--transition-fast);
 }
@@ -305,12 +310,13 @@ onUnmounted(stopTail)
 .file-tree {
   display: flex; flex-direction: column; height: 100%;
   background: var(--p-surface-card);
-  border-right: 1px solid var(--p-surface-border);
+  border-right: 1px solid var(--border-strong);
   overflow: hidden;
 }
 .list-panel-header {
   display: flex; align-items: center; gap: 6px;
-  padding: 10px; border-bottom: 1px solid var(--p-surface-border);
+  padding: 10px; border-bottom: 2px solid var(--border-strong);
+  background: var(--surface-header);
   flex-shrink: 0;
 }
 .list-header-icon { font-size: 12px; color: var(--brand-orange); }
@@ -358,8 +364,8 @@ onUnmounted(stopTail)
 .log-header {
   display: flex; align-items: center; justify-content: space-between;
   padding: 6px 12px;
-  border-bottom: 1px solid var(--p-surface-border);
-  background: var(--p-surface-card);
+  border-bottom: 1px solid var(--border-strong);
+  background: var(--surface-header);
   gap: 8px;
 }
 .log-header-left { display: flex; align-items: center; gap: 6px; min-width: 0; }
@@ -397,7 +403,7 @@ onUnmounted(stopTail)
   padding-right: 12px;
   color: var(--p-text-muted-color); opacity: 0.35;
   user-select: none; font-size: 10px; line-height: 1.6;
-  border-right: 1px solid var(--p-surface-border);
+  border-right: 1px solid var(--border-strong);
   margin-right: 12px;
 }
 .lc { flex: 1; color: var(--p-text-muted-color); }

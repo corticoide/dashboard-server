@@ -289,7 +289,7 @@ onMounted(() => {
   display: flex;
   flex-direction: column;
   height: 100%;
-  border-right: 1px solid var(--p-surface-border);
+  border-right: 1px solid var(--border-strong);
   background: var(--p-surface-card);
   overflow: hidden;
 }
@@ -299,7 +299,8 @@ onMounted(() => {
   align-items: center;
   gap: 7px;
   padding: 10px 10px 8px;
-  border-bottom: 1px solid var(--p-surface-border);
+  border-bottom: 2px solid var(--border-strong);
+  background: var(--surface-header);
   flex-shrink: 0;
 }
 .tree-header-icon {

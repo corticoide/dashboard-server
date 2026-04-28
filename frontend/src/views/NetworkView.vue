@@ -574,7 +574,7 @@ onUnmounted(() => {
 :deep(.iface-card .p-card-body) { padding: 0; }
 :deep(.iface-card .p-card-content) { padding: 14px 16px; }
 .iface-card {
-  border: 1px solid var(--p-surface-border);
+  border: 1px solid var(--border-strong);
   transition: border-color 0.2s, box-shadow 0.2s;
 }
 .iface-card:hover { border-color: color-mix(in srgb, var(--brand-orange) 40%, transparent); box-shadow: 0 0 16px color-mix(in srgb, var(--brand-orange) 8%, transparent); }
@@ -597,10 +597,10 @@ onUnmounted(() => {
   padding: 8px 10px;
   background: var(--p-surface-hover);
   border-radius: 6px;
-  border: 1px solid var(--p-surface-border);
+  border: 1px solid var(--border-strong);
 }
 .bps-item { display: flex; align-items: center; gap: 4px; flex: 1; }
-.bps-sep { width: 1px; height: 24px; background: var(--p-surface-border); }
+.bps-sep { width: 1px; height: 24px; background: var(--border-strong); }
 .bps-arrow { font-size: 13px; font-weight: 700; line-height: 1; }
 .bps-up-arrow { color: #f97316; }
 .bps-dn-arrow { color: #3b82f6; }
@@ -630,7 +630,7 @@ onUnmounted(() => {
 .search-icon { position: absolute; left: 8px; font-size: 11px; color: var(--p-text-muted-color); pointer-events: none; }
 .search-input {
   padding: 5px 10px 5px 28px; width: 180px;
-  background: var(--p-surface-900); border: 1px solid var(--p-surface-border);
+  background: var(--p-surface-900); border: 1px solid var(--border-strong);
   border-radius: var(--radius-base); font-family: var(--font-mono); font-size: var(--text-sm);
   color: var(--p-text-color); outline: none; transition: var(--transition-fast);
 }
@@ -684,7 +684,7 @@ onUnmounted(() => {
 .history-cta {
   display: flex; align-items: center; gap: 10px;
   padding: 12px 16px; border-radius: 8px;
-  border: 1px solid var(--p-surface-border);
+  border: 1px solid var(--border-strong);
   background: var(--p-surface-card);
   text-decoration: none; color: var(--p-text-muted-color);
   font-family: var(--font-mono); font-size: var(--text-xs); letter-spacing: 0.5px;
@@ -720,7 +720,7 @@ onUnmounted(() => {
 @media (max-width: 900px) { .config-grid { grid-template-columns: 1fr 1fr; } }
 @media (max-width: 600px) { .config-grid { grid-template-columns: 1fr; } }
 .config-section { display: flex; flex-direction: column; gap: 8px; }
-.config-section-label { font-family: var(--font-mono); font-size: var(--text-2xs); letter-spacing: 1.5px; color: var(--p-text-muted-color); text-transform: uppercase; border-bottom: 1px solid var(--p-surface-border); padding-bottom: 5px; margin-bottom: 2px; }
+.config-section-label { font-family: var(--font-mono); font-size: var(--text-2xs); letter-spacing: 1.5px; color: var(--p-text-muted-color); text-transform: uppercase; border-bottom: 1px solid var(--border-strong); padding-bottom: 5px; margin-bottom: 2px; }
 .config-items { display: flex; flex-direction: column; gap: 5px; }
 .config-item { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
 .config-key { font-family: var(--font-mono); font-size: var(--text-xs); color: var(--p-text-muted-color); }

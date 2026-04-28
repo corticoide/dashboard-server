@@ -177,7 +177,7 @@ onMounted(loadPermissions)
   max-width: 900px;
 }
 .permissions-card {
-  border: 1px solid var(--p-surface-border);
+  border: 1px solid var(--border-strong);
 }
 .card-section-header {
   display: flex;

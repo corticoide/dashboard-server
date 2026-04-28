@@ -796,7 +796,7 @@ onUnmounted(() => stopPolling())
   flex-direction: column;
   height: 100%;
   background: var(--p-surface-card);
-  border-right: 1px solid var(--p-surface-border);
+  border-right: 1px solid var(--border-strong);
   overflow: hidden;
 }
 .list-panel-header {
@@ -804,8 +804,8 @@ onUnmounted(() => stopPolling())
   align-items: center;
   gap: 6px;
   padding: 10px;
-  border-bottom: 1px solid var(--p-surface-border);
-  background: var(--p-surface-900);
+  border-bottom: 2px solid var(--border-strong);
+  background: var(--surface-header);
   flex-shrink: 0;
 }
 .list-header-icon { font-size: 12px; color: var(--brand-orange); }
@@ -836,7 +836,7 @@ onUnmounted(() => stopPolling())
   border-radius: 6px;
   cursor: pointer;
   margin-bottom: 4px;
-  border: 1px solid var(--p-surface-border);
+  border: 1px solid var(--border-strong);
   transition: background 0.15s, border-color 0.15s;
 }
 .pipeline-card:hover { background: var(--p-surface-hover); border-color: #3f3f46; }
@@ -950,8 +950,8 @@ onUnmounted(() => stopPolling())
   align-items: center;
   justify-content: space-between;
   padding: 8px 12px;
-  border-bottom: 1px solid var(--p-surface-border);
-  background: var(--p-surface-900);
+  border-bottom: 2px solid var(--border-strong);
+  background: var(--surface-header);
   flex-shrink: 0;
   gap: 8px;
 }
@@ -990,7 +990,7 @@ onUnmounted(() => stopPolling())
 /* Description */
 .editor-description {
   padding: 8px 12px;
-  border-bottom: 1px solid var(--p-surface-border);
+  border-bottom: 1px solid var(--border-strong);
   flex-shrink: 0;
 }
 
@@ -1001,8 +1001,8 @@ onUnmounted(() => stopPolling())
   gap: 6px;
   padding: 8px 12px;
   flex-shrink: 0;
-  background: var(--p-surface-900);
-  border-bottom: 1px solid var(--p-surface-border);
+  background: var(--surface-header);
+  border-bottom: 2px solid var(--border-strong);
 }
 .steps-label {
   font-family: var(--font-mono);
@@ -1053,7 +1053,7 @@ onUnmounted(() => stopPolling())
 
 /* ── Step cards (accordion) ────────────────────────────────────────── */
 .step-card {
-  border: 1px solid var(--p-surface-border);
+  border: 1px solid var(--border-strong);
   border-radius: 7px;
   margin-bottom: 6px;
   overflow: hidden;
@@ -1209,7 +1209,7 @@ onUnmounted(() => stopPolling())
   flex-direction: column;
   height: 100%;
   background: var(--p-surface-card);
-  border-left: 1px solid var(--p-surface-border);
+  border-left: 1px solid var(--border-strong);
   overflow: hidden;
 }
 .section-label {
@@ -1226,7 +1226,7 @@ onUnmounted(() => stopPolling())
 /* Flujo */
 .flow-section {
   padding: 12px;
-  border-bottom: 1px solid var(--p-surface-border);
+  border-bottom: 1px solid var(--border-strong);
   max-height: 45%;
   overflow-y: auto;
   flex-shrink: 0;
@@ -1386,7 +1386,7 @@ onUnmounted(() => stopPolling())
   gap: 14px;
   flex-wrap: wrap;
   padding-bottom: 12px;
-  border-bottom: 1px solid var(--p-surface-border);
+  border-bottom: 1px solid var(--border-strong);
 }
 .run-detail-badge {
   display: flex;
@@ -1417,8 +1417,8 @@ onUnmounted(() => stopPolling())
 }
 .step-runs-list { display: flex; flex-direction: column; gap: 8px; }
 .step-run-card {
-  border: 1px solid var(--p-surface-border);
-  border-left: 3px solid var(--p-surface-border);
+  border: 1px solid var(--border-strong);
+  border-left: 3px solid var(--border-strong);
   border-radius: 6px;
   padding: 10px 12px;
   background: var(--p-surface-ground);
@@ -1467,7 +1467,7 @@ onUnmounted(() => stopPolling())
   font-family: var(--font-mono);
   font-size: 10px;
   background: var(--p-surface-card);
-  border: 1px solid var(--p-surface-border);
+  border: 1px solid var(--border-strong);
   border-radius: 4px;
   padding: 8px 10px;
   margin: 6px 0 0;

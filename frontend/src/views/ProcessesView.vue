@@ -333,7 +333,12 @@ onUnmounted(stop)
 .processes-view { display: flex; flex-direction: column; height: 100%; gap: 12px; }
 
 /* ── Header ──────────────────────────────────────── */
-.page-header { display: flex; align-items: center; justify-content: space-between; }
+.page-header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding-bottom: 14px;
+  border-bottom: 2px solid var(--border-strong);
+  flex-shrink: 0;
+}
 .page-title {
   display: flex; align-items: center; gap: 10px;
   font-family: var(--font-mono); font-size: var(--text-sm);
@@ -353,7 +358,7 @@ onUnmounted(stop)
 .search-input {
   padding: 5px 10px 5px 28px;
   background: var(--p-surface-900);
-  border: 1px solid var(--p-surface-border);
+  border: 1px solid var(--border-strong);
   border-radius: var(--radius-base);
   font-family: var(--font-mono); font-size: var(--text-sm);
   color: var(--p-text-color);
@@ -380,7 +385,7 @@ onUnmounted(stop)
 .summary-pill {
   display: flex; align-items: center; gap: 6px;
   padding: 4px 12px; border-radius: 20px;
-  border: 1px solid var(--p-surface-border);
+  border: 1px solid var(--border-strong);
   background: var(--p-surface-card);
   cursor: pointer; font-family: var(--font-mono);
   transition: background 0.15s, border-color 0.15s;

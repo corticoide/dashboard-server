@@ -245,6 +245,9 @@ onMounted(() => {
   display: flex;
   align-items: center;
   gap: 16px;
+  padding-bottom: 14px;
+  border-bottom: 2px solid var(--border-strong);
+  flex-shrink: 0;
   margin-bottom: 4px;
 }
 .back-link {
