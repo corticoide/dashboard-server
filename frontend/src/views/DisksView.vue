@@ -21,6 +21,38 @@
       </div>
     </div>
 
+    <!-- Stat cards row -->
+    <div class="disk-stats-row">
+      <div class="disk-stat-card">
+        <i class="pi pi-database disk-stat-icon" />
+        <div class="disk-stat-body">
+          <span class="disk-stat-label">TOTAL DISKS</span>
+          <span class="disk-stat-value">{{ disks.length }}</span>
+        </div>
+      </div>
+      <div class="disk-stat-card disk-stat-card--green">
+        <i class="pi pi-check-circle disk-stat-icon disk-stat-icon--green" />
+        <div class="disk-stat-body">
+          <span class="disk-stat-label">MOUNTED</span>
+          <span class="disk-stat-value disk-stat-val--green">{{ disks.filter(d => d.status === 'mounted').length }}</span>
+        </div>
+      </div>
+      <div class="disk-stat-card disk-stat-card--orange">
+        <i class="pi pi-server disk-stat-icon disk-stat-icon--orange" />
+        <div class="disk-stat-body">
+          <span class="disk-stat-label">TOTAL CAPACITY</span>
+          <span class="disk-stat-value disk-stat-val--orange">{{ fmtBytes(disks.reduce((s, d) => s + d.size, 0)) }}</span>
+        </div>
+      </div>
+      <div class="disk-stat-card disk-stat-card--blue">
+        <i class="pi pi-heart disk-stat-icon disk-stat-icon--blue" />
+        <div class="disk-stat-body">
+          <span class="disk-stat-label">HEALTHY</span>
+          <span class="disk-stat-value disk-stat-val--blue">{{ disks.filter(d => d.smart === 'PASSED' || d.smart === 'N/A').length }} / {{ disks.length }}</span>
+        </div>
+      </div>
+    </div>
+
     <!-- Main split -->
     <Splitter class="main-splitter" :gutter-size="5">
 
@@ -722,7 +754,7 @@ onMounted(async () => {
   padding: 0 8px;
   height: 32px;
   border-bottom: 1px solid var(--p-surface-border);
-  background: color-mix(in srgb, var(--p-surface-hover) 40%, transparent);
+  background: var(--p-surface-900);
   flex-shrink: 0;
 }
 .disk-table-head > div {
@@ -1132,19 +1164,26 @@ onMounted(async () => {
 .detail-body {
   flex: 1;
   overflow-y: auto;
-  padding: 20px 22px;
+  padding: 16px;
   display: flex;
   flex-direction: column;
-  gap: 20px;
+  gap: 12px;
 }
 
-.section {}
+.section {
+  background: var(--p-surface-card);
+  border: 1px solid var(--p-surface-border);
+  border-radius: var(--radius-xl);
+  overflow: hidden;
+}
 .section-title {
   font-family: var(--font-mono);
   font-size: var(--text-2xs);
   letter-spacing: 2px;
   color: var(--p-text-muted-color);
-  margin-bottom: 10px;
+  padding: 8px 14px;
+  background: var(--p-surface-900);
+  border-bottom: 1px solid var(--p-surface-border);
 }
 
 /* Specs grid */
@@ -1153,9 +1192,8 @@ onMounted(async () => {
   grid-template-columns: 1fr 1fr;
   gap: 1px;
   background: var(--p-surface-border);
-  border-radius: var(--radius-xl);
   overflow: hidden;
-  border: 1px solid var(--p-surface-border);
+  margin: 0;
 }
 .spec-cell {
   background: var(--p-surface-card);
@@ -1187,7 +1225,7 @@ onMounted(async () => {
 .spec-link:hover { color: var(--brand-orange-hover); }
 
 /* I/O bars */
-.io-bars { display: flex; flex-direction: column; gap: 10px; }
+.io-bars { display: flex; flex-direction: column; gap: 10px; padding: 14px; }
 .io-row { display: flex; align-items: center; gap: 12px; }
 .io-label {
   font-family: var(--font-mono);
@@ -1219,10 +1257,8 @@ onMounted(async () => {
 
 /* Partitions table */
 .table-wrap {
-  background: var(--p-surface-card);
-  border: 1px solid var(--p-surface-border);
-  border-radius: var(--radius-xl);
   overflow: hidden;
+  margin: 0;
 }
 .part-table {
   width: 100%;
@@ -1235,7 +1271,7 @@ onMounted(async () => {
   letter-spacing: 1.5px;
   color: var(--p-text-muted-color);
   text-align: left;
-  padding: 7px 10px;
+  padding: 7px 14px;
   border-bottom: 1px solid var(--p-surface-border);
   font-weight: 600;
 }
@@ -1243,7 +1279,7 @@ onMounted(async () => {
   font-family: var(--font-mono);
   font-size: var(--text-xs);
   color: var(--p-text-color);
-  padding: 8px 10px;
+  padding: 7px 14px;
   border-bottom: 1px solid var(--p-surface-border);
   vertical-align: middle;
 }
@@ -1288,4 +1324,46 @@ onMounted(async () => {
   line-height: 1.6;
 }
 .dialog-msg strong { color: var(--p-text-color); }
+
+/* ── Disk stats row ─────────────────────────────────────────────── */
+.disk-stats-row {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 10px;
+  flex-shrink: 0;
+}
+.disk-stat-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 18px;
+  background: var(--p-surface-card);
+  border: 1px solid var(--p-surface-border);
+  border-left: 3px solid var(--p-surface-border);
+  border-radius: 10px;
+}
+.disk-stat-card--green  { border-left-color: var(--p-green-500); }
+.disk-stat-card--orange { border-left-color: var(--brand-orange); }
+.disk-stat-card--blue   { border-left-color: var(--p-blue-400); }
+.disk-stat-icon { font-size: 18px; opacity: 0.45; color: var(--p-text-muted-color); flex-shrink: 0; }
+.disk-stat-icon--green  { color: var(--p-green-500); opacity: 1; }
+.disk-stat-icon--orange { color: var(--brand-orange); opacity: 1; }
+.disk-stat-icon--blue   { color: var(--p-blue-400); opacity: 1; }
+.disk-stat-body { display: flex; flex-direction: column; gap: 2px; }
+.disk-stat-label {
+  font-family: var(--font-mono);
+  font-size: var(--text-2xs);
+  letter-spacing: 1.5px;
+  color: var(--p-text-muted-color);
+}
+.disk-stat-value {
+  font-family: var(--font-mono);
+  font-size: var(--text-xl);
+  font-weight: 700;
+  color: var(--p-text-color);
+  line-height: 1;
+}
+.disk-stat-val--green  { color: var(--p-green-500); }
+.disk-stat-val--orange { color: var(--brand-orange); }
+.disk-stat-val--blue   { color: var(--p-blue-400); }
 </style>

@@ -805,6 +805,7 @@ onUnmounted(() => stopPolling())
   gap: 6px;
   padding: 10px;
   border-bottom: 1px solid var(--p-surface-border);
+  background: var(--p-surface-900);
   flex-shrink: 0;
 }
 .list-header-icon { font-size: 12px; color: var(--brand-orange); }
@@ -835,13 +836,14 @@ onUnmounted(() => stopPolling())
   border-radius: 6px;
   cursor: pointer;
   margin-bottom: 4px;
-  border: 1px solid transparent;
+  border: 1px solid var(--p-surface-border);
   transition: background 0.15s, border-color 0.15s;
 }
-.pipeline-card:hover { background: var(--p-surface-hover); }
+.pipeline-card:hover { background: var(--p-surface-hover); border-color: #3f3f46; }
 .pipeline-card--active {
   background: color-mix(in srgb, var(--brand-orange) 8%, transparent);
-  border-color: color-mix(in srgb, var(--brand-orange) 30%, transparent);
+  border-color: color-mix(in srgb, var(--brand-orange) 35%, transparent);
+  border-left: 2px solid var(--brand-orange);
 }
 .pipeline-card-name {
   display: flex;
@@ -949,6 +951,7 @@ onUnmounted(() => stopPolling())
   justify-content: space-between;
   padding: 8px 12px;
   border-bottom: 1px solid var(--p-surface-border);
+  background: var(--p-surface-900);
   flex-shrink: 0;
   gap: 8px;
 }
@@ -996,8 +999,10 @@ onUnmounted(() => stopPolling())
   display: flex;
   align-items: center;
   gap: 6px;
-  padding: 8px 12px 4px;
+  padding: 8px 12px;
   flex-shrink: 0;
+  background: var(--p-surface-900);
+  border-bottom: 1px solid var(--p-surface-border);
 }
 .steps-label {
   font-family: var(--font-mono);

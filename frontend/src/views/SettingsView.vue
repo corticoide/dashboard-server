@@ -451,7 +451,7 @@ onMounted(async () => {
 .scard {
   background: var(--p-surface-card);
   border: 1px solid var(--p-surface-border);
-  border-left: 2px solid color-mix(in srgb, var(--brand-orange) 35%, transparent);
+  border-left: 3px solid color-mix(in srgb, var(--brand-orange) 35%, transparent);
   border-radius: var(--radius-2xl);
   overflow: hidden;
   display: flex;
@@ -470,9 +470,9 @@ onMounted(async () => {
   display: flex;
   align-items: center;
   gap: 12px;
-  padding: 14px 16px;
+  padding: 12px 16px;
   border-bottom: 1px solid var(--p-surface-border);
-  background: color-mix(in srgb, var(--p-surface-hover) 35%, transparent);
+  background: var(--p-surface-900);
 }
 .scard-head-text {
   display: flex;
@@ -510,7 +510,7 @@ onMounted(async () => {
   gap: 10px;
   padding: 10px 16px;
   border-top: 1px solid var(--p-surface-border);
-  background: color-mix(in srgb, var(--p-surface-hover) 15%, transparent);
+  background: var(--p-surface-900);
 }
 .foot-ok {
   display: flex;
@@ -531,6 +531,7 @@ onMounted(async () => {
 .rfield {
   background: var(--p-surface-ground);
   border: 1px solid var(--p-surface-border);
+  border-left: 2px solid color-mix(in srgb, var(--brand-orange) 25%, transparent);
   border-radius: var(--radius-lg);
   padding: 12px;
   display: flex;
@@ -539,7 +540,8 @@ onMounted(async () => {
   transition: var(--transition-fast);
 }
 .rfield:focus-within {
-  border-color: color-mix(in srgb, var(--brand-orange) 50%, transparent);
+  border-left-color: var(--brand-orange);
+  border-color: color-mix(in srgb, var(--brand-orange) 30%, transparent);
   background: var(--orange-tint-05);
 }
 .rfield-meta {
@@ -603,8 +605,9 @@ onMounted(async () => {
   font-size: var(--text-2xs);
   letter-spacing: 2px;
   color: var(--brand-orange);
-  opacity: 0.7;
+  opacity: 1;
   text-transform: uppercase;
+  font-weight: 600;
 }
 
 /* Host + Port in a row */
@@ -617,11 +620,10 @@ onMounted(async () => {
 
 /* SMTP test sub-section */
 .smtp-test-group {
-  background: color-mix(in srgb, var(--p-surface-hover) 40%, transparent);
+  background: var(--p-surface-900);
   border-radius: var(--radius-base);
   padding: 12px;
-  border: 1px solid var(--p-surface-border);
-  border-top: 1px solid var(--p-surface-border) !important;
+  border: 1px solid var(--p-surface-border) !important;
 }
 .test-row {
   display: flex;
