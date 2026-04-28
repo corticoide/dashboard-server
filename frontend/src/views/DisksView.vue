@@ -38,8 +38,8 @@
           <span class="count-badge">{{ filteredDisks.length }}</span>
         </div>
 
-        <div v-if="loading" class="disk-items">
-          <div v-for="i in 3" :key="i" class="disk-card-skeleton" />
+        <div v-if="loading" class="disk-table-body">
+          <div v-for="i in 3" :key="i" class="disk-row-skeleton" />
         </div>
 
         <div v-else-if="filteredDisks.length === 0" class="empty-list">
@@ -47,19 +47,34 @@
           <span>No disks found</span>
         </div>
 
-        <div v-else class="disk-items">
-          <div
-            v-for="disk in filteredDisks"
-            :key="disk.id"
-            class="disk-card"
-            :class="{ active: selectedId === disk.id }"
-            @click="selectDisk(disk.id)"
-          >
-            <div class="dc-top">
-              <div class="disk-icon">
-                <i :class="['pi', diskIcon(disk.type)]" />
+        <div v-else class="disk-table">
+          <!-- Table header -->
+          <div class="disk-table-head">
+            <div class="col-icon" />
+            <div class="col-name">Disk</div>
+            <div class="col-size">Size</div>
+            <div class="col-usage">Usage</div>
+            <div class="col-badges" />
+          </div>
+
+          <!-- Table rows -->
+          <div class="disk-table-body">
+            <div
+              v-for="disk in filteredDisks"
+              :key="disk.id"
+              class="disk-row"
+              :class="{ active: selectedId === disk.id }"
+              @click="selectDisk(disk.id)"
+            >
+              <!-- Icon -->
+              <div class="col-icon">
+                <div class="disk-icon">
+                  <i :class="['pi', diskIcon(disk.type)]" />
+                </div>
               </div>
-              <div class="dc-info">
+
+              <!-- Name + dev -->
+              <div class="col-name">
                 <div class="dc-name-wrap">
                   <template v-if="editingId === disk.id">
                     <input
@@ -79,31 +94,36 @@
                     </button>
                   </template>
                 </div>
-                <div class="dc-dev">{{ disk.dev }} · {{ disk.model }}</div>
+                <div class="dc-dev">{{ disk.dev }}</div>
               </div>
-              <div class="dc-badges">
+
+              <!-- Size -->
+              <div class="col-size">
+                <span class="dc-size">{{ fmtBytes(disk.size) }}</span>
+              </div>
+
+              <!-- Usage bar -->
+              <div class="col-usage">
+                <div class="dc-usage-row">
+                  <strong :style="{ color: usageColor(usedPct(disk)) }">{{ usedPct(disk) }}%</strong>
+                  <span class="dc-usage-sub">{{ fmtBytes(disk.used) }}</span>
+                </div>
+                <div class="usage-bar">
+                  <div
+                    class="usage-bar-fill"
+                    :style="{ width: usedPct(disk) + '%', background: usageColor(usedPct(disk)) }"
+                  />
+                </div>
+              </div>
+
+              <!-- Badges + star -->
+              <div class="col-badges">
                 <span :class="['type-badge', typeBadgeClass(disk.type)]">{{ disk.type }}</span>
                 <button
                   :class="['btn-star', { starred: disk.favorite }]"
                   :title="disk.favorite ? 'Remove from favorites' : 'Mark as favorite'"
                   @click.stop="toggleFavorite(disk)"
                 >{{ disk.favorite ? '★' : '☆' }}</button>
-              </div>
-            </div>
-
-            <div class="dc-usage">
-              <div class="dc-usage-row">
-                <span class="dc-usage-label">USAGE</span>
-                <span class="dc-usage-nums">
-                  <strong :style="{ color: usageColor(usedPct(disk)) }">{{ usedPct(disk) }}%</strong>
-                  · {{ fmtBytes(disk.used) }} / {{ fmtBytes(disk.size) }}
-                </span>
-              </div>
-              <div class="usage-bar">
-                <div
-                  class="usage-bar-fill"
-                  :style="{ width: usedPct(disk) + '%', background: usageColor(usedPct(disk)) }"
-                />
               </div>
             </div>
           </div>
@@ -140,51 +160,69 @@
               </div>
               <div class="detail-dev">{{ selectedDisk.dev }} · {{ selectedDisk.model }} · {{ selectedDisk.interface }}</div>
               <div class="detail-actions">
-                <!-- Mount / Unmount -->
-                <Button
-                  v-if="selectedDisk.status === 'mounted'"
-                  :icon="isLocked(selectedDisk) ? 'pi pi-lock' : 'pi pi-eject'"
-                  label="Unmount"
-                  size="small"
-                  severity="secondary"
-                  :loading="actioning"
-                  @click="toggleMount(selectedDisk)"
-                />
-                <Button
-                  v-else
-                  icon="pi pi-arrow-up"
-                  label="Mount"
-                  size="small"
-                  :loading="actioning"
-                  @click="toggleMount(selectedDisk)"
-                />
-                <!-- Open in Files -->
-                <Button
-                  v-if="selectedDisk.mount"
-                  icon="pi pi-folder-open"
-                  label="Open in Files"
-                  size="small"
-                  severity="secondary"
-                  @click="goToFiles(selectedDisk.mount)"
-                />
-                <!-- Rename -->
-                <Button
-                  icon="pi pi-pencil"
-                  label="Rename"
-                  size="small"
-                  severity="secondary"
-                  @click="startEdit(null, selectedDisk)"
-                />
-                <!-- Format -->
-                <Button
-                  :icon="isLocked(selectedDisk) ? 'pi pi-lock' : 'pi pi-trash'"
-                  label="Format"
-                  size="small"
-                  severity="danger"
-                  :style="isLocked(selectedDisk) ? 'opacity:0.4;cursor:not-allowed;' : ''"
-                  outlined
-                  @click="confirmFormat(selectedDisk)"
-                />
+
+                <!-- State group: mount / unmount -->
+                <div class="action-group">
+                  <span class="action-group-label">STATE</span>
+                  <div class="action-group-buttons">
+                    <Button
+                      v-if="selectedDisk.status === 'mounted'"
+                      :icon="isLocked(selectedDisk) ? 'pi pi-lock' : 'pi pi-eject'"
+                      label="Unmount"
+                      size="small"
+                      severity="secondary"
+                      :loading="actioning"
+                      @click="toggleMount(selectedDisk)"
+                    />
+                    <Button
+                      v-else
+                      icon="pi pi-arrow-up"
+                      label="Mount"
+                      size="small"
+                      :loading="actioning"
+                      @click="toggleMount(selectedDisk)"
+                    />
+                  </div>
+                </div>
+
+                <!-- Tools group: open / rename -->
+                <div class="action-group">
+                  <span class="action-group-label">TOOLS</span>
+                  <div class="action-group-buttons">
+                    <Button
+                      v-if="selectedDisk.mount"
+                      icon="pi pi-folder-open"
+                      label="Open in Files"
+                      size="small"
+                      severity="secondary"
+                      @click="goToFiles(selectedDisk.mount)"
+                    />
+                    <Button
+                      icon="pi pi-pencil"
+                      label="Rename"
+                      size="small"
+                      severity="secondary"
+                      @click="startEdit(null, selectedDisk)"
+                    />
+                  </div>
+                </div>
+
+                <!-- Danger group: format -->
+                <div class="action-group action-group--danger">
+                  <span class="action-group-label">DANGER</span>
+                  <div class="action-group-buttons">
+                    <Button
+                      :icon="isLocked(selectedDisk) ? 'pi pi-lock' : 'pi pi-trash'"
+                      label="Format"
+                      size="small"
+                      severity="danger"
+                      :style="isLocked(selectedDisk) ? 'opacity:0.4;cursor:not-allowed;' : ''"
+                      outlined
+                      @click="confirmFormat(selectedDisk)"
+                    />
+                  </div>
+                </div>
+
               </div>
             </div>
 
@@ -657,71 +695,99 @@ onMounted(async () => {
 }
 
 /* Skeleton */
-.disk-card-skeleton {
-  height: 90px;
-  border-radius: var(--radius-xl);
+.disk-row-skeleton {
+  height: 56px;
   background: var(--p-surface-hover);
-  border: 1px solid var(--p-surface-border);
+  border-bottom: 1px solid var(--p-surface-border);
   animation: shimmer 1.4s ease-in-out infinite;
 }
+.disk-row-skeleton:last-child { border-bottom: none; }
 @keyframes shimmer {
   0%, 100% { opacity: 0.5; }
   50%       { opacity: 1; }
 }
 
-/* ── Disk card ──────────────────────────────────────────────────────────────── */
-.disk-card {
-  background: var(--p-surface-card);
-  border: 1px solid var(--p-surface-border);
-  border-radius: var(--radius-xl);
-  padding: 13px 14px;
-  cursor: pointer;
-  transition: var(--transition-fast);
-}
-.disk-card:hover {
-  background: var(--p-surface-hover);
-  border-color: var(--p-surface-600, #3f3f46);
-}
-.disk-card.active {
-  background: var(--orange-tint-08);
-  border-color: var(--orange-tint-25);
-  box-shadow: 0 0 0 1px var(--orange-tint-12);
+/* ── Disk table ─────────────────────────────────────────────────────────────── */
+.disk-table {
+  flex: 1;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
 }
 
-.dc-top {
-  display: flex;
+.disk-table-head {
+  display: grid;
+  grid-template-columns: 50px 1fr 72px 120px 84px;
   align-items: center;
-  gap: 10px;
-  margin-bottom: 11px;
+  padding: 0 8px;
+  height: 32px;
+  border-bottom: 1px solid var(--p-surface-border);
+  background: color-mix(in srgb, var(--p-surface-hover) 40%, transparent);
+  flex-shrink: 0;
 }
+.disk-table-head > div {
+  font-family: var(--font-mono);
+  font-size: var(--text-2xs);
+  font-weight: 600;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  color: var(--p-text-muted-color);
+  padding: 0 6px;
+}
+
+.disk-table-body {
+  flex: 1;
+  overflow-y: auto;
+}
+
+.disk-row {
+  display: grid;
+  grid-template-columns: 50px 1fr 72px 120px 84px;
+  align-items: center;
+  padding: 0 8px;
+  min-height: 58px;
+  border-bottom: 1px solid var(--p-surface-border);
+  cursor: pointer;
+  transition: background 0.12s;
+  border-left: 2px solid transparent;
+}
+.disk-row:last-child { border-bottom: none; }
+.disk-row:hover { background: var(--p-surface-hover); }
+.disk-row.active {
+  background: var(--orange-tint-08);
+  border-left-color: var(--brand-orange);
+}
+
+.col-icon { display: flex; align-items: center; justify-content: center; padding: 0 4px; }
+.col-name { display: flex; flex-direction: column; gap: 2px; padding: 0 6px; min-width: 0; }
+.col-size { padding: 0 6px; }
+.col-usage { padding: 0 6px; display: flex; flex-direction: column; gap: 4px; }
+.col-badges { display: flex; align-items: center; justify-content: flex-end; gap: 5px; padding: 0 4px; }
 
 .disk-icon {
-  width: 38px; height: 38px;
+  width: 34px; height: 34px;
   border-radius: 8px;
   background: var(--p-surface-hover);
   border: 1px solid var(--p-surface-border);
   display: flex; align-items: center; justify-content: center;
   flex-shrink: 0;
 }
-.disk-icon .pi { font-size: 17px; color: var(--p-text-muted-color); }
-.disk-card.active .disk-icon {
+.disk-icon .pi { font-size: 15px; color: var(--p-text-muted-color); }
+.disk-row.active .disk-icon {
   background: var(--orange-tint-12);
   border-color: var(--orange-tint-30);
 }
-.disk-card.active .disk-icon .pi { color: var(--brand-orange); }
-
-.dc-info { flex: 1; min-width: 0; }
+.disk-row.active .disk-icon .pi { color: var(--brand-orange); }
 
 .dc-name-wrap {
   display: flex;
   align-items: center;
   gap: 5px;
-  margin-bottom: 2px;
 }
 
 .dc-name {
   font-family: var(--font-mono);
-  font-size: var(--text-sm);
+  font-size: var(--text-xs);
   font-weight: 600;
   color: var(--p-text-color);
   white-space: nowrap;
@@ -731,15 +797,15 @@ onMounted(async () => {
 
 .dc-name-input {
   font-family: var(--font-mono);
-  font-size: var(--text-sm);
+  font-size: var(--text-xs);
   font-weight: 600;
   color: var(--p-text-color);
   background: var(--p-surface-ground);
   border: 1px solid var(--brand-orange);
   border-radius: var(--radius-xs);
-  padding: 1px 6px;
+  padding: 2px 6px;
   outline: none;
-  width: 140px;
+  width: 130px;
 }
 
 .btn-edit {
@@ -747,27 +813,30 @@ onMounted(async () => {
   border: none;
   cursor: pointer;
   color: var(--p-text-muted-color);
-  font-size: 11px;
+  font-size: 10px;
   padding: 0;
   opacity: 0;
   transition: opacity 0.15s, color 0.15s;
   flex-shrink: 0;
 }
-.disk-card:hover .btn-edit,
-.disk-card.active .btn-edit { opacity: 1; }
+.disk-row:hover .btn-edit,
+.disk-row.active .btn-edit { opacity: 1; }
 .btn-edit:hover { color: var(--brand-orange); }
 
 .dc-dev {
   font-family: var(--font-mono);
   font-size: var(--text-2xs);
   color: var(--p-text-muted-color);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
-.dc-badges {
-  display: flex;
-  align-items: center;
-  gap: 5px;
-  flex-shrink: 0;
+.dc-size {
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  color: var(--p-text-muted-color);
+  white-space: nowrap;
 }
 
 /* Star button */
@@ -782,40 +851,37 @@ onMounted(async () => {
   transition: opacity 0.15s, color 0.15s;
   line-height: 1;
 }
-.disk-card:hover .btn-star { opacity: 1; }
+.disk-row:hover .btn-star { opacity: 1; }
 .btn-star.starred { opacity: 1; color: #eab308; }
 .btn-star.starred:hover { color: #ca8a04; }
 .btn-star:not(.starred):hover { color: var(--p-text-color); opacity: 1; }
 
 /* Usage bar */
-.dc-usage { display: flex; flex-direction: column; gap: 5px; }
 .dc-usage-row {
   display: flex;
-  align-items: center;
-  justify-content: space-between;
+  align-items: baseline;
+  gap: 5px;
 }
-.dc-usage-label {
+.dc-usage-row strong {
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  font-weight: 600;
+}
+.dc-usage-sub {
   font-family: var(--font-mono);
   font-size: var(--text-2xs);
   color: var(--p-text-muted-color);
-  letter-spacing: 1px;
 }
-.dc-usage-nums {
-  font-family: var(--font-mono);
-  font-size: var(--text-2xs);
-  color: var(--p-text-muted-color);
-}
-.dc-usage-nums strong { font-weight: 600; }
 
 .usage-bar {
-  height: 5px;
-  border-radius: 3px;
+  height: 4px;
+  border-radius: 2px;
   background: var(--p-surface-border);
   overflow: hidden;
 }
 .usage-bar-fill {
   height: 100%;
-  border-radius: 3px;
+  border-radius: 2px;
   transition: width 0.4s ease;
 }
 
@@ -892,8 +958,39 @@ onMounted(async () => {
 
 .detail-actions {
   display: flex;
-  gap: 6px;
+  align-items: flex-end;
+  gap: 0;
   flex-wrap: wrap;
+  margin-top: 10px;
+  background: var(--p-surface-ground);
+  border: 1px solid var(--p-surface-border);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+}
+
+.action-group {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 8px 12px;
+  border-right: 1px solid var(--p-surface-border);
+}
+.action-group:last-child { border-right: none; }
+.action-group--danger { margin-left: auto; }
+
+.action-group-label {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: 1.5px;
+  color: var(--p-text-muted-color);
+  opacity: 0.6;
+}
+.action-group--danger .action-group-label { color: #f87171; opacity: 0.7; }
+
+.action-group-buttons {
+  display: flex;
+  gap: 5px;
 }
 
 /* Badges */
