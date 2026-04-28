@@ -2,6 +2,30 @@
 
 ---
 
+## 2026-04-28 — Visual Contrast Fixes & Panel Header Improvements (All Views)
+
+**Description:** Systematic contrast fix across all 14 Vue views. The variable `var(--p-surface-border)` (#27272a) on `var(--p-surface-card)` (#18181b) background had only ~7% brightness difference — practically invisible. Replaced all structural separators and container borders with `var(--border-strong)` (#3f3f46) for real visible contrast. Panel/list headers upgraded to use `var(--surface-header)` (#111113) background. All page headers now consistently include `border-bottom: 2px solid var(--border-strong)`.
+
+**Files modified:**
+- `frontend/src/views/AlertsView.vue` — page-header border-bottom, summary-pill border, rule-panel border-right, list-panel-header background+border, editor-card border, editor-header background+border, form-section separator, fire-history-card border, card-header background+border, select-prompt-icon border
+- `frontend/src/views/HistoryView.vue` — page-header border-bottom added
+- `frontend/src/views/ProcessesView.vue` — page-header border-bottom, summary-pill border, search-input border
+- `frontend/src/views/SettingsView.vue` — skeleton-card border, scard border, scard-head background+border, scard-foot background+border, rfield border, field-group separator border, smtp-test-group border, tz-divider background
+- `frontend/src/views/SystemLogsView.vue` — page-header border-bottom, tail-indicator border, search-input border, file-tree border-right, list-panel-header background+border, log-header background+border, line-number gutter border
+- `frontend/src/views/CrontabView.vue` — added page-header section to template, list-panel border-right, list-panel-header background+border, editor-toolbar background+border, step-nav border, step-footer border, preset-card border, special-card border, field-card border, fav-card border, review-card+review-row border, filter-pills border, cmd-tabs border, pipeline-select-card border, pipeline-cmd-preview border
+- `frontend/src/views/PipelinesView.vue` — list-panel border-right, list-panel-header background+border (surface-header), editor-toolbar background+border, editor-description border, steps-header background+border, step-card border, flow-panel border-left, flow-section border, run-detail-summary border, step-run-card border, step-run-output border
+- `frontend/src/views/ServicesView.vue` — list-panel border-right, panel-header background+border, search-bar border, search-input border, state-pills border, col-headers border, action-bar background+border, status-block border
+- `frontend/src/views/ScriptsView.vue` — list-panel border-right, list-panel-header background+border, prompt-bar border, detail-toolbar background+border, exec-section border, history-expansion border
+- `frontend/src/views/FilesView.vue` — tree-panel border-right, tree-panel-header background+border
+- `frontend/src/views/AdminUsersView.vue` — no structural border changes needed (uses PrimeVue Card)
+- `frontend/src/views/AdminPermissionsView.vue` — permissions-card border
+- `frontend/src/views/NetworkView.vue` — iface-card border, bps-block border, bps-sep background, history-cta border, search-input border, config-section-label border
+- `frontend/src/views/DashboardView.vue` — history-cta border
+
+**Build:** `npm run build` passes without errors (✓ 447 modules, 5.06s).
+
+---
+
 ## 2026-04-16 — Alerts, System Logs & Process Manager
 
 **Description:** Three new features implemented via TDD plan (13 tasks).
