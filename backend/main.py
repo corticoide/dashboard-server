@@ -25,6 +25,7 @@ from backend.routers.pipelines import router as pipelines_router
 from backend.routers.alerts import router as alerts_router
 from backend.routers.system_logs import router as system_logs_router
 from backend.routers.processes import router as processes_router
+from backend.routers.settings import router as settings_router
 from backend.config import settings
 from backend.database import engine, Base
 from backend.core.logging import init_logging
@@ -35,7 +36,8 @@ import backend.models.metrics_snapshot  # ensure metrics_snapshots table is regi
 import backend.models.permission  # ensure permissions table is registered  # noqa: F401
 import backend.models.network_snapshot  # ensure network_snapshots table is registered  # noqa: F401
 import backend.models.pipeline  # ensure pipeline tables are registered  # noqa: F401
-import backend.models.alert  # ensure alert tables are registered  # noqa: F401
+import backend.models.alert  # ensure alert tables are registered
+import backend.models.system_setting  # ensure system_settings table is registered  # noqa: F401  # noqa: F401
 
 init_logging()
 
@@ -116,6 +118,7 @@ app.include_router(pipelines_router)
 app.include_router(alerts_router)
 app.include_router(system_logs_router)
 app.include_router(processes_router)
+app.include_router(settings_router)
 
 # Serve Vue SPA (built files)
 static_dir = os.path.join(os.path.dirname(__file__), "static")

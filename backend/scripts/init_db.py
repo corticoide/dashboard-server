@@ -3,6 +3,7 @@ from backend.database import engine, Base, SessionLocal
 from backend.models.user import User, UserRole
 from backend.models.permission import Permission
 from backend.services.auth_service import hash_password
+from backend.services.settings_service import seed_defaults
 from backend.config import settings
 import backend.models  # ensure models are registered
 
@@ -60,6 +61,7 @@ def init():
     else:
         print(f"Admin user '{settings.admin_username}' already exists.")
     seed_permissions(db)
+    seed_defaults(db)
     db.close()
 
 if __name__ == "__main__":

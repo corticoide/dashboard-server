@@ -1,4 +1,5 @@
 from backend.models.user import User
+from backend.models.system_setting import SystemSetting  # noqa: F401
 from backend.models.alert import AlertRule, AlertFire  # noqa: F401
 from backend.models.metrics_snapshot import MetricsSnapshot  # noqa: F401
 from backend.models.network_snapshot import NetworkSnapshot  # noqa: F401

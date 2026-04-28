@@ -33,10 +33,11 @@ def _do_vacuum(db_path: str) -> None:
 def _cleanup_job() -> None:
     """APScheduler job: daily log retention cleanup."""
     from backend.database import SessionLocal
-    from backend.config import settings
+    from backend.services.settings_service import get_setting
     db = SessionLocal()
     try:
-        _do_cleanup(db, settings.log_retention_days)
+        retention_days = int(get_setting(db, "log_retention_days", "30"))
+        _do_cleanup(db, retention_days)
     except Exception:
         logger.exception("Log retention cleanup failed")
     finally:
@@ -96,10 +97,11 @@ def _metrics_sample_job() -> None:
 def _metrics_cleanup_job() -> None:
     """APScheduler job: daily metrics retention cleanup at 2:15 AM."""
     from backend.database import SessionLocal
-    from backend.config import settings
+    from backend.services.settings_service import get_setting
     db = SessionLocal()
     try:
-        _do_metrics_cleanup(db, settings.metrics_retention_days)
+        retention_days = int(get_setting(db, "metrics_retention_days", "30"))
+        _do_metrics_cleanup(db, retention_days)
     except Exception:
         logger.exception("Metrics cleanup job failed")
     finally:
@@ -161,12 +163,40 @@ def _network_sample_job() -> None:
 def _network_cleanup_job() -> None:
     """APScheduler job: daily network snapshot retention cleanup."""
     from backend.database import SessionLocal
-    from backend.config import settings
+    from backend.services.settings_service import get_setting
     db = SessionLocal()
     try:
-        _do_network_cleanup(db, settings.network_retention_days)
+        retention_days = int(get_setting(db, "network_retention_days", "30"))
+        _do_network_cleanup(db, retention_days)
     except Exception:
         logger.exception("Network cleanup job failed")
+    finally:
+        db.close()
+
+
+def _do_alerts_cleanup(db: Session, retention_days: int) -> int:
+    """Delete resolved/recovered alert fires older than retention_days. Returns count deleted."""
+    from backend.models.alert import AlertFire
+    cutoff = datetime.utcnow() - timedelta(days=retention_days)
+    deleted = db.query(AlertFire).filter(
+        AlertFire.fired_at < cutoff,
+        AlertFire.status != "active",
+    ).delete(synchronize_session=False)
+    db.commit()
+    logger.info("Alerts cleanup: deleted %d fire record(s) older than %d days", deleted, retention_days)
+    return deleted
+
+
+def _alerts_cleanup_job() -> None:
+    """APScheduler job: daily alert fire history cleanup at 2:45 AM."""
+    from backend.database import SessionLocal
+    from backend.services.settings_service import get_setting
+    db = SessionLocal()
+    try:
+        retention_days = int(get_setting(db, "alerts_retention_days", "90"))
+        _do_alerts_cleanup(db, retention_days)
+    except Exception:
+        logger.exception("Alerts cleanup job failed")
     finally:
         db.close()
 
@@ -310,6 +340,7 @@ def init_scheduler():
     _scheduler.add_job(_network_sample_job, IntervalTrigger(seconds=60), id="network_sample")
     _scheduler.add_job(_network_cleanup_job, CronTrigger(hour=2, minute=30), id="network_cleanup")
     _scheduler.add_job(_check_alerts_job, IntervalTrigger(seconds=60), id="check_alerts")
+    _scheduler.add_job(_alerts_cleanup_job, CronTrigger(hour=2, minute=45), id="alerts_cleanup")
     _scheduler.start()
     logger.info("Background scheduler started")
 

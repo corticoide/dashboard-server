@@ -69,6 +69,7 @@ const PAGE_ICONS = {
   Scripts:   'pi-code',
   Crontab:   'pi-clock',
   Logs:      'pi-list',
+  Settings:  'pi-sliders-h',
 }
 const pageIcon = computed(() => PAGE_ICONS[props.pageTitle] || 'pi-home')
 const initial  = computed(() => auth.username?.charAt(0).toUpperCase() || '?')
