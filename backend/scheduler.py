@@ -201,6 +201,25 @@ def _alerts_cleanup_job() -> None:
         db.close()
 
 
+def _disk_io_job() -> None:
+    """APScheduler job: sample /proc/diskstats every 5 s for IO rate cache."""
+    try:
+        from backend.services.disk_service import sample_disk_io
+        sample_disk_io()
+    except Exception:
+        logger.exception("Disk IO sampling failed")
+
+
+def _disk_smart_job() -> None:
+    """APScheduler job: refresh SMART data for all disks every 5 min."""
+    try:
+        from backend.services.disk_service import list_dev_names, sample_smart_all
+        devs = list_dev_names()
+        sample_smart_all(devs)
+    except Exception:
+        logger.exception("Disk SMART sampling failed")
+
+
 def _evaluate_condition(rule, db) -> tuple[bool, str]:
     """Evaluate one alert rule. Returns (condition_met, detail_string)."""
     if rule.condition_type in ("cpu", "ram", "disk"):
@@ -341,6 +360,8 @@ def init_scheduler():
     _scheduler.add_job(_network_cleanup_job, CronTrigger(hour=2, minute=30), id="network_cleanup")
     _scheduler.add_job(_check_alerts_job, IntervalTrigger(seconds=60), id="check_alerts")
     _scheduler.add_job(_alerts_cleanup_job, CronTrigger(hour=2, minute=45), id="alerts_cleanup")
+    _scheduler.add_job(_disk_io_job, IntervalTrigger(seconds=5), id="disk_io")
+    _scheduler.add_job(_disk_smart_job, IntervalTrigger(seconds=300), id="disk_smart")
     _scheduler.start()
     logger.info("Background scheduler started")
 

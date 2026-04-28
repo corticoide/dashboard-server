@@ -80,7 +80,7 @@ const monitorItems = computed(() => {
     { to: '/network',    icon: 'pi-wifi',      label: 'Network',   resource: 'network' },
     { to: '/history',   icon: 'pi-chart-bar', label: 'History',   resource: 'system'  },
     { to: '/processes', icon: 'pi-server',    label: 'Processes', resource: 'processes' },
-    { to: '/disks',     icon: 'pi-database',  label: 'Disks',     resource: 'system' },
+    { to: '/disks',     icon: 'pi-database',  label: 'Disks',     resource: 'disks' },
   ]
   return items.filter(i => auth.hasPermission(i.resource, 'read'))
 })

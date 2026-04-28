@@ -21,6 +21,7 @@ DEFAULT_PERMISSIONS = {
         ("alerts",      "read"),  ("alerts",      "write"),
         ("system_logs", "read"),
         ("processes",   "read"),  ("processes",   "execute"),
+        ("disks",       "read"),  ("disks",       "write"),
     ],
     UserRole.readonly: [
         ("system",      "read"),
@@ -34,6 +35,7 @@ DEFAULT_PERMISSIONS = {
         ("alerts",      "read"),
         ("system_logs", "read"),
         ("processes",   "read"),
+        ("disks",       "read"),
     ],
 }
 

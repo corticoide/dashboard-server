@@ -104,6 +104,8 @@ const MATRIX_ROWS = [
   { resource: 'system_logs', action: 'read' },
   { resource: 'processes',   action: 'read' },
   { resource: 'processes',   action: 'execute' },
+  { resource: 'disks',       action: 'read' },
+  { resource: 'disks',       action: 'write' },
   { resource: 'users',       action: 'read' },
   { resource: 'users',     action: 'write' },
   { resource: 'users',     action: 'delete' },
