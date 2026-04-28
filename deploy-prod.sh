@@ -28,6 +28,17 @@ done
 
 echo "==> ServerDash production deploy"
 
+# --- System: udisks2 (disk management daemon) ---
+if ! command -v udisksctl &>/dev/null; then
+  echo "--> Installing udisks2..."
+  if   command -v apt-get &>/dev/null; then sudo apt-get install -y udisks2
+  elif command -v dnf     &>/dev/null; then sudo dnf install -y udisks2
+  elif command -v yum     &>/dev/null; then sudo yum install -y udisks2
+  elif command -v pacman  &>/dev/null; then sudo pacman -Sy --noconfirm udisks2
+  elif command -v zypper  &>/dev/null; then sudo zypper install -y udisks2
+  else echo "WARNING: Cannot auto-install udisks2. Install it manually."; fi
+fi
+
 # --- Python venv ---
 if [ ! -d ".venv" ]; then
   echo "--> Creating Python virtual environment..."

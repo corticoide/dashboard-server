@@ -63,6 +63,19 @@ if ! command -v curl &>/dev/null; then
   esac
 fi
 
+# --- System: udisks2 (disk management daemon) ---
+if ! command -v udisksctl &>/dev/null; then
+  echo "--> Installing udisks2..."
+  case "$PM" in
+    apt)    pkg_install udisks2 ;;
+    dnf|yum) pkg_install udisks2 ;;
+    pacman) pkg_install udisks2 ;;
+    zypper) pkg_install udisks2 ;;
+    apk)    pkg_install udisks2 ;;
+    *)      echo "WARNING: Cannot auto-install udisks2. Install it manually."; ;;
+  esac
+fi
+
 # --- System: Python 3 + build deps for native extensions ---
 if ! command -v python3 &>/dev/null; then
   echo "--> Installing Python 3..."

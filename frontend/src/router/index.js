@@ -17,6 +17,7 @@ const routes = [
   { path: '/alerts',            component: () => import('../views/AlertsView.vue'),             meta: { requiresAuth: true, title: 'Alerts',          resource: 'alerts' } },
   { path: '/logs',              component: () => import('../views/SystemLogsView.vue'),         meta: { requiresAuth: true, title: 'System Logs',     resource: 'system_logs' } },
   { path: '/processes',         component: () => import('../views/ProcessesView.vue'),          meta: { requiresAuth: true, title: 'Processes',       resource: 'processes' } },
+  { path: '/disks',             component: () => import('../views/DisksView.vue'),               meta: { requiresAuth: true, title: 'Disks',            resource: 'system' } },
   { path: '/settings',          component: () => import('../views/SettingsView.vue'),            meta: { requiresAuth: true, title: 'Settings',         adminOnly: true } },
   { path: '/:pathMatch(.*)*',   redirect: '/' },
 ]
